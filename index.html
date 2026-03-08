@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Семейное древо</title>
+    <link rel="stylesheet" href="./styles.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/vis-network@9.1.9/styles/vis-network.min.css"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>Семейное древо</h1>
+        <p class="subtitle">Статический сайт для GitHub Pages, потому что серверы любят усложнять жизнь.</p>
+      </div>
+      <div class="toolbar">
+        <input id="searchInput" type="search" placeholder="Поиск по имени или ID" />
+        <button id="fitButton" type="button">Показать всё дерево</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="graph-panel">
+        <div id="loadingState" class="state">Загрузка данных...</div>
+        <div id="graph"></div>
+      </section>
+
+      <aside class="details-panel" id="detailsPanel">
+        <div class="details-empty" id="detailsEmpty">
+          Выберите человека на графе. Люди всё-таки зачем-то оставляют после себя данные.
+        </div>
+        <div class="details-content hidden" id="detailsContent">
+          <div class="details-header">
+            <div>
+              <h2 id="personTitle"></h2>
+              <div id="personSubtitle" class="person-subtitle"></div>
+            </div>
+          </div>
+          <div id="personBody"></div>
+        </div>
+      </aside>
+    </main>
+
+    <template id="fieldTemplate">
+      <section class="field-block">
+        <h3 class="field-title"></h3>
+        <div class="field-value"></div>
+      </section>
+    </template>
+
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>
