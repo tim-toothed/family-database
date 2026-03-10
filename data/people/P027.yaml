@@ -32,12 +32,8 @@ spouses:
 children:
   - person_id: P030
     relation_type: "биологический"
-    birth_date: "15.06.1950"
-    second_parent_id: P029
   - person_id: P031
     relation_type: "биологический"
-    birth_date: "07.04.1955"
-    second_parent_id: P029
 
 education:
   - education_info: "Школа, 10 классов"

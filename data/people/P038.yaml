@@ -39,20 +39,12 @@ spouses:
 children:
   - person_id: P040
     relation_type: "биологический"
-    birth_date: "DD.MM.1920"
-    second_parent_id: P037
   - person_id: P029
     relation_type: "биологический"
-    birth_date: "26.01.1926"
-    second_parent_id: P037
   - person_id: P044
     relation_type: "биологический"
-    birth_date: "DD.MM.1928"
-    second_parent_id: P037
   - person_id: P045
     relation_type: "биологический"
-    birth_date: "DD.MM.1930"
-    second_parent_id: P037
 
 profession:
   - title: "ткачиха"

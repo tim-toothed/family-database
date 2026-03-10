@@ -1,0 +1,35 @@
+id: P020
+
+birth_name: "Богданов Иван Владимирович"
+
+sex: "м"
+
+birth:
+  date: "???"
+
+death:
+  date: "???"
+
+siblings:
+  - person_id: P019
+    relation_type: "биологический"
+
+spouses:
+  - person_id: P054
+    marriage_date: "???"
+
+children:
+  - person_id: P021
+    relation_type: "биологический"
+  - person_id: P022
+    relation_type: "биологический"
+
+profession:
+  - title: "Моряк или служил на флоте (судя по фото)."
+
+military:
+  military_service:
+    - service_info: "Моряк или служил на флоте (судя по фото)."
+
+sources:
+  - source: "Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)"

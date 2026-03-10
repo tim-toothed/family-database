@@ -14,6 +14,9 @@ birth:
   date_raw: "7 апреля 1955 года"
   place: "г. Ленинград"
 
+death:
+  date: null
+
 parents:
   - person_id: P027
     type: "отец"
@@ -31,12 +34,8 @@ spouses:
 children:
   - person_id: P046
     relation_type: "биологический"
-    birth_date: "20.09.1977"
-    second_parent_id: P016
   - person_id: P047
     relation_type: "биологический"
-    birth_date: "18.08.1981"
-    second_parent_id: P016
 
 education:
   - education_info: "Высшее ___(?) ___(?), хотела на факультет кибернетики, но прошла на (???)"

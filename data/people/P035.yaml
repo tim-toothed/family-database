@@ -1,0 +1,18 @@
+id: P035
+
+birth_name: "Богданов Тимофей ???"
+
+sex: "м"
+
+birth:
+  date: "???"
+
+death:
+  date: "???"
+
+parents:
+  - person_id: P034
+    relation_type: "мать"
+
+sources:
+  - source: "Семейные заметки, стр. 7-9, 31-33 (записи Евгении Викторовны Шарифуллиной)"

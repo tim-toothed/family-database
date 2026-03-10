@@ -1,0 +1,30 @@
+id: P017
+
+birth_name: "Пустовая? Людмила Васильевна"
+
+sex: "ж"
+
+birth:
+  date: "DD.MM.1936"
+  date_raw: "1936 год"
+  place: "г. Ленинград"
+
+death:
+  date: "???"
+
+spouses:
+  - person_id: P016
+    marriage_date: "DD.MM.1964"
+    divorce_date: "DD.MM.1966"
+
+profession:
+  - title: "инженер"
+
+job_places:
+  - job: "старший инженер, завод «Арсенал», г. Ленинград"
+
+residences:
+  - residence_info: "г. Ленинград, пр. Металлистов, д.76, кв.343"
+
+sources:
+  - source: "Семейные заметки, стр. 18-20 (записи Евгении Викторовны Шарифуллиной)"

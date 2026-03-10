@@ -15,6 +15,10 @@ const fitButton = document.getElementById('fitButton');
 let dataset;
 let network;
 
+function hideLoading() {
+  loadingState.style.display = 'none';
+}
+
 function showPerson(personId) {
   const result = renderPersonDetails(personId, dataset);
   if (!result) return;
@@ -24,10 +28,14 @@ function showPerson(personId) {
   personTitle.textContent = result.title;
   personSubtitle.textContent = result.subtitle;
   personBody.innerHTML = result.html;
+
   bindPersonLinks(personBody, (linkedId) => {
     showPerson(linkedId);
-    network.selectNodes([linkedId]);
-    network.focus(linkedId, { scale: 1.1, animation: true });
+
+    if (network) {
+      network.selectNodes([linkedId]);
+      network.focus(linkedId, { scale: 1.1, animation: true });
+    }
   });
 }
 
@@ -46,13 +54,17 @@ function setupSearch() {
       return id.toLowerCase() === query || name.toLowerCase().includes(query);
     });
 
-    if (match) {
-      const [personId] = match;
+    if (!match) return;
+
+    const [personId] = match;
+
+    if (network) {
       network.selectNodes([personId]);
       network.focus(personId, { scale: 1.15, animation: true });
-      if (dataset.availableIds.has(personId)) {
-        showPerson(personId);
-      }
+    }
+
+    if (dataset.availableIds.has(personId)) {
+      showPerson(personId);
     }
   });
 }
@@ -61,22 +73,36 @@ async function init() {
   try {
     dataset = await loadDataset();
     const graphData = buildGraph(dataset);
+
     network = createNetwork(graphContainer, graphData, (personId) => {
       if (dataset.availableIds.has(personId)) {
         showPerson(personId);
       }
     });
 
-    network.once('stabilizationIterationsDone', () => {
-      loadingState.style.display = 'none';
-      network.fit({ animation: true });
+    // Для иерархического графа с physics: false событие stabilizationIterationsDone
+    // может не сработать никогда. Поэтому скрываем загрузку сразу после создания сети,
+    // а fit делаем на следующем кадре, когда DOM уже успел отрисоваться.
+    hideLoading();
+
+    requestAnimationFrame(() => {
+      if (network) {
+        network.fit({ animation: true });
+      }
     });
 
-    fitButton.addEventListener('click', () => network.fit({ animation: true }));
+    fitButton.addEventListener('click', () => {
+      if (network) {
+        network.fit({ animation: true });
+      }
+    });
+
     setupSearch();
   } catch (error) {
     console.error(error);
-    showError(`Не удалось собрать сайт из YAML. Проверьте пути к people_index.yaml и папке data/people.\n\n${error.message}`);
+    showError(
+      `Не удалось собрать сайт из YAML. Проверьте пути к people_index.yaml и папке data/people.\n\n${error.message}`
+    );
   }
 }
 

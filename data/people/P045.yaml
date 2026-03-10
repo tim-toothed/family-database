@@ -48,8 +48,6 @@ spouses:
 children:
   - person_id: "???"
     relation_type: "сводный"
-    birth_date: "???"
-    second_parent_id: P051
 
 education:
   - education_info: "Школа (точное количество классов неизвестно)"

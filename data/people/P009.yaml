@@ -1,0 +1,20 @@
+id: P009
+
+birth_name: "Смирнов Борис Яковлевич"
+
+sex: "м"
+
+birth:
+  date: "???"
+
+death:
+  date: "???"
+
+parents:
+  - person_id: P007
+    relation_type: "отец"
+  - person_id: P008
+    relation_type: "мать"
+
+sources:
+  - source: "Семейные заметки, стр. 1-3 (записи Евгении Викторовны Шарифуллиной)"

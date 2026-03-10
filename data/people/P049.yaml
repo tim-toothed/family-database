@@ -1,0 +1,19 @@
+id: P049
+
+birth_name: "Шарифуллин Тимур Маратович"
+
+sex: "м"
+
+birth:
+  date: "06.01.2002"
+  date_raw: "06.01.2002"
+  place: "г. Всеволожск"
+
+death:
+  date: null
+
+parents:
+  - person_id: P048
+    relation_type: "отец"
+  - person_id: P046
+    relation_type: "мать"

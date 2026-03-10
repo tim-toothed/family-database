@@ -36,12 +36,8 @@ spouses:
 children:
   - person_id: P042
     relation_type: "биологический"
-    birth_date: "???"
-    second_parent_id: P041
   - person_id: P043
     relation_type: "биологический"
-    birth_date: "???"
-    second_parent_id: P041
 
 military:
   military_service:

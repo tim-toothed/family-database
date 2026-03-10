@@ -41,12 +41,8 @@ spouses:
 children:
   - person_id: P046
     relation_type: "биологический"
-    birth_date: "20.09.1977"
-    second_parent_id: P031
   - person_id: P047
     relation_type: "биологический"
-    birth_date: "18.08.1981"
-    second_parent_id: P031
 
 education:
   - education_info: "1947-1958. Школа №203 им. Грибоедова (ул. Кирочная, д.8). В 10 классе в феврале ушел из школы."
