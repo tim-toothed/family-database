@@ -12,6 +12,51 @@
       rel="stylesheet"
       href="https://unpkg.com/vis-network@9.1.9/styles/vis-network.min.css"
     />
+    <style>
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .toolbar input,
+      .toolbar button {
+        min-height: 38px;
+      }
+
+      .toolbar input {
+        min-width: 220px;
+      }
+
+      .graph-panel {
+        position: relative;
+      }
+
+      #graph {
+        min-height: 72vh;
+      }
+
+      .mode-hint {
+        font-size: 0.9rem;
+        opacity: 0.8;
+        white-space: nowrap;
+      }
+
+      .inspect-button {
+        position: absolute;
+        z-index: 5;
+        width: 26px;
+        height: 26px;
+        border: 1px solid #cbd5e1;
+        border-radius: 999px;
+        background: #ffffff;
+        box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+      }
+    </style>
   </head>
   <body>
     <header class="topbar">
@@ -21,7 +66,11 @@
       </div>
       <div class="toolbar">
         <input id="searchInput" type="search" placeholder="Поиск по имени или ID" />
-        <button id="fitButton" type="button">Показать всё дерево</button>
+        <input id="rootPersonInput" type="search" list="rootPersonOptions" placeholder="От кого строить дерево" />
+        <datalist id="rootPersonOptions"></datalist>
+        <button id="buildTreeButton" type="button">Построить дерево</button>
+        <button id="fitButton" type="button">Показать всё</button>
+        <span id="modeHint" class="mode-hint"></span>
       </div>
     </header>
 
@@ -29,6 +78,7 @@
       <section class="graph-panel">
         <div id="loadingState" class="state">Загрузка данных...</div>
         <div id="graph"></div>
+        <button id="inspectButton" class="inspect-button" type="button" hidden>⌕</button>
       </section>
 
       <aside class="details-panel" id="detailsPanel">

@@ -10,19 +10,35 @@ const personTitle = document.getElementById('personTitle');
 const personSubtitle = document.getElementById('personSubtitle');
 const personBody = document.getElementById('personBody');
 const searchInput = document.getElementById('searchInput');
+const rootPersonInput = document.getElementById('rootPersonInput');
+const rootPersonOptions = document.getElementById('rootPersonOptions');
+const buildTreeButton = document.getElementById('buildTreeButton');
 const fitButton = document.getElementById('fitButton');
+const modeHint = document.getElementById('modeHint');
+const inspectButton = document.getElementById('inspectButton');
 
 let dataset;
 let network;
+let selectedPersonId = null;
+let currentRootId = null;
+let currentMode = 'main';
+let currentFocusId = null;
+
+function isVirtualNode(personId) {
+  return !personId || personId.startsWith('junction:') || personId.startsWith('unknown:');
+}
 
 function hideLoading() {
   loadingState.style.display = 'none';
 }
 
 function showPerson(personId) {
+  if (!personId || isVirtualNode(personId)) return;
+
   const result = renderPersonDetails(personId, dataset);
   if (!result) return;
 
+  selectedPersonId = personId;
   detailsEmpty.classList.add('hidden');
   detailsContent.classList.remove('hidden');
   personTitle.textContent = result.title;
@@ -30,66 +46,190 @@ function showPerson(personId) {
   personBody.innerHTML = result.html;
 
   bindPersonLinks(personBody, (linkedId) => {
+    selectAndFocus(linkedId, 1.1);
     showPerson(linkedId);
-
-    if (network) {
-      network.selectNodes([linkedId]);
-      network.focus(linkedId, { scale: 1.1, animation: true });
-    }
   });
+
+  updateInspectButton();
 }
 
 function showError(message) {
   loadingState.innerHTML = `<div class="error-box">${message}</div>`;
 }
 
+function findPersonId(query) {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const exact = Array.from(dataset.indexById.keys()).find((id) => id.toLowerCase() === normalized);
+  if (exact) return exact;
+
+  const found = Array.from(dataset.indexById.entries()).find(([id, name]) => {
+    return name.toLowerCase().includes(normalized) || `${id} ${name}`.toLowerCase().includes(normalized);
+  });
+
+  return found?.[0] || null;
+}
+
+function selectAndFocus(personId, scale = 1.05) {
+  if (!personId || !network || isVirtualNode(personId)) return;
+  network.selectNodes([personId]);
+  network.focus(personId, { scale, animation: true });
+  selectedPersonId = personId;
+  updateInspectButton();
+}
+
+function populateRootSuggestions() {
+  const options = Array.from(dataset.indexById.entries())
+    .sort((a, b) => a[1].localeCompare(b[1], 'ru'))
+    .map(([id, name]) => `<option value="${id}">${name}</option><option value="${name}">${id}</option>`)
+    .join('');
+
+  rootPersonOptions.innerHTML = options;
+}
+
+function updateModeHint() {
+  if (currentMode === 'focused') {
+    const name = dataset.indexById.get(currentFocusId) || currentFocusId;
+    modeHint.textContent = `Фокус: ${name}`;
+    return;
+  }
+
+  const name = dataset.indexById.get(currentRootId) || currentRootId;
+  modeHint.textContent = `Основное дерево от ${name}`;
+}
+
+function renderGraph() {
+  const graphData = buildGraph(dataset, {
+    mode: currentMode,
+    rootId: currentRootId,
+    focusNodeId: currentFocusId,
+  });
+
+  if (network) {
+    network.destroy();
+  }
+
+  network = createNetwork(graphContainer, graphData, {
+    onSelect(personId) {
+      if (isVirtualNode(personId)) {
+        selectedPersonId = null;
+        updateInspectButton();
+        return;
+      }
+
+      showPerson(personId);
+      selectedPersonId = personId;
+      updateInspectButton();
+    },
+    onViewportChanged() {
+      updateInspectButton();
+    },
+  });
+
+  requestAnimationFrame(() => {
+    network.fit({ animation: true });
+    const targetId = currentMode === 'focused' ? currentFocusId : currentRootId;
+    if (targetId && !isVirtualNode(targetId)) {
+      selectedPersonId = targetId;
+      network.selectNodes([targetId]);
+      updateInspectButton();
+    }
+  });
+
+  updateModeHint();
+}
+
+function setMainView(rootId) {
+  currentRootId = rootId;
+  currentMode = 'main';
+  currentFocusId = null;
+  rootPersonInput.value = rootId;
+  renderGraph();
+  showPerson(rootId);
+}
+
+function setFocusedView(personId) {
+  if (isVirtualNode(personId)) return;
+  currentMode = 'focused';
+  currentFocusId = personId;
+  renderGraph();
+  showPerson(personId);
+}
+
+function toggleInspect() {
+  const targetId = selectedPersonId || currentFocusId || currentRootId;
+  if (!targetId || isVirtualNode(targetId)) return;
+
+  if (currentMode === 'focused' && targetId === currentFocusId) {
+    setMainView(currentRootId);
+    return;
+  }
+
+  setFocusedView(targetId);
+}
+
+function updateInspectButton() {
+  if (!network || !selectedPersonId || isVirtualNode(selectedPersonId)) {
+    inspectButton.hidden = true;
+    return;
+  }
+
+  const position = network.getPositions([selectedPersonId])[selectedPersonId];
+  if (!position) {
+    inspectButton.hidden = true;
+    return;
+  }
+
+  const box = network.getBoundingBox(selectedPersonId);
+  const topRight = network.canvasToDOM({ x: box.right, y: box.top });
+
+  inspectButton.hidden = false;
+  inspectButton.style.left = `${topRight.x - 24}px`;
+  inspectButton.style.top = `${topRight.y + 8}px`;
+  inspectButton.title = currentMode === 'focused' && selectedPersonId === currentFocusId
+    ? 'Вернуться к основному дереву'
+    : 'Показать связи этого человека';
+}
+
 function setupSearch() {
   searchInput.addEventListener('keydown', (event) => {
     if (event.key !== 'Enter') return;
 
-    const query = searchInput.value.trim().toLowerCase();
-    if (!query) return;
+    const personId = findPersonId(searchInput.value);
+    if (!personId) return;
 
-    const match = Array.from(dataset.indexById.entries()).find(([id, name]) => {
-      return id.toLowerCase() === query || name.toLowerCase().includes(query);
-    });
-
-    if (!match) return;
-
-    const [personId] = match;
-
-    if (network) {
-      network.selectNodes([personId]);
-      network.focus(personId, { scale: 1.15, animation: true });
+    if (currentMode === 'main') {
+      selectAndFocus(personId, 1.1);
+    } else {
+      setFocusedView(personId);
     }
 
-    if (dataset.availableIds.has(personId)) {
-      showPerson(personId);
-    }
+    showPerson(personId);
+  });
+}
+
+function setupRootSelector() {
+  const buildTree = () => {
+    const personId = findPersonId(rootPersonInput.value);
+    if (!personId) return;
+    setMainView(personId);
+  };
+
+  buildTreeButton.addEventListener('click', buildTree);
+  rootPersonInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') buildTree();
   });
 }
 
 async function init() {
   try {
     dataset = await loadDataset();
-    const graphData = buildGraph(dataset);
+    currentRootId = dataset.indexById.has('P049') ? 'P049' : dataset.indexById.keys().next().value;
 
-    network = createNetwork(graphContainer, graphData, (personId) => {
-      if (dataset.availableIds.has(personId)) {
-        showPerson(personId);
-      }
-    });
-
-    // Для иерархического графа с physics: false событие stabilizationIterationsDone
-    // может не сработать никогда. Поэтому скрываем загрузку сразу после создания сети,
-    // а fit делаем на следующем кадре, когда DOM уже успел отрисоваться.
-    hideLoading();
-
-    requestAnimationFrame(() => {
-      if (network) {
-        network.fit({ animation: true });
-      }
-    });
+    populateRootSuggestions();
+    setupSearch();
+    setupRootSelector();
 
     fitButton.addEventListener('click', () => {
       if (network) {
@@ -97,7 +237,14 @@ async function init() {
       }
     });
 
-    setupSearch();
+    inspectButton.addEventListener('click', (event) => {
+      event.preventDefault();
+      toggleInspect();
+    });
+
+    renderGraph();
+    showPerson(currentRootId);
+    hideLoading();
   } catch (error) {
     console.error(error);
     showError(
