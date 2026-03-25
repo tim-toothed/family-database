@@ -74,7 +74,7 @@ body {
   grid-template-columns: 1.7fr minmax(360px, 0.9fr);
   gap: 20px;
   padding: 20px;
-  height: calc(100vh - 89px);
+  height: calc(100dvh - 89px);
 }
 
 .graph-panel,
@@ -88,12 +88,13 @@ body {
 
 .graph-panel {
   position: relative;
+  min-height: 0;
 }
 
 #graph {
   width: 100%;
   height: 100%;
-  min-height: 72vh; /* from HTML, more responsive */
+  min-height: 0;
 }
 
 .state {
@@ -214,8 +215,15 @@ body {
     height: auto;
   }
 
+  .graph-panel {
+    height: 70svh;
+    min-height: 420px;
+    max-height: 800px;
+  }
+
   #graph {
-    min-height: 540px;
+    height: 100%;
+    min-height: 0;
   }
 
   .toolbar {

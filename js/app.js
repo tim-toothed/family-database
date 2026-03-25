@@ -23,6 +23,20 @@ let currentRootId = null;
 let currentMode = 'main';
 let currentFocusId = null;
 
+function refreshNetworkLayout() {
+  if (!network) return;
+
+  network.redraw();
+  network.fit({ animation: false });
+
+  const targetId = currentMode === 'focused' ? currentFocusId : currentRootId;
+  if (targetId && !isVirtualNode(targetId)) {
+    network.selectNodes([targetId]);
+  }
+
+  updateInspectButton();
+}
+
 function isVirtualNode(personId) {
   return !personId || personId.startsWith('junction:') || personId.startsWith('unknown:');
 }
@@ -223,6 +237,14 @@ async function init() {
     renderGraph();
     showPerson(currentRootId);
     hideLoading();
+    
+    window.addEventListener('resize', refreshNetworkLayout);
+
+    window.addEventListener('orientationchange', () => {
+      setTimeout(refreshNetworkLayout, 150);
+    });
+
+    setTimeout(refreshNetworkLayout, 150);
   } catch (error) {
     console.error(error);
     showError(
