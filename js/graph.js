@@ -571,7 +571,7 @@ export function createNetwork(container, graphData, handlers = {}) {
       autoResize: true,
       interaction: {
         hover: true,
-        navigationButtons: true,
+        navigationButtons: false,
         keyboard: true,
         dragNodes: false,
         dragView: true,
