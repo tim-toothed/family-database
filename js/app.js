@@ -9,7 +9,6 @@ const detailsContent = document.getElementById('detailsContent');
 const personTitle = document.getElementById('personTitle');
 const personSubtitle = document.getElementById('personSubtitle');
 const personBody = document.getElementById('personBody');
-const searchInput = document.getElementById('searchInput');
 const rootPersonInput = document.getElementById('rootPersonInput');
 const rootPersonOptions = document.getElementById('rootPersonOptions');
 const buildTreeButton = document.getElementById('buildTreeButton');
@@ -61,14 +60,16 @@ function findPersonId(query) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return null;
 
-  const exact = Array.from(dataset.indexById.keys()).find((id) => id.toLowerCase() === normalized);
-  if (exact) return exact;
+  const exactId = Array.from(dataset.indexById.keys()).find(
+    (id) => id.toLowerCase() === normalized
+  );
+  if (exactId) return exactId;
 
-  const found = Array.from(dataset.indexById.entries()).find(([id, name]) => {
-    return name.toLowerCase().includes(normalized) || `${id} ${name}`.toLowerCase().includes(normalized);
-  });
+  const exactName = Array.from(dataset.indexById.entries()).find(
+    ([, name]) => name.toLowerCase() === normalized
+  );
 
-  return found?.[0] || null;
+  return exactName?.[0] || null;
 }
 
 function selectAndFocus(personId, scale = 1.05) {
@@ -192,22 +193,6 @@ function updateInspectButton() {
     : 'Показать связи этого человека';
 }
 
-function setupSearch() {
-  searchInput.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') return;
-
-    const personId = findPersonId(searchInput.value);
-    if (!personId) return;
-
-    if (currentMode === 'main') {
-      selectAndFocus(personId, 1.1);
-    } else {
-      setFocusedView(personId);
-    }
-
-    showPerson(personId);
-  });
-}
 
 function setupRootSelector() {
   const buildTree = () => {
@@ -228,14 +213,7 @@ async function init() {
     currentRootId = dataset.indexById.has('P049') ? 'P049' : dataset.indexById.keys().next().value;
 
     populateRootSuggestions();
-    setupSearch();
     setupRootSelector();
-
-    fitButton.addEventListener('click', () => {
-      if (network) {
-        network.fit({ animation: true });
-      }
-    });
 
     inspectButton.addEventListener('click', (event) => {
       event.preventDefault();
