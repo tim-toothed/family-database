@@ -1,5 +1,5 @@
 const EDGE_COLORS = {
-  parent: '#3b82f6',
+  parent: '#94a3b8',
   sibling: '#22c55e',
   spouse: '#ef4444',
   neutral: '#94a3b8',
@@ -165,6 +165,19 @@ function makePersonNode(dataset, id, x, y, options = {}) {
   const label = subtitle ? `${wrapped}\n${subtitle}` : wrapped;
   const fontSize = computeFontSize(name);
 
+  const sex = getSexLabel(person?.sex);
+
+  // 👇 добавляем выбор цвета
+  const genderColor = (() => {
+    if (sex === 'ж') {
+      return { background: '#ffffff', border: '#ec4899' }; // розовый
+    }
+    if (sex === 'м') {
+      return { background: '#ffffff', border: '#2f6fed' }; // синий (как сейчас)
+    }
+    return { background: '#ffffff', border: '#2f6fed' }; // fallback
+  })();
+
   return {
     id,
     label,
@@ -178,9 +191,12 @@ function makePersonNode(dataset, id, x, y, options = {}) {
     heightConstraint: { minimum: NODE.height, maximum: NODE.height },
     margin: { top: 10, right: 10, bottom: 10, left: 10 },
     borderWidth: options.borderWidth ?? 1.6,
+
     color: options.color || (isPlaceholder
       ? { background: '#f8fafc', border: '#94a3b8' }
-      : { background: '#ffffff', border: '#2f6fed' }),
+      : genderColor
+    ),
+
     font: {
       face: 'Inter, system-ui, sans-serif',
       size: fontSize,
