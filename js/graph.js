@@ -131,11 +131,36 @@ function computeFontSize(label) {
   return NODE.baseFontSize;
 }
 
+function extractYear(value) {
+  if (value == null) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  const match = text.match(/(\d{4})/);
+  return match ? match[1] : '???';
+}
+
+function getLifeYears(person) {
+  if (!person) return '';
+
+  const birthDate = person?.birth?.date;
+  const deathDate = person?.death?.date;
+
+  const birthYear = extractYear(birthDate) ?? '???';
+
+  // жив: death.date === null
+  if (deathDate === null) {
+    return birthYear;
+  }
+
+  const deathYear = extractYear(deathDate) ?? '???';
+  return `${birthYear}-${deathYear}`;
+}
+
 function makePersonNode(dataset, id, x, y, options = {}) {
   const isPlaceholder = options.isPlaceholder || String(id).startsWith('unknown:');
   const name = isPlaceholder ? 'Неизвестно' : personName(dataset, id);
   const person = isPlaceholder ? null : dataset.people.get(id);
-  const subtitle = options.hideSubtitle || isPlaceholder ? '' : (person?.birth?.date || id);
+  const subtitle = options.hideSubtitle || isPlaceholder ? '' : getLifeYears(person);
   const wrapped = wrapText(name);
   const label = subtitle ? `${wrapped}\n${subtitle}` : wrapped;
   const fontSize = computeFontSize(name);
