@@ -221,13 +221,13 @@ function makeJunctionNode(id, x, y) {
     y,
     physics: false,
     fixed: true,
-    shape: 'dot',
-    size: 2,
+    shape: 'square',
+    size: 1,
     color: {
-      background: '#64748b',
-      border: '#64748b',
-      highlight: '#64748b',
-      hover: '#64748b',
+      background: '#94a3b8',
+      border: '#94a3b8',
+      highlight: '#94a3b8',
+      hover: '#94a3b8',
     },
     borderWidth: 0,
   };
@@ -356,9 +356,9 @@ function buildAncestorSkeleton(dataset, personId, depth, maxDepth, side = 'root'
     pair.push(known[0], known[1]);
   } else if (known.length === 1) {
     const rel = normalizeText(known[0].relation_type);
-    if (rel.includes('мать')) {
+    if (rel.includes('ма')) {
       pair.push(known[0], { person_id: `unknown:${personId}:${depth + 1}:father`, relation_type: 'отец' });
-    } else if (rel.includes('отец')) {
+    } else if (rel.includes('от')) {
       pair.push({ person_id: `unknown:${personId}:${depth + 1}:mother`, relation_type: 'мать' }, known[0]);
     } else {
       pair.push(known[0], { person_id: `unknown:${personId}:${depth + 1}:parent`, relation_type: 'родитель' });
