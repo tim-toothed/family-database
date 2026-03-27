@@ -34,13 +34,13 @@ export const FIELD_LABELS = {
 
 export const SECTION_ORDER = [
   'birth_name',
+  'name_changes',
   'birth',
   'death',
   'parents',
   'siblings',
   'spouses',
   'children',
-  'name_changes',
   'education',
   'class_title',
   'religion',
