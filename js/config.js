@@ -34,7 +34,6 @@ export const FIELD_LABELS = {
 
 export const SECTION_ORDER = [
   'birth_name',
-  'sex',
   'birth',
   'death',
   'parents',
