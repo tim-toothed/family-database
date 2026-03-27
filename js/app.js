@@ -12,7 +12,6 @@ const personBody = document.getElementById('personBody');
 const rootPersonInput = document.getElementById('rootPersonInput');
 const rootPersonOptions = document.getElementById('rootPersonOptions');
 const buildTreeButton = document.getElementById('buildTreeButton');
-const fitButton = document.getElementById('fitButton');
 const modeHint = document.getElementById('modeHint');
 const inspectButton = document.getElementById('inspectButton');
 
@@ -95,9 +94,29 @@ function selectAndFocus(personId, scale = 1.05) {
 }
 
 function populateRootSuggestions() {
-  const options = Array.from(dataset.indexById.entries())
-    .sort((a, b) => a[1].localeCompare(b[1], 'ru'))
-    .map(([id, name]) => `<option value="${id}">${name}</option><option value="${name}">${id}</option>`)
+  const entries = Array.from(dataset.indexById.entries());
+
+  const valid = [];
+  const invalid = [];
+
+  for (const [id, name] of entries) {
+    if (!name || name.includes('???')) {
+      invalid.push([id, name || '']);
+    } else {
+      valid.push([id, name]);
+    }
+  }
+
+  const sortedValid = valid.sort((a, b) =>
+    a[1].localeCompare(b[1], 'ru')
+  );
+
+  const sortedInvalid = invalid.sort((a, b) =>
+    (a[1] || '').localeCompare(b[1] || '', 'ru')
+  );
+
+  const options = [...sortedValid, ...sortedInvalid]
+    .map(([id, name]) => `<option value="${name}" label="${id}"></option>`)
     .join('');
 
   rootPersonOptions.innerHTML = options;
