@@ -19,9 +19,9 @@ death:
 
 parents:
   - person_id: P027
-    type: "отец"
+    relation_type: "отец"
   - person_id: P029
-    type: "мать"
+    relation_type: "мать"
 
 siblings:
   - person_id: P028
