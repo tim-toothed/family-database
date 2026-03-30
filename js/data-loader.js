@@ -11,6 +11,14 @@ async function fetchText(path) {
   return response.text();
 }
 
+async function fetchJson(path) {
+  const response = await fetch(path);
+  if (!response.ok) {
+    throw new Error(`Не удалось загрузить ${path}: ${response.status}`);
+  }
+  return response.json();
+}
+
 async function loadPersonYaml(id) {
   const path = `${CONFIG.peopleDir}/${id}${CONFIG.personFileExtension}`;
   const response = await fetch(path);
@@ -31,22 +39,56 @@ function extractPersonIdFromHref(href) {
   }
 
   const id = fileName.slice(0, -CONFIG.personFileExtension.length).trim();
-  return /^P\d+/i.test(id) ? id : null;
+  return /^P\d+$/i.test(id) ? id : null;
 }
 
-async function listPersonIds() {
+function normalizePersonIds(ids) {
+  return [...new Set(
+    ids
+      .map((id) => String(id || '').trim())
+      .filter((id) => /^P\d+$/i.test(id))
+  )].sort();
+}
+
+async function listPersonIdsFromManifest() {
+  const manifest = await fetchJson(CONFIG.peopleManifestPath);
+  const ids = Array.isArray(manifest)
+    ? manifest
+    : Array.isArray(manifest?.people)
+      ? manifest.people
+      : [];
+
+  const uniqueIds = normalizePersonIds(ids);
+  if (!uniqueIds.length) {
+    throw new Error(`Манифест пуст: ${CONFIG.peopleManifestPath}`);
+  }
+
+  return uniqueIds;
+}
+
+async function listPersonIdsFromDirectory() {
   const directoryHtml = await fetchText(`${CONFIG.peopleDir}/`);
   const document = new DOMParser().parseFromString(directoryHtml, 'text/html');
   const ids = Array.from(document.querySelectorAll('a[href]'))
     .map((link) => extractPersonIdFromHref(link.getAttribute('href')))
     .filter(Boolean);
 
-  const uniqueIds = [...new Set(ids)].sort();
+  const uniqueIds = normalizePersonIds(ids);
   if (!uniqueIds.length) {
-    throw new Error(`Не удалось получить список person YAML в ${CONFIG.peopleDir}`);
+    throw new Error(`Не удалось получить список YAML-карточек из ${CONFIG.peopleDir}/`);
   }
 
   return uniqueIds;
+}
+
+async function listPersonIds() {
+  try {
+    return await listPersonIdsFromManifest();
+  } catch (error) {
+    console.warn('Манифест недоступен, пробую прочитать список файлов из директории.', error);
+  }
+
+  return listPersonIdsFromDirectory();
 }
 
 export async function loadDataset() {

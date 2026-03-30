@@ -1,5 +1,6 @@
 export const CONFIG = {
   peopleDir: './data/people',
+  peopleManifestPath: './data/people/index.json',
   personFileExtension: '.yaml',
 };
 

@@ -371,7 +371,7 @@ async function init() {
   } catch (error) {
     console.error(error);
     showError(
-      `Не удалось собрать сайт из YAML. Проверьте доступ к папке data/people.\n\n${error.message}`
+      `Не удалось собрать сайт из YAML. Проверьте data/people/index.json и файлы в data/people.\n\n${error.message}`
     );
   }
 }
