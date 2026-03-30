@@ -1,11 +1,6 @@
 
 id: P036
 
-birth_name:
-  first_name: ???
-  second_name: ???
-  patronymic: ???
-
 name_changes:
   - name: Богданова ??? ???
     date: ???
@@ -28,6 +23,3 @@ children:
     relation_type: биологический
   - person_id: P022
     relation_type: биологический
-
-sources:
-  - source: "Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)"
