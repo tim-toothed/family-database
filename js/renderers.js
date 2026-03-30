@@ -1,4 +1,5 @@
 import { FIELD_LABELS, SECTION_ORDER } from './config.js';
+import { formatBirthName, getDatasetPersonName } from './person-name.js';
 
 function escapeHtml(value) {
   return String(value)
@@ -11,7 +12,7 @@ function escapeHtml(value) {
 
 function formatPersonRef(personId, dataset) {
   if (!personId) return '—';
-  const name = dataset.indexById.get(personId) || personId;
+  const name = getDatasetPersonName(dataset, personId, personId);
   const hasCard = dataset.availableIds.has(personId);
   if (!hasCard) return `<span>${escapeHtml(name)}</span>`;
   return `<a href="#" class="person-link" data-person-id="${escapeHtml(personId)}">${escapeHtml(name)}</a>`;
@@ -114,6 +115,9 @@ function renderField(key, value, dataset) {
   if (key === 'birth' || key === 'death') {
     return renderBirthDeath(value);
   }
+  if (key === 'birth_name') {
+    return `<div>${escapeHtml(formatBirthName(value) || '—')}</div>`;
+  }
   if (key === 'military') {
     return renderMilitary(value);
   }
@@ -127,7 +131,7 @@ export function renderPersonDetails(personId, dataset) {
   const person = dataset.people.get(personId);
   if (!person) return null;
 
-  const title = dataset.indexById.get(personId) || person.birth_name || personId;
+  const title = getDatasetPersonName(dataset, personId, personId);
   const subtitleParts = [personId];
   if (person.birth?.date) subtitleParts.push(`рожд. ${person.birth.date}`);
   if (person.death?.date) subtitleParts.push(`ум. ${person.death.date}`);

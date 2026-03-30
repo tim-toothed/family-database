@@ -17,7 +17,7 @@
     <header class="topbar">
       <div>
         <h1>Семейное древо</h1>
-        <p class="subtitle"> made by P049 Шарифуллин Тимур Маратович</p>
+        <p class="subtitle">made by P049 Шарифуллин Тимур Маратович</p>
       </div>
       <div class="toolbar">
         <input id="rootPersonInput" type="search" list="rootPersonOptions" placeholder="От кого строить дерево" />
@@ -28,15 +28,33 @@
 
     <main class="layout">
       <section class="graph-panel">
-        <div id="loadingState" class="state">Загрузка данных...</div>
-        <div id="graph"></div>
-        <span id="modeHint" class="mode-hint"></span>
-        <button id="inspectButton" class="inspect-button" type="button" hidden>⌕</button>
+        <div class="view-tabs" role="tablist" aria-label="Режим отображения">
+          <button id="graphTabButton" class="view-tab is-active" type="button" role="tab" aria-selected="true">
+            Граф
+          </button>
+          <button id="tableTabButton" class="view-tab" type="button" role="tab" aria-selected="false">
+            Таблица
+          </button>
+        </div>
+
+        <div class="view-shell">
+          <div id="loadingState" class="state">Загрузка данных...</div>
+
+          <div id="graphView" class="view-content">
+            <div id="graph"></div>
+            <span id="modeHint" class="mode-hint"></span>
+            <button id="inspectButton" class="inspect-button" type="button" hidden>⌕</button>
+          </div>
+
+          <div id="tableView" class="view-content hidden">
+            <div id="peopleTable" class="people-table-wrap"></div>
+          </div>
+        </div>
       </section>
 
       <aside class="details-panel" id="detailsPanel">
         <div class="details-empty" id="detailsEmpty">
-          Выберите человека на графе.
+          Выберите человека на графе или в таблице.
         </div>
         <div class="details-content hidden" id="detailsContent">
           <div class="details-header">

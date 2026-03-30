@@ -1,19 +1,7 @@
 import { CONFIG } from './config.js';
-
-function parseIndexYaml(text) {
-  const raw = jsyaml.load(text);
-  const byId = new Map();
-
-  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    for (const [key, value] of Object.entries(raw)) {
-      if (/^P\d+/i.test(key)) {
-        byId.set(key.trim(), String(value).trim());
-      }
-    }
-  }
-
-  return byId;
-}
+import { buildFamilyGroups } from './family-groups.js';
+import { getPersonDisplayName } from './person-name.js';
+import { buildPeopleTableData } from './people-table.js';
 
 async function fetchText(path) {
   const response = await fetch(path);
@@ -35,21 +23,57 @@ async function loadPersonYaml(id) {
   return { id, data, path };
 }
 
-export async function loadDataset() {
-  const indexText = await fetchText(CONFIG.peopleIndexPath);
-  const indexById = parseIndexYaml(indexText);
+function extractPersonIdFromHref(href) {
+  const cleanHref = decodeURIComponent(String(href || '').split('#')[0].split('?')[0]);
+  const fileName = cleanHref.split('/').pop();
+  if (!fileName || !fileName.endsWith(CONFIG.personFileExtension)) {
+    return null;
+  }
 
-  const ids = Array.from(indexById.keys()).sort();
+  const id = fileName.slice(0, -CONFIG.personFileExtension.length).trim();
+  return /^P\d+/i.test(id) ? id : null;
+}
+
+async function listPersonIds() {
+  const directoryHtml = await fetchText(`${CONFIG.peopleDir}/`);
+  const document = new DOMParser().parseFromString(directoryHtml, 'text/html');
+  const ids = Array.from(document.querySelectorAll('a[href]'))
+    .map((link) => extractPersonIdFromHref(link.getAttribute('href')))
+    .filter(Boolean);
+
+  const uniqueIds = [...new Set(ids)].sort();
+  if (!uniqueIds.length) {
+    throw new Error(`Не удалось получить список person YAML в ${CONFIG.peopleDir}`);
+  }
+
+  return uniqueIds;
+}
+
+export async function loadDataset() {
+  const ids = await listPersonIds();
+  const indexById = new Map();
   const people = new Map();
   const availableIds = new Set();
 
   const results = await Promise.all(ids.map((id) => loadPersonYaml(id)));
   for (const result of results) {
     if (result?.data) {
-      people.set(result.id, result.data);
+      const person = {
+        ...result.data,
+        id: result.data.id || result.id,
+      };
+
+      people.set(result.id, person);
       availableIds.add(result.id);
+      indexById.set(result.id, getPersonDisplayName(person, result.id));
     }
   }
 
-  return { indexById, people, availableIds };
+  const dataset = { indexById, people, availableIds };
+  dataset.peopleTable = buildPeopleTableData(dataset, {
+    anchorId: people.has('P049') ? 'P049' : Array.from(people.keys()).sort()[0],
+  });
+  dataset.familyGroups = buildFamilyGroups(dataset, dataset.peopleTable);
+
+  return dataset;
 }

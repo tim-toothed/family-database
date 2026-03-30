@@ -1,5 +1,4 @@
 export const CONFIG = {
-  peopleIndexPath: './people_index.yaml',
   peopleDir: './data/people',
   personFileExtension: '.yaml',
 };

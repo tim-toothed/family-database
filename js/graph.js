@@ -1,9 +1,13 @@
+import { getDatasetPersonName } from './person-name.js';
+
 const EDGE_COLORS = {
   parent: '#94a3b8',
   sibling: '#22c55e',
   spouse: '#ef4444',
   neutral: '#94a3b8',
   placeholder: '#cbd5e1',
+  male: '#2f6fed',
+  female: '#ec4899',
 };
 
 const NODE = {
@@ -25,32 +29,61 @@ const LAYOUT = {
   focusLevelGapY: 220,
 };
 
+const MAIN_LAYOUT = {
+  nodeSpanColumns: 1,
+  columnWidth: NODE.width + 32,
+  pairGapColumns: LAYOUT.mainPairGapX / NODE.width,
+  branchGapColumns: LAYOUT.mainBranchGapX / NODE.width,
+};
+
+const INSPECT_LAYOUT = {
+  siblingStepColumns: 1,
+  spouseStepColumns: 2,
+  childStepColumns: 1,
+  familyGapColumns: 1,
+  mainSpouseClearanceColumns: 1,
+};
+
+// Normalizes text for case-insensitive relation checks.
 function normalizeText(value) {
   return String(value ?? '').trim().toLowerCase();
 }
 
+// Maps stored sex values to the labels used in the graph.
 function getSexLabel(sex) {
   const s = normalizeText(sex);
-  if (s === 'м') return 'м';
-  if (s === 'ж') return 'ж';
-  return null;
+  return s;
 }
 
+// Returns the accent color used for a person's node and parent edges.
+function getPersonAccentColor(dataset, personId) {
+  if (String(personId).startsWith('unknown:')) return EDGE_COLORS.placeholder;
+
+  const sex = getSexLabel(dataset.people.get(personId)?.sex);
+  if (sex === 'ж') return EDGE_COLORS.female;
+  if (sex === 'м') return EDGE_COLORS.male;
+  return EDGE_COLORS.parent;
+}
+
+// Detects whether a relation label describes adoption.
 function isAdoptiveRelation(label) {
   const key = normalizeText(label);
   return key.includes('прием') || key.includes('приём') || key.includes('усынов');
 }
 
+// Detects whether a relation label describes a step relation.
 function isStepRelation(label) {
   const key = normalizeText(label);
   return key.includes('мачех') || key.includes('отчим') || key.includes('свод');
 }
 
+// Detects whether a relation label describes a biological parent.
 function isBiologicalParentRelation(label) {
   const key = normalizeText(label);
   return key === 'отец' || key === 'мать' || key === 'родитель';
 }
 
+// Assigns a priority score so parent relations can be ranked.
 function relationPriority(label) {
   const key = normalizeText(label);
   if (key === 'мать' || key === 'отец') return 100;
@@ -60,12 +93,14 @@ function relationPriority(label) {
   return 10;
 }
 
+// Extracts a person's birth year for sorting.
 function birthYear(person) {
   const value = person?.birth?.date || '';
   const m = value.match(/(\d{4})$/);
   return m ? Number(m[1]) : Number.MAX_SAFE_INTEGER;
 }
 
+// Sorts people by birth year and then by display name.
 function comparePeopleIds(dataset, a, b) {
   const pa = dataset.people.get(a);
   const pb = dataset.people.get(b);
@@ -74,11 +109,12 @@ function comparePeopleIds(dataset, a, b) {
   const yb = birthYear(pb);
   if (ya !== yb) return ya - yb;
 
-  const na = dataset.indexById.get(a) || a;
-  const nb = dataset.indexById.get(b) || b;
+  const na = getDatasetPersonName(dataset, a, a);
+  const nb = getDatasetPersonName(dataset, b, b);
   return na.localeCompare(nb, 'ru');
 }
 
+// Sorts parent entries with mothers first and then by person order.
 function compareParents(dataset, left, right) {
   const order = (item) => {
     const rel = normalizeText(item.relation_type);
@@ -92,11 +128,13 @@ function compareParents(dataset, left, right) {
   return comparePeopleIds(dataset, left.person_id, right.person_id);
 }
 
+// Returns the display name for a person or placeholder node.
 function personName(dataset, personId) {
   if (String(personId).startsWith('unknown:')) return 'Неизвестно';
-  return dataset.indexById.get(personId) || dataset.people.get(personId)?.birth_name || personId;
+  return getDatasetPersonName(dataset, personId, personId);
 }
 
+// Wraps long names into multiple lines for node labels.
 function wrapText(value, maxLineLength = NODE.lineLength) {
   const words = String(value || '').trim().split(/\s+/).filter(Boolean);
   if (!words.length) return 'Без имени';
@@ -123,6 +161,7 @@ function wrapText(value, maxLineLength = NODE.lineLength) {
   return lines.slice(0, 4).join('\n');
 }
 
+// Chooses a readable font size based on the longest word.
 function computeFontSize(label) {
   const maxWord = Math.max(...String(label).split(/\s+/).map((part) => part.length), 1);
   if (maxWord >= 18) return NODE.minFontSize;
@@ -131,6 +170,7 @@ function computeFontSize(label) {
   return NODE.baseFontSize;
 }
 
+// Pulls a four-digit year from a date-like value.
 function extractYear(value) {
   if (value == null) return null;
   const text = String(value).trim();
@@ -139,6 +179,7 @@ function extractYear(value) {
   return match ? match[1] : '???';
 }
 
+// Formats the birth and death years shown under a name.
 function getLifeYears(person) {
   if (!person) return '';
 
@@ -156,6 +197,7 @@ function getLifeYears(person) {
   return `${birthYear}-${deathYear}`;
 }
 
+// Builds a vis-network node for a real person or placeholder.
 function makePersonNode(dataset, id, x, y, options = {}) {
   const isPlaceholder = options.isPlaceholder || String(id).startsWith('unknown:');
   const name = isPlaceholder ? 'Неизвестно' : personName(dataset, id);
@@ -170,12 +212,12 @@ function makePersonNode(dataset, id, x, y, options = {}) {
   // 👇 добавляем выбор цвета
   const genderColor = (() => {
     if (sex === 'ж') {
-      return { background: '#ffffff', border: '#ec4899' }; // розовый
+      return { background: '#ffffff', border: EDGE_COLORS.female }; // розовый
     }
     if (sex === 'м') {
-      return { background: '#ffffff', border: '#2f6fed' }; // синий (как сейчас)
+      return { background: '#ffffff', border: EDGE_COLORS.male }; // синий (как сейчас)
     }
-    return { background: '#ffffff', border: '#2f6fed' }; // fallback
+    return { background: '#ffffff', border: EDGE_COLORS.male }; // fallback
   })();
 
   return {
@@ -213,6 +255,7 @@ function makePersonNode(dataset, id, x, y, options = {}) {
   };
 }
 
+// Creates a tiny hidden helper node used to route edges.
 function makeJunctionNode(id, x, y) {
   return {
     id,
@@ -233,23 +276,27 @@ function makeJunctionNode(id, x, y) {
   };
 }
 
+// Generates a stable edge id from connection details.
 function edgeId(prefix, from, to, relation = '') {
   return `${prefix}:${from}:${to}:${relation}`;
 }
 
-function makeMainEdge(from, to) {
+// Creates an unlabeled edge for the main ancestor tree.
+function makeMainEdge(from, to, options = {}) {
   return {
-    id: edgeId('main', from, to),
+    id: edgeId('main', from, to, options.relation || ''),
     from,
     to,
-    color: EDGE_COLORS.parent,
-    width: 2,
+    color: options.color || EDGE_COLORS.parent,
+    width: options.width ?? 2,
+    dashes: Boolean(options.dashes),
     arrows: '',
     smooth: false,
     selectionWidth: 0,
   };
 }
 
+// Creates a labeled edge for the focused relationship view.
 function makeFocusedEdge(from, to, label, options = {}) {
   return {
     id: edgeId('focus', from, to, label),
@@ -265,6 +312,7 @@ function makeFocusedEdge(from, to, label, options = {}) {
   };
 }
 
+// Removes duplicate or invalid relation entries by person id.
 function uniqueByPersonId(list) {
   const seen = new Set();
   const result = [];
@@ -276,6 +324,7 @@ function uniqueByPersonId(list) {
   return result;
 }
 
+// Selects the best parent pair to display for a person.
 function pickPrimaryParents(person, dataset) {
   const allParents = uniqueByPersonId(person?.parents || []);
   if (!allParents.length) return [];
@@ -297,6 +346,7 @@ function pickPrimaryParents(person, dataset) {
   return fallback.slice(0, 2);
 }
 
+// Returns up to two ordered parents for the given person.
 function getKnownParentPair(dataset, personId) {
   const person = dataset.people.get(personId);
   const parents = pickPrimaryParents(person, dataset).sort((a, b) => compareParents(dataset, a, b));
@@ -315,9 +365,11 @@ function getKnownParentPair(dataset, personId) {
   return pair.slice(0, 2);
 }
 
+// Calculates how many ancestor levels can be shown from the root.
 function computeKnownDepth(dataset, rootId) {
   const memo = new Map();
 
+  // Recursively measures ancestor depth with memoization.
   function walk(personId) {
     if (!personId || String(personId).startsWith('unknown:')) return 0;
     if (memo.has(personId)) return memo.get(personId);
@@ -336,6 +388,7 @@ function computeKnownDepth(dataset, rootId) {
   return walk(rootId);
 }
 
+// Builds a recursive ancestor structure used for main layout.
 function buildAncestorSkeleton(dataset, personId, depth, maxDepth, side = 'root') {
   const node = {
     id: personId,
@@ -371,109 +424,674 @@ function buildAncestorSkeleton(dataset, personId, depth, maxDepth, side = 'root'
   return node;
 }
 
-function subtreeWidth(node) {
-  if (!node.parents?.length) return NODE.width;
-
-  const left = subtreeWidth(node.parents[0]);
-  const right = subtreeWidth(node.parents[1]);
-
-  const pairWidth = NODE.width * 2 + LAYOUT.mainPairGapX;
-  const branchesWidth = left + LAYOUT.mainBranchGapX + right;
-
-  return Math.max(NODE.width, pairWidth, branchesWidth);
+// Converts a logical main-tree column into an x coordinate in pixels.
+function mainColumnToX(column) {
+  return Math.round(column * MAIN_LAYOUT.columnWidth);
 }
 
-function assignMainPositions(node, x, positions) {
+// Converts an ancestor depth into the fixed y coordinate for that generation.
+function mainDepthToY(depth) {
+  return -depth * LAYOUT.mainGenerationGapY;
+}
+
+// Measures how many logical columns an ancestor subtree needs.
+function measureMainSubtree(node, measurements) {
+  if (measurements.has(node.id)) return measurements.get(node.id);
+
+  let span = MAIN_LAYOUT.nodeSpanColumns;
+
+  if (node.parents?.length) {
+    const leftSpan = measureMainSubtree(node.parents[0], measurements).span;
+    const rightSpan = measureMainSubtree(node.parents[1], measurements).span;
+    const pairSpan = (MAIN_LAYOUT.nodeSpanColumns * 2) + MAIN_LAYOUT.pairGapColumns;
+    const branchSpan = leftSpan + MAIN_LAYOUT.branchGapColumns + rightSpan;
+
+    span = Math.max(MAIN_LAYOUT.nodeSpanColumns, pairSpan, branchSpan);
+  }
+
+  const measurement = { span };
+  measurements.set(node.id, measurement);
+  return measurement;
+}
+
+// Assigns logical columns to each node in the main ancestor tree.
+function assignMainColumns(node, column, measurements, positions) {
   positions.set(node.id, {
-    x,
-    y: -node.depth * LAYOUT.mainGenerationGapY,
+    column,
+    depth: node.depth,
     isPlaceholder: node.isPlaceholder,
   });
 
-  if (!node.parents?.length) return subtreeWidth(node);
+  if (!node.parents?.length) return measurements.get(node.id).span;
 
-  const leftWidth = subtreeWidth(node.parents[0]);
-  const rightWidth = subtreeWidth(node.parents[1]);
+  const leftSpan = measurements.get(node.parents[0].id).span;
+  const rightSpan = measurements.get(node.parents[1].id).span;
 
   // 1) Сначала ставим родителей строго симметрично над ребёнком
-  const halfPair = (NODE.width + LAYOUT.mainPairGapX) / 2;
-  let leftX = x - halfPair;
-  let rightX = x + halfPair;
+  const pairOffset = (MAIN_LAYOUT.nodeSpanColumns + MAIN_LAYOUT.pairGapColumns) / 2;
+  let leftColumn = column - pairOffset;
+  let rightColumn = column + pairOffset;
 
   // 2) Потом, если поддеревья слишком широкие и начнут пересекаться,
   //    симметрично раздвигаем обе ветки
-  const minCenterDistance = (leftWidth / 2) + (rightWidth / 2) + LAYOUT.mainBranchGapX;
-  const currentCenterDistance = rightX - leftX;
+  const minCenterDistance = (leftSpan / 2) + (rightSpan / 2) + MAIN_LAYOUT.branchGapColumns;
+  const currentCenterDistance = rightColumn - leftColumn;
 
   if (currentCenterDistance < minCenterDistance) {
     const extra = (minCenterDistance - currentCenterDistance) / 2;
-    leftX -= extra;
-    rightX += extra;
+    leftColumn -= extra;
+    rightColumn += extra;
   }
 
-  assignMainPositions(node.parents[0], leftX, positions);
-  assignMainPositions(node.parents[1], rightX, positions);
+  assignMainColumns(node.parents[0], leftColumn, measurements, positions);
+  assignMainColumns(node.parents[1], rightColumn, measurements, positions);
 
-  return Math.max(NODE.width, (rightX - leftX) + leftWidth / 2 + rightWidth / 2);
+  return Math.max(MAIN_LAYOUT.nodeSpanColumns, (rightColumn - leftColumn) + leftSpan / 2 + rightSpan / 2);
 }
 
-function buildMainGraph(dataset, rootId) {
+// Builds a lookup from every ancestor node to the child that leads back to the root.
+function buildPathChildMap(node, childByAncestor = new Map()) {
+  for (const parent of node.parents || []) {
+    childByAncestor.set(parent.id, node.id);
+    buildPathChildMap(parent, childByAncestor);
+  }
+
+  return childByAncestor;
+}
+
+// Returns all known parent ids for a person.
+function getParentIds(dataset, personId) {
+  return uniqueByPersonId(dataset.people.get(personId)?.parents || [])
+    .map((item) => item.person_id)
+    .filter(Boolean);
+}
+
+// Finds the other parent of a child relative to the focused person.
+function getCoParentId(dataset, personId, childId) {
+  const parents = getParentIds(dataset, childId);
+  return parents.find((parentId) => parentId !== personId) || null;
+}
+
+// Returns ids of parents shared by two people.
+function getSharedParentIds(dataset, leftPersonId, rightPersonId) {
+  const leftParents = new Set(getParentIds(dataset, leftPersonId));
+  return getParentIds(dataset, rightPersonId).filter((parentId) => leftParents.has(parentId));
+}
+
+// Groups a person's non-path children by their co-parent.
+function groupChildrenByCoParent(dataset, focusNodeId, excludedChildId = null) {
+  const person = dataset.people.get(focusNodeId);
+  const children = uniqueByPersonId(person?.children || [])
+    .sort((a, b) => comparePeopleIds(dataset, a.person_id, b.person_id))
+    .filter((item) => item.person_id !== excludedChildId);
+
+  const groups = new Map();
+  for (const child of children) {
+    const coParentId = getCoParentId(dataset, focusNodeId, child.person_id) || 'unknown';
+    if (!groups.has(coParentId)) groups.set(coParentId, []);
+    groups.get(coParentId).push(child);
+  }
+
+  return groups;
+}
+
+// Adds a person node once and caches its logical grid position.
+function ensurePersonNode(dataset, nodes, nodeIds, positions, personId, column, depth, options = {}) {
+  if (nodeIds.has(personId)) return;
+
+  positions.set(personId, {
+    column,
+    depth,
+    isPlaceholder: Boolean(options.isPlaceholder || String(personId).startsWith('unknown:')),
+  });
+
+  nodes.push(makePersonNode(
+    dataset,
+    personId,
+    mainColumnToX(column),
+    mainDepthToY(depth),
+    options
+  ));
+  nodeIds.add(personId);
+}
+
+// Adds a routing node once and caches its logical grid position.
+function ensureJunctionNode(nodes, junctionIds, positions, junctionId, column, depth) {
+  if (junctionIds.has(junctionId)) return;
+
+  positions.set(junctionId, { column, depth, isPlaceholder: false });
+  nodes.push(makeJunctionNode(junctionId, mainColumnToX(column), mainDepthToY(depth)));
+  junctionIds.add(junctionId);
+}
+
+// Adds an edge only once.
+function ensureEdge(edges, edgeIds, edge) {
+  if (edgeIds.has(edge.id)) return;
+  edges.push(edge);
+  edgeIds.add(edge.id);
+}
+
+// Moves all visible nodes on one side of the focus row and above.
+function shiftSidePositions(positions, focusColumn, focusDepth, direction, delta) {
+  if (!delta) return;
+
+  for (const pos of positions.values()) {
+    if (pos.depth < focusDepth) continue;
+    if (direction < 0 && pos.column < focusColumn) {
+      pos.column += delta;
+    }
+    if (direction > 0 && pos.column > focusColumn) {
+      pos.column += delta;
+    }
+  }
+}
+
+// Converts a logical column into an integer occupancy key.
+function occupancyColumnKey(column) {
+  return Math.round(column * 2);
+}
+
+// Computes the minimal side shift needed to clear same-row occupancy collisions.
+function computeSideShiftDelta(existingColumns, inspectColumns, direction) {
+  if (!existingColumns.length || !inspectColumns.length) return 0;
+
+  const minGapColumns = MAIN_LAYOUT.nodeSpanColumns;
+  const epsilon = 1e-6;
+  const step = direction < 0 ? -1 : 1;
+  let delta = 0;
+
+  while (existingColumns.some((column) => (
+    inspectColumns.some((inspectColumn) => Math.abs((column + delta) - inspectColumn) < (minGapColumns - epsilon))
+  ))) {
+    delta += step;
+  }
+
+  return delta;
+}
+
+// Returns evenly spaced columns for a row centered on the given anchor.
+function buildCenteredRowColumns(centerColumn, count, stepColumns) {
+  if (!count) return [];
+
+  const startColumn = centerColumn - (((count - 1) * stepColumns) / 2);
+  return Array.from({ length: count }, (_, index) => startColumn + (index * stepColumns));
+}
+
+// Highlights the inspected person while preserving their gender color.
+function emphasizeFocusNode(dataset, nodes, focusNodeId) {
+  const node = nodes.find((item) => item.id === focusNodeId);
+  if (!node) return;
+
+  const accentColor = getPersonAccentColor(dataset, focusNodeId);
+  node.borderWidth = Math.max(node.borderWidth || 0, 3);
+  node.color = {
+    ...(typeof node.color === 'object' ? node.color : {}),
+    border: accentColor,
+  };
+  node.shadow = {
+    enabled: true,
+    color: `${accentColor}44`,
+    size: 16,
+    x: 0,
+    y: 0,
+  };
+}
+
+// Creates the orthogonal parent-child edges used by the main tree and inspect children.
+function connectParentsToChild(dataset, graphState, parentIds, childId, relationPrefix) {
+  const {
+    nodes,
+    edges,
+    junctionIds,
+    edgeIds,
+    positions,
+  } = graphState;
+
+  if (!positions.has(childId) || !parentIds.length) return;
+
+  const childPos = positions.get(childId);
+  const joinDepth = childPos.depth + (LAYOUT.edgeJoinOffsetY / LAYOUT.mainGenerationGapY);
+  const mergeId = `junction:${relationPrefix}:merge:${childId}`;
+
+  ensureJunctionNode(nodes, junctionIds, positions, mergeId, childPos.column, joinDepth);
+  ensureEdge(edges, edgeIds, makeMainEdge(mergeId, childId, {
+    color: EDGE_COLORS.parent,
+    relation: `${relationPrefix}:merge-drop`,
+  }));
+
+  for (const parentId of parentIds) {
+    if (!positions.has(parentId)) continue;
+
+    const parentPos = positions.get(parentId);
+    const accentColor = getPersonAccentColor(dataset, parentId);
+    const elbowId = `junction:${relationPrefix}:parent:${childId}:${parentId}`;
+
+    ensureJunctionNode(nodes, junctionIds, positions, elbowId, parentPos.column, joinDepth);
+    ensureEdge(edges, edgeIds, makeMainEdge(parentId, elbowId, {
+      color: accentColor,
+      relation: `${relationPrefix}:parent-drop`,
+    }));
+    ensureEdge(edges, edgeIds, makeMainEdge(elbowId, mergeId, {
+      color: accentColor,
+      relation: `${relationPrefix}:parent-merge`,
+    }));
+  }
+}
+
+// Renders the fixed ancestor backbone of the main tree.
+function renderMainConnections(node, dataset, graphState) {
+  if (!node.parents?.length) return;
+
+  connectParentsToChild(
+    dataset,
+    graphState,
+    node.parents.map((parent) => parent.id),
+    node.id,
+    `main:${node.id}`
+  );
+
+  renderMainConnections(node.parents[0], dataset, graphState);
+  renderMainConnections(node.parents[1], dataset, graphState);
+}
+
+// Plans inspect placements on the fixed grid before rendering any new nodes.
+function buildInspectPlan(dataset, focusNodeId, positions, childByAncestor) {
+  if (!focusNodeId || !positions.has(focusNodeId)) return null;
+
+  const person = dataset.people.get(focusNodeId);
+  if (!person) return null;
+
+  const focusPos = positions.get(focusNodeId);
+  const focusColumn = focusPos.column;
+  const focusDepth = focusPos.depth;
+  const focusChildId = childByAncestor.get(focusNodeId) || null;
+  const mainSpouseId = focusChildId ? getCoParentId(dataset, focusNodeId, focusChildId) : null;
+  const sex = getSexLabel(person.sex);
+  const spouseDirection = sex === 'ж' ? 1 : -1;
+  const siblingDirection = spouseDirection * -1;
+
+  const siblings = uniqueByPersonId(person.siblings || [])
+    .sort((a, b) => (
+      getSharedParentIds(dataset, focusNodeId, b.person_id).length
+      - getSharedParentIds(dataset, focusNodeId, a.person_id).length
+    ) || comparePeopleIds(dataset, a.person_id, b.person_id));
+  const siblingEntries = siblings.map((item, index) => ({
+    personId: item.person_id,
+    column: focusColumn + (siblingDirection * INSPECT_LAYOUT.siblingStepColumns * (index + 1)),
+  }));
+  const siblingColumns = [focusColumn, ...siblingEntries.map((entry) => entry.column)];
+  const siblingCenter = siblingColumns.length > 1
+    ? (Math.min(...siblingColumns) + Math.max(...siblingColumns)) / 2
+    : focusColumn;
+
+  const childrenByCoParent = groupChildrenByCoParent(dataset, focusNodeId, focusChildId);
+  const spouses = uniqueByPersonId(person.spouses || [])
+    .sort((a, b) => comparePeopleIds(dataset, a.person_id, b.person_id));
+  const spouseIds = new Set(spouses.map((item) => item.person_id));
+  const spouseOrder = spouses
+    .map((item) => item.person_id)
+    .filter((personId) => personId !== mainSpouseId);
+
+  for (const [coParentId] of childrenByCoParent.entries()) {
+    if (coParentId === 'unknown' || coParentId === mainSpouseId) continue;
+    if (spouseIds.has(coParentId)) continue;
+    if (!dataset.people.has(coParentId)) continue;
+    spouseOrder.push(coParentId);
+  }
+
+  const soloChildIds = (childrenByCoParent.get('unknown') || [])
+    .map((item) => item.person_id);
+
+  const mainSharedChildIds = mainSpouseId
+    ? uniqueByPersonId(person.children || [])
+      .filter((item) => getCoParentId(dataset, focusNodeId, item.person_id) === mainSpouseId)
+      .map((item) => item.person_id)
+    : [];
+  const mainChildAnchorColumn = focusChildId && positions.has(focusChildId)
+    ? positions.get(focusChildId).column
+    : (mainSpouseId && positions.has(mainSpouseId)
+      ? (focusColumn + positions.get(mainSpouseId).column) / 2
+      : focusColumn);
+  const mainChildColumns = buildCenteredRowColumns(
+    mainChildAnchorColumn,
+    mainSharedChildIds.length,
+    INSPECT_LAYOUT.childStepColumns
+  );
+  const mainChildEntries = mainSharedChildIds.map((childId, index) => ({
+    childId,
+    column: mainChildColumns[index],
+    isExisting: childId === focusChildId && positions.has(childId),
+  }));
+  const mainExtraChildEntries = mainChildEntries.filter((entry) => !entry.isExisting);
+
+  const mainFamilySideColumns = [];
+  if (mainSpouseId && positions.has(mainSpouseId)) {
+    mainFamilySideColumns.push(positions.get(mainSpouseId).column);
+  }
+  mainFamilySideColumns.push(...mainChildEntries.map((entry) => entry.column));
+
+  const mainFamilyBoundaryColumn = mainFamilySideColumns.length
+    ? (spouseDirection < 0 ? Math.min(...mainFamilySideColumns) : Math.max(...mainFamilySideColumns))
+    : null;
+
+  let spouseCursor = mainFamilyBoundaryColumn != null
+    ? mainFamilyBoundaryColumn + (spouseDirection * INSPECT_LAYOUT.mainSpouseClearanceColumns)
+    : focusColumn + (spouseDirection * INSPECT_LAYOUT.spouseStepColumns);
+  const spouseEntries = [];
+
+  for (const spouseId of spouseOrder) {
+    const childIds = (childrenByCoParent.get(spouseId) || [])
+      .map((item) => item.person_id);
+    const spouseColumn = spouseCursor;
+    const childColumns = childIds.map((childId, index) => (
+      spouseColumn + (spouseDirection * INSPECT_LAYOUT.childStepColumns * index)
+    ));
+
+    spouseEntries.push({
+      spouseId,
+      spouseColumn,
+      childIds,
+      childColumns,
+    });
+
+    const occupiedWidth = Math.max(1, childIds.length);
+    spouseCursor = spouseColumn + (spouseDirection * (occupiedWidth + INSPECT_LAYOUT.familyGapColumns));
+  }
+
+  const sameRowMainNodes = Array.from(positions.entries())
+    .filter(([personId, pos]) => (
+      !String(personId).startsWith('junction:')
+      && pos.depth === focusDepth
+      && personId !== focusNodeId
+    ));
+
+  const leftInspectColumns = [...siblingEntries, ...spouseEntries]
+    .map((entry) => entry.column ?? entry.spouseColumn)
+    .filter((column) => column < focusColumn);
+  const rightInspectColumns = [...siblingEntries, ...spouseEntries]
+    .map((entry) => entry.column ?? entry.spouseColumn)
+    .filter((column) => column > focusColumn);
+  const sameRowMainColumns = sameRowMainNodes.map(([, pos]) => pos.column);
+  const leftBlockingColumns = sameRowMainColumns.filter((column) => column < focusColumn);
+  const rightBlockingColumns = sameRowMainColumns.filter((column) => column > focusColumn);
+  const leftSideShiftDelta = computeSideShiftDelta(leftBlockingColumns, leftInspectColumns, -1);
+  const rightSideShiftDelta = computeSideShiftDelta(rightBlockingColumns, rightInspectColumns, 1);
+
+  return {
+    focusNodeId,
+    focusColumn,
+    focusDepth,
+    focusChildId,
+    mainSpouseId,
+    siblingEntries,
+    spouseEntries,
+    soloChildIds,
+    mainChildEntries,
+    mainExtraChildEntries,
+    siblingDirection,
+    spouseDirection,
+    leftSideShiftDelta,
+    rightSideShiftDelta,
+  };
+}
+
+// Applies the row and subtree shifts required by the inspect expansion.
+function applyInspectPlan(plan, positions) {
+  if (!plan) return;
+
+  shiftSidePositions(positions, plan.focusColumn, plan.focusDepth, -1, plan.leftSideShiftDelta);
+  shiftSidePositions(positions, plan.focusColumn, plan.focusDepth, 1, plan.rightSideShiftDelta);
+
+  for (const entry of plan.mainChildEntries || []) {
+    if (!positions.has(entry.childId)) continue;
+
+    const pos = positions.get(entry.childId);
+    pos.column = entry.column;
+    pos.depth = plan.focusDepth - 1;
+  }
+}
+
+// Draws a dashed horizontal chain through nodes on the same row.
+function connectHorizontalChain(edges, edgeIds, nodeIds, relationPrefix, color) {
+  if (nodeIds.length < 2) return;
+
+  for (let index = 1; index < nodeIds.length; index += 1) {
+    ensureEdge(edges, edgeIds, makeMainEdge(nodeIds[index - 1], nodeIds[index], {
+      color,
+      relation: `${relationPrefix}:${index}`,
+      dashes: true,
+      width: 2.2,
+    }));
+  }
+}
+
+// Renders inspect siblings, spouses and children on the fixed grid.
+function renderInspectOverlay(dataset, plan, graphState) {
+  if (!plan) return;
+
+  const {
+    nodes,
+    edges,
+    nodeIds,
+    edgeIds,
+    positions,
+  } = graphState;
+
+  emphasizeFocusNode(dataset, nodes, plan.focusNodeId);
+
+  for (const entry of plan.siblingEntries) {
+    ensurePersonNode(dataset, nodes, nodeIds, positions, entry.personId, entry.column, plan.focusDepth);
+  }
+
+  for (const entry of plan.spouseEntries) {
+    ensurePersonNode(dataset, nodes, nodeIds, positions, entry.spouseId, entry.spouseColumn, plan.focusDepth);
+  }
+
+  const siblingChainIds = [plan.focusNodeId, ...plan.siblingEntries.map((entry) => entry.personId)]
+    .filter((personId) => positions.has(personId))
+    .sort((leftId, rightId) => positions.get(leftId).column - positions.get(rightId).column);
+  connectHorizontalChain(edges, edgeIds, siblingChainIds, `inspect-siblings:${plan.focusNodeId}`, EDGE_COLORS.sibling);
+
+  const spouseChainIds = [
+    ...plan.spouseEntries.map((entry) => entry.spouseId),
+    plan.focusNodeId,
+    ...(plan.mainSpouseId && positions.has(plan.mainSpouseId) ? [plan.mainSpouseId] : []),
+  ]
+    .filter((personId, index, array) => array.indexOf(personId) === index)
+    .filter((personId) => positions.has(personId))
+    .sort((leftId, rightId) => positions.get(leftId).column - positions.get(rightId).column);
+  connectHorizontalChain(edges, edgeIds, spouseChainIds, `inspect-spouses:${plan.focusNodeId}`, EDGE_COLORS.spouse);
+
+  if (plan.mainSpouseId && positions.has(plan.mainSpouseId)) {
+    for (const entry of plan.mainExtraChildEntries) {
+      ensurePersonNode(
+        dataset,
+        nodes,
+        nodeIds,
+        positions,
+        entry.childId,
+        entry.column,
+        plan.focusDepth - 1
+      );
+      connectParentsToChild(
+        dataset,
+        graphState,
+        [plan.focusNodeId, plan.mainSpouseId],
+        entry.childId,
+        `inspect-main-child:${plan.focusNodeId}:${entry.childId}`
+      );
+    }
+
+    const mainChildChainIds = plan.mainChildEntries
+      .map((entry) => entry.childId)
+      .filter((childId) => positions.has(childId))
+      .sort((leftId, rightId) => positions.get(leftId).column - positions.get(rightId).column);
+    connectHorizontalChain(edges, edgeIds, mainChildChainIds, `inspect-main-children:${plan.focusNodeId}`, EDGE_COLORS.sibling);
+  }
+
+  for (const entry of plan.spouseEntries) {
+    const childChainIds = [];
+
+    for (const [index, childId] of entry.childIds.entries()) {
+      ensurePersonNode(
+        dataset,
+        nodes,
+        nodeIds,
+        positions,
+        childId,
+        entry.childColumns[index],
+        plan.focusDepth - 1
+      );
+      connectParentsToChild(
+        dataset,
+        graphState,
+        [plan.focusNodeId, entry.spouseId],
+        childId,
+        `inspect-other-child:${plan.focusNodeId}:${entry.spouseId}:${childId}`
+      );
+      childChainIds.push(childId);
+    }
+
+    childChainIds.sort((leftId, rightId) => positions.get(leftId).column - positions.get(rightId).column);
+    connectHorizontalChain(edges, edgeIds, childChainIds, `inspect-other-children:${plan.focusNodeId}:${entry.spouseId}`, EDGE_COLORS.sibling);
+  }
+
+  if (plan.soloChildIds.length) {
+    const soloColumns = plan.soloChildIds.map((childId, index) => (
+      plan.focusColumn + (plan.spouseDirection * INSPECT_LAYOUT.childStepColumns * (index + 1))
+    ));
+    const soloChainIds = [];
+
+    for (const [index, childId] of plan.soloChildIds.entries()) {
+      ensurePersonNode(
+        dataset,
+        nodes,
+        nodeIds,
+        positions,
+        childId,
+        soloColumns[index],
+        plan.focusDepth - 1
+      );
+      connectParentsToChild(
+        dataset,
+        graphState,
+        [plan.focusNodeId],
+        childId,
+        `inspect-solo-child:${plan.focusNodeId}:${childId}`
+      );
+      soloChainIds.push(childId);
+    }
+
+    soloChainIds.sort((leftId, rightId) => positions.get(leftId).column - positions.get(rightId).column);
+    connectHorizontalChain(edges, edgeIds, soloChainIds, `inspect-solo-children:${plan.focusNodeId}`, EDGE_COLORS.sibling);
+  }
+}
+
+// Validates the final fixed-grid layout.
+function validateGraphLayout(graphData, positions) {
+  const issues = [];
+  const seenNodeIds = new Set();
+  const seenEdgeIds = new Set();
+  const occupied = new Map();
+
+  for (const node of graphData.nodes) {
+    if (seenNodeIds.has(node.id)) {
+      issues.push(`Duplicate node id: ${node.id}`);
+    }
+    seenNodeIds.add(node.id);
+
+    if (String(node.id).startsWith('junction:')) continue;
+    const pos = positions.get(node.id);
+    if (!pos) continue;
+
+    const key = `${pos.depth}:${occupancyColumnKey(pos.column)}`;
+    if (occupied.has(key)) {
+      issues.push(`Cell collision: ${occupied.get(key)} and ${node.id}`);
+    } else {
+      occupied.set(key, node.id);
+    }
+  }
+
+  for (const edge of graphData.edges) {
+    if (seenEdgeIds.has(edge.id)) {
+      issues.push(`Duplicate edge id: ${edge.id}`);
+    }
+    seenEdgeIds.add(edge.id);
+
+    if (!seenNodeIds.has(edge.from)) {
+      issues.push(`Missing edge source: ${edge.id}`);
+    }
+    if (!seenNodeIds.has(edge.to)) {
+      issues.push(`Missing edge target: ${edge.id}`);
+    }
+  }
+
+  return {
+    ok: issues.length === 0,
+    issues,
+  };
+}
+
+// Builds the full ancestor graph and optionally overlays inspect nodes into the same grid.
+function buildMainGraph(dataset, rootId, focusNodeId = null) {
   const nodes = [];
   const edges = [];
   const nodeIds = new Set();
   const junctionIds = new Set();
+  const edgeIds = new Set();
   const maxDepth = computeKnownDepth(dataset, rootId);
   const skeleton = buildAncestorSkeleton(dataset, rootId, 0, maxDepth);
+  const measurements = new Map();
   const positions = new Map();
+  const childByAncestor = buildPathChildMap(skeleton);
+  measureMainSubtree(skeleton, measurements);
+  assignMainColumns(skeleton, 0, measurements, positions);
 
-  assignMainPositions(skeleton, 0, positions);
+  const inspectPlan = focusNodeId
+    ? buildInspectPlan(dataset, focusNodeId, positions, childByAncestor)
+    : null;
+
+  applyInspectPlan(inspectPlan, positions);
 
   for (const [personId, pos] of positions.entries()) {
+    if (String(personId).startsWith('junction:')) continue;
     if (nodeIds.has(personId)) continue;
-    nodes.push(makePersonNode(dataset, personId, pos.x, pos.y, { isPlaceholder: pos.isPlaceholder }));
+
+    nodes.push(makePersonNode(
+      dataset,
+      personId,
+      mainColumnToX(pos.column),
+      mainDepthToY(pos.depth),
+      { isPlaceholder: pos.isPlaceholder }
+    ));
     nodeIds.add(personId);
   }
 
-  function connect(node) {
-    if (!node.parents?.length) return;
+  const graphState = {
+    nodes,
+    edges,
+    nodeIds,
+    junctionIds,
+    edgeIds,
+    positions,
+  };
 
-    const childPos = positions.get(node.id);
-    const leftPos = positions.get(node.parents[0].id);
-    const rightPos = positions.get(node.parents[1].id);
-    const joinY = childPos.y - LAYOUT.edgeJoinOffsetY;
+  renderMainConnections(skeleton, dataset, graphState);
+  renderInspectOverlay(dataset, inspectPlan, graphState);
 
-    const jointId = `junction:merge:${node.id}`;
-    const leftElbowId = `junction:left:${node.id}`;
-    const rightElbowId = `junction:right:${node.id}`;
-
-    if (!junctionIds.has(jointId)) {
-      nodes.push(makeJunctionNode(jointId, childPos.x, joinY));
-      nodes.push(makeJunctionNode(leftElbowId, leftPos.x, joinY));
-      nodes.push(makeJunctionNode(rightElbowId, rightPos.x, joinY));
-      junctionIds.add(jointId);
-    }
-
-    edges.push(makeMainEdge(node.parents[0].id, leftElbowId));
-    edges.push(makeMainEdge(leftElbowId, jointId));
-    edges.push(makeMainEdge(node.parents[1].id, rightElbowId));
-    edges.push(makeMainEdge(rightElbowId, jointId));
-    edges.push(makeMainEdge(jointId, node.id));
-
-    connect(node.parents[0]);
-    connect(node.parents[1]);
-  }
-
-  connect(skeleton);
+  const validation = validateGraphLayout({ nodes, edges }, positions);
 
   return {
     nodes,
     edges,
     mode: 'main',
-    focusNodeId: rootId,
+    focusNodeId: focusNodeId || rootId,
     rootNodeId: rootId,
+    validation,
   };
 }
 
+// Converts a parent relation into a readable edge label.
 function parentDisplayLabel(item) {
   const key = normalizeText(item?.relation_type);
   if (key.includes('прием') || key.includes('приём')) return key.includes('отец') ? 'приёмный отец' : 'приёмная мать';
@@ -484,6 +1102,7 @@ function parentDisplayLabel(item) {
   return 'родитель';
 }
 
+// Returns the spouse label based on the related person's sex.
 function spouseDisplayLabel(dataset, spouseId) {
   const sex = getSexLabel(dataset.people.get(spouseId)?.sex);
   if (sex === 'м') return 'супруг';
@@ -491,6 +1110,7 @@ function spouseDisplayLabel(dataset, spouseId) {
   return 'супруг';
 }
 
+// Converts a child relation into a readable edge label.
 function childDisplayLabel(dataset, childItem) {
   const raw = normalizeText(childItem?.relation_type);
   const sex = getSexLabel(dataset.people.get(childItem.person_id)?.sex);
@@ -506,6 +1126,7 @@ function childDisplayLabel(dataset, childItem) {
   return 'ребёнок';
 }
 
+// Converts a sibling relation into a readable edge label.
 function siblingDisplayLabel(dataset, siblingItem) {
   const raw = normalizeText(siblingItem?.relation_type);
   const sex = getSexLabel(dataset.people.get(siblingItem.person_id)?.sex);
@@ -516,6 +1137,7 @@ function siblingDisplayLabel(dataset, siblingItem) {
   return suffix;
 }
 
+// Spreads a side group horizontally around a center line.
 function layoutHorizontalGroup(centerX, y, gapX, items, side) {
   if (!items.length) return new Map();
   const positions = new Map();
@@ -533,6 +1155,7 @@ function layoutHorizontalGroup(centerX, y, gapX, items, side) {
   return positions;
 }
 
+// Builds the focused graph with direct relatives around one person.
 function buildFocusedGraph(dataset, personId) {
   const nodes = [];
   const edges = [];
@@ -589,18 +1212,20 @@ function buildFocusedGraph(dataset, personId) {
   };
 }
 
+// Builds either the main ancestor graph or the focused relation graph.
 export function buildGraph(dataset, options = {}) {
-  const rootId = options.rootId || dataset.indexById.keys().next().value;
+  const rootId = options.rootId || dataset.people.keys().next().value;
   const mode = options.mode || 'main';
-  const focusNodeId = options.focusNodeId || rootId;
+  const focusNodeId = options.focusNodeId || null;
 
   if (mode === 'focused') {
-    return buildFocusedGraph(dataset, focusNodeId);
+    return buildFocusedGraph(dataset, focusNodeId || rootId);
   }
 
-  return buildMainGraph(dataset, rootId);
+  return buildMainGraph(dataset, rootId, focusNodeId);
 }
 
+// Creates and wires up the vis-network instance for the graph.
 export function createNetwork(container, graphData, handlers = {}) {
   const network = new vis.Network(
     container,
