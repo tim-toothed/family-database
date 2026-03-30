@@ -1,6 +1,9 @@
 id: P009
 
-birth_name: "Смирнов Борис Яковлевич"
+birth_name:
+  first_name: Смирнов
+  second_name: Борис
+  patronymic: Яковлевич
 
 sex: "м"
 

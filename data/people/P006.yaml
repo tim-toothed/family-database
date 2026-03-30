@@ -1,6 +1,9 @@
 id: P006
 
-birth_name: "Смирнова Евдокия Устиновна"
+birth_name:
+  first_name: Смирнова
+  second_name: Евдокия
+  patronymic: Устиновна
 
 name_changes:
   - name: "Гречнева Евдокия Устиновна"
@@ -20,6 +23,10 @@ parents:
     relation_type: "отец"
   - person_id: P004
     relation_type: "мать"
+
+siblings:
+  - person_id: P006
+    relation_type: "биологический"
 
 spouses:
   - person_id: P012

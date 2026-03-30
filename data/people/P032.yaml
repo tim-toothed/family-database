@@ -1,6 +1,9 @@
 id: P032
 
-birth_name: "Полынская? Наталья ???"
+birth_name:
+  first_name: Полынская?
+  second_name: Наталья
+  patronymic: ???
 
 name_changes:
   - name: "Богданова Наталья ???"

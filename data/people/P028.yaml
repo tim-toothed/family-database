@@ -1,6 +1,9 @@
 id: P028
 
-birth_name: "Богданов Виктор Алексеевич"
+birth_name:
+  first_name: Богданов
+  second_name: Виктор
+  patronymic: Алексеевич
 
 sex: "м"
 

@@ -1,6 +1,9 @@
 id: P010
 
-birth_name: "Гречнев Василий Федотович"
+birth_name:
+  first_name: Гречнев
+  second_name: Василий
+  patronymic: Федотович
 
 sex: "м"
 

@@ -1,6 +1,9 @@
 id: P014
 
-birth_name: "Гречнева Валентина Ивановна"
+birth_name:
+  first_name: Гречнева
+  second_name: Валентина
+  patronymic: Ивановна
 
 name_changes:
   - name: "Васильева Валентина Ивановна"

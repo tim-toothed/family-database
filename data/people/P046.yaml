@@ -1,6 +1,9 @@
 id: P046
 
-birth_name: "Гречнева Евгения Викторовна"
+birth_name:
+  first_name: Гречнева
+  second_name: Евгения
+  patronymic: Викторовна
 
 name_changes:
   - name: "Шарифуллина Евгения Викторовна"

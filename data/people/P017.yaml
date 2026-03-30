@@ -1,6 +1,9 @@
 id: P017
 
-birth_name: "Пустовая? Людмила Васильевна"
+birth_name:
+  first_name: Пустовая?
+  second_name: Людмила
+  patronymic: Васильевна
 
 sex: "ж"
 

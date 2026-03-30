@@ -1,6 +1,9 @@
 id: P029
 
-birth_name: "Жиго Зинаида Юлиановна"
+birth_name:
+  first_name: Жиго
+  second_name: Зинаида
+  patronymic: Юлиановна
 
 name_changes:
   - name: "Богданова Зинаида Юльевна"

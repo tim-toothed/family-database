@@ -1,6 +1,9 @@
 id: P033
 
-birth_name: "Полынская? Анна? ???"
+birth_name:
+  first_name: Полынская?
+  second_name: Анна?
+  patronymic: ???
 
 sex: "ж"
 

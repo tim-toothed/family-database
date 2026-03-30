@@ -1,6 +1,9 @@
 id: P038
 
-birth_name: "Базалеева(?) Анна Харитоновна"
+birth_name:
+  first_name: Базалеева
+  second_name: Анна
+  patronymic: Харитоновна
 
 name_changes:
   - name: "Жиго Анна Харитоновна"

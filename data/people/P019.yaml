@@ -1,6 +1,9 @@
 id: P019
 
-birth_name: "Богданов Алексей Владимирович"
+birth_name:
+  first_name: Богданов
+  second_name: Алексей
+  patronymic: Владимирович
 
 sex: "м"
 

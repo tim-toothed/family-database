@@ -1,6 +1,9 @@
 id: P016
 
-birth_name: "Гречнев Виктор Иванович"
+birth_name:
+  first_name: Гречнев
+  second_name: Виктор
+  patronymic: Иванович
 
 sex: "м"
 

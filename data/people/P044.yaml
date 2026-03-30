@@ -1,6 +1,9 @@
 id: P044
 
-birth_name: "Жиго Анатолий Юлианович"
+birth_name:
+  first_name: Жиго
+  second_name: Анатолий
+  patronymic: Юлианович
 
 sex: "м"
 

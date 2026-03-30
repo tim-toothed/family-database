@@ -1,6 +1,9 @@
 id: P040
 
-birth_name: "Жиго Александр Юлианович"
+birth_name:
+  first_name: Жиго
+  second_name: Александр
+  patronymic: Юлианович
 
 sex: "м"
 

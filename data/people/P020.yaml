@@ -1,6 +1,9 @@
 id: P020
 
-birth_name: "Богданов Иван Владимирович"
+birth_name:
+  first_name: Богданов
+  second_name: Иван
+  patronymic: Владимирович
 
 sex: "м"
 
@@ -13,10 +16,6 @@ death:
 siblings:
   - person_id: P019
     relation_type: "биологический"
-
-spouses:
-  - person_id: P054
-    marriage_date: "???"
 
 children:
   - person_id: P021

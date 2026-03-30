@@ -1,6 +1,9 @@
 id: P042
 
-birth_name: "Жиго Анатолий Александрович"
+birth_name:
+  first_name: Жиго
+  second_name: Анатолий
+  patronymic: Александрович
 
 sex: "м"
 

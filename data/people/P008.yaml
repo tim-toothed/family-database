@@ -1,6 +1,9 @@
 id: P008
 
-birth_name: "??? Лариса (или Клавдия) Петровна"
+birth_name:
+  first_name: "???"
+  second_name: "Лариса (или Клавдия)"
+  patronymic: "Петровна"
 
 name_changes:
   - name: "Смирнова Лариса (или Клавдия) Петровна"

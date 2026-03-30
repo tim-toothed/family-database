@@ -1,6 +1,9 @@
 id: P039
 
-birth_name: "Базалеев Яков Харитонович"
+birth_name:
+  first_name: Базалеев
+  second_name: Яков
+  patronymic: Харитонович
 
 sex: "м"
 

@@ -1,6 +1,9 @@
 id: P002
 
-birth_name: "??? Устинья Николаевна"
+birth_name:
+  first_name: ???
+  second_name: Устинья
+  patronymic: Николаевна
 
 name_changes:
   - name: "Смирнова Устинья Николаевна"

@@ -1,6 +1,9 @@
 id: P001
 
-birth_name: "Смирнов Иван Ефимович"
+birth_name:
+  first_name: Смирнов
+  second_name: Иван
+  patronymic: Ефимович
 
 sex: "м"
 

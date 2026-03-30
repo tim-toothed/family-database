@@ -1,6 +1,9 @@
 id: P018
 
-birth_name: "Хрусталёва Галина Петровна"
+birth_name:
+  first_name: Хрусталёва
+  second_name: Галина
+  patronymic: Петровна
 
 sex: "ж"
 

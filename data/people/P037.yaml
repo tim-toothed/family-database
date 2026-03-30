@@ -1,6 +1,9 @@
 id: P037
 
-birth_name: "Жиго Юлиан Михайлович"
+birth_name:
+  first_name: Жиго
+  second_name: Юлиан
+  patronymic: Михайлович
 
 sex: "м"
 

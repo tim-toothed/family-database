@@ -1,6 +1,9 @@
 id: P035
 
-birth_name: "Богданов Тимофей ???"
+birth_name:
+  first_name: Богданов
+  second_name: Тимофей
+  patronymic: ???
 
 sex: "м"
 

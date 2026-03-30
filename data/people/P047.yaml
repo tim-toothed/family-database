@@ -1,6 +1,9 @@
 id: P047
 
-birth_name: "Гречнева Маргарита Викторовна"
+birth_name:
+  first_name: Гречнева
+  second_name: Маргарита
+  patronymic: Викторовна
 
 sex: "ж"
 

@@ -1,6 +1,9 @@
 id: P030
 
-birth_name: "Богданов Виктор Леонидович"
+birth_name:
+  first_name: Богданов
+  second_name: Виктор
+  patronymic: Леонидович
 
 sex: "м"
 

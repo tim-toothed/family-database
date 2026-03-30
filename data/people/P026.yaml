@@ -1,6 +1,9 @@
 id: P026
 
-birth_name: "Румянцева Мария Михайловна"
+birth_name:
+  first_name: Румянцева
+  second_name: Мария
+  patronymic: Михайловна
 
 name_changes:
   - name: "Бровина Мария Михайловна"

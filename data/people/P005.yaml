@@ -1,11 +1,14 @@
 id: P005
 
-birth_name: "Смирнов Сергей Устинович"
+birth_name:
+  first_name: Смирнов
+  second_name: Сергей
+  patronymic: Устинович
 
 sex: "м"
 
 birth:
-  date: "???.??.1907"
+  date: "DD.MM.1907"
 
 death:
   date: "???"
@@ -15,6 +18,10 @@ parents:
     relation_type: "отец"
   - person_id: P004
     relation_type: "мать"
+
+siblings:
+  - person_id: P006
+    relation_type: "биологический"
 
 profession:
   - title: "слесарь"

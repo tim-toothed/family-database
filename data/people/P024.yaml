@@ -1,6 +1,9 @@
 id: P024
 
-birth_name: "Румянцева Клавдия Михайловна"
+birth_name:
+  first_name: Румянцева
+  second_name: Клавдия
+  patronymic: Михайловна
 
 name_changes:
   - name: "Богданова Клавдия Михайловна"

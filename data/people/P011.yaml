@@ -1,6 +1,9 @@
 id: P011
 
-birth_name: "??? Татьяна Ивановна"
+birth_name:
+  first_name: ???
+  second_name: Татьяна
+  patronymic: Ивановна
 
 name_changes:
   - name: "Гречнева Татьяна Ивановна"

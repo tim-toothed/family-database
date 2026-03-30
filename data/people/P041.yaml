@@ -1,6 +1,9 @@
 id: P041
 
-birth_name: "??? Зинаида ???"
+birth_name:
+  first_name: ???
+  second_name: Зинаида
+  patronymic: ???
 
 name_changes:
   - name: "Жиго Зинаида ???"

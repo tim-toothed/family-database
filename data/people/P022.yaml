@@ -1,6 +1,9 @@
 id: P022
 
-birth_name: "Богданова Валентина Ивановна"
+birth_name:
+  first_name: Богданова
+  second_name: Валентина
+  patronymic: Ивановна
 
 name_changes:
   - name: Воронина Валентина Ивановна
@@ -18,20 +21,10 @@ birth:
 parents:
   - person_id: P020
     relation_type: "отец"
-  - person_id: P054
-    relation_type: "мать"
 
 siblings:
   - person_id: P021
     relation_type: "биологический"
-
-spouses:
-  - person_id: P055
-    marriage_date: "???"
-    divorce_date: "???"
-  - person_id: P056
-    marriage_date: "???"
-    divorce_date: "???"
 
 children:
   - person_id: P023

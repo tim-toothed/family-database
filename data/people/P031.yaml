@@ -1,6 +1,9 @@
 id: P031
 
-birth_name: "Богданова Ольга Леонидовна"
+birth_name:
+  first_name: Богданова
+  second_name: Ольга
+  patronymic: Леонидовна
 
 name_changes:
   - name: "Гречнева Ольга Леонидовна"
@@ -24,7 +27,7 @@ parents:
     relation_type: "мать"
 
 siblings:
-  - person_id: P028
+  - person_id: P030
     relation_type: биологический
 
 spouses:

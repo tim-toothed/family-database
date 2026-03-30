@@ -1,6 +1,9 @@
 id: P021
 
-birth_name: "Богданова Зинаида Ивановна"
+birth_name:
+  first_name: Богданова
+  second_name: Зинаида
+  patronymic: Ивановна
 
 sex: "ж"
 
@@ -12,14 +15,12 @@ birth:
 parents:
   - person_id: P020
     relation_type: "отец"
-  - person_id: P054
-    relation_type: "мать"
 
 siblings:
   - person_id: P022
     relation_type: "биологическая"
 
-other_info: "Упоминается как двоюродная сестра Леонида Алексеевича Богданова по линии брата его отца."
+other_info: "дочь Ивана Владимировича Богданова и ???"
 
 sources:
   - source: "Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)"

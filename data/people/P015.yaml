@@ -1,6 +1,9 @@
 id: P015
 
-birth_name: "Гречнев Илья Иванович"
+birth_name:
+  first_name: Гречнев
+  second_name: Илья
+  patronymic: Иванович
 
 sex: "м"
 

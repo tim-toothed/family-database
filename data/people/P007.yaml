@@ -1,6 +1,9 @@
 id: P007
 
-birth_name: "Смирнов Яков Устинович"
+birth_name:
+  first_name: Смирнов
+  second_name: Яков
+  patronymic: Устинович
 
 sex: "м"
 

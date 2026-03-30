@@ -1,6 +1,9 @@
 id: P025
 
-birth_name: "Румянцева Анна Михайловна"
+birth_name:
+  first_name: Румянцева
+  second_name: Анна
+  patronymic: Михайловна
 
 sex: "ж"
 

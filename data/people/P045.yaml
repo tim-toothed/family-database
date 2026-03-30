@@ -1,6 +1,9 @@
 id: P045
 
-birth_name: "Жиго Таисия Юлиановна"
+birth_name:
+  first_name: Жиго
+  second_name: Таисия
+  patronymic: Юлиановна
 
 name_changes:
   - name: "Ляскало(?) Таисия Юлиановна"
@@ -38,12 +41,6 @@ siblings:
     relation_type: "биологический"
   - person_id: P044
     relation_type: "биологический"
-
-spouses:
-  - person_id: P050
-    marriage_date: "???"
-  - person_id: P051
-    marriage_date: "???"
 
 children:
   - person_id: "???"

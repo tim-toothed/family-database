@@ -1,6 +1,9 @@
 id: P049
 
-birth_name: "Шарифуллин Тимур Маратович"
+birth_name:
+  first_name: Шарифуллин
+  second_name: Тимур
+  patronymic: Маратович
 
 sex: "м"
 

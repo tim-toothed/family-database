@@ -1,6 +1,9 @@
 id: P003
 
-birth_name: "Смирнов Устин Иванович"
+birth_name:
+  first_name: Смирнов
+  second_name: Устин
+  patronymic: Иванович
 
 sex: "м"
 

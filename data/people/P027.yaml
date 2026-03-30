@@ -1,6 +1,9 @@
 id: P027
 
-birth_name: "Богданов Леонид Алексеевич"
+birth_name:
+  first_name: Богданов
+  second_name: Леонид
+  patronymic: Алексеевич
 
 sex: "м"
 

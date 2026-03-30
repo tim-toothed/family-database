@@ -1,6 +1,9 @@
 id: P043
 
-birth_name: "Жиго Зоя Александровна"
+birth_name:
+  first_name: Жиго
+  second_name: Зоя
+  patronymic: Александровна
 
 sex: "ж"
 

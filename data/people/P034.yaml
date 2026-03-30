@@ -1,6 +1,9 @@
 id: P034
 
-birth_name: "Богданова Анна Викторовна"
+birth_name:
+  first_name: Богданова
+  second_name: Анна
+  patronymic: Викторовна
 
 name_changes:
   - name: "Тимошина Анна Викторовна"

@@ -1,6 +1,9 @@
 id: P012
 
-birth_name: "Гречнев Иван Васильевич"
+birth_name:
+  first_name: Гречнев
+  second_name: Иван
+  patronymic: Васильевич
 
 sex: "м"
 
