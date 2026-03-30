@@ -15,6 +15,8 @@ birth:
 parents:
   - person_id: P020
     relation_type: "отец"
+  - person_id: P036
+    relation_type: "мать"
 
 siblings:
   - person_id: P022
