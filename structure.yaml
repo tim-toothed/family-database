@@ -8,7 +8,11 @@
 id: text (например, P001)
 
 # ФИО и другие имена, если применимо
-birth_name: text
+birth_name:
+  first_name: text
+  second_name: text
+  patronymic: text
+
 name_changes:
   - name: text
     date: DD.MM.YYYY
