@@ -8,8 +8,8 @@ export function formatBirthName(birthName) {
   }
 
   return [
+    birthName.surname,
     birthName.first_name,
-    birthName.second_name,
     birthName.patronymic,
   ]
     .map((part) => String(part ?? '').trim())

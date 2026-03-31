@@ -77,7 +77,7 @@ function buildFamilyIds(people) {
 
   for (const personId of sortedIds) {
     const birthName = people.get(personId)?.birth_name || {};
-    const surname = birthName.first_name || '';
+    const surname = birthName.surname || '';
     familyKeyByPerson.set(personId, canonicalFamilyKey(personId, surname, warnings));
   }
 
@@ -346,8 +346,8 @@ function compareAlphabeticalAsc(left, right) {
 
   if (left.familyId !== right.familyId) return left.familyId - right.familyId;
 
-  const secondNameCompare = left.secondName.localeCompare(right.secondName, 'ru');
-  if (secondNameCompare !== 0) return secondNameCompare;
+  const firstNameCompare = left.firstName.localeCompare(right.firstName, 'ru');
+  if (firstNameCompare !== 0) return firstNameCompare;
 
   const patronymicCompare = left.patronymic.localeCompare(right.patronymic, 'ru');
   if (patronymicCompare !== 0) return patronymicCompare;
@@ -364,8 +364,8 @@ function compareAlphabeticalDesc(left, right) {
 
   if (left.familyId !== right.familyId) return right.familyId - left.familyId;
 
-  const secondNameCompare = right.secondName.localeCompare(left.secondName, 'ru');
-  if (secondNameCompare !== 0) return secondNameCompare;
+  const firstNameCompare = right.firstName.localeCompare(left.firstName, 'ru');
+  if (firstNameCompare !== 0) return firstNameCompare;
 
   const patronymicCompare = right.patronymic.localeCompare(left.patronymic, 'ru');
   if (patronymicCompare !== 0) return patronymicCompare;
@@ -440,9 +440,9 @@ export function buildPeopleTableData(dataset, options = {}) {
       familyId: familyIdByPerson.get(personId),
       generationId: generationByPerson.get(personId) ?? null,
       fullName,
-      hasUnknownSurname: String(birthName.first_name || '').trim().startsWith('???'),
+      hasUnknownSurname: String(birthName.surname || '').trim().startsWith('???'),
       hasIdFallbackName: PERSON_ID_NAME_RE.test(String(fullName).trim()),
-      secondName: String(birthName.second_name || ''),
+      firstName: String(birthName.first_name || ''),
       patronymic: String(birthName.patronymic || ''),
     };
   });

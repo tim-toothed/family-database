@@ -66,7 +66,7 @@ function getPersonNameTailSortBucket(personId, person, dataset) {
   const displayName = getDatasetPersonName(dataset, personId, personId);
 
   if (PERSON_ID_NAME_RE.test(String(displayName).trim())) return 2;
-  if (String(birthName.first_name || '').trim().startsWith('???')) return 1;
+  if (String(birthName.surname || '').trim().startsWith('???')) return 1;
   return 0;
 }
 
@@ -86,8 +86,8 @@ function comparePeopleNamesAsc(leftId, rightId, dataset, tableData) {
   const rightFamilyId = tableData.familyIdByPerson.get(rightId) ?? Number.MAX_SAFE_INTEGER;
   if (leftFamilyId !== rightFamilyId) return leftFamilyId - rightFamilyId;
 
-  const secondNameCompare = compareStringsAsc(leftBirthName.second_name, rightBirthName.second_name);
-  if (secondNameCompare !== 0) return secondNameCompare;
+  const firstNameCompare = compareStringsAsc(leftBirthName.first_name, rightBirthName.first_name);
+  if (firstNameCompare !== 0) return firstNameCompare;
 
   const patronymicCompare = compareStringsAsc(leftBirthName.patronymic, rightBirthName.patronymic);
   if (patronymicCompare !== 0) return patronymicCompare;
@@ -229,8 +229,8 @@ function buildFamilyTitle(dataset, ownerId) {
     return `Семья ${originalName}`;
   }
 
-  const surname = appendMaleGenitive(birthName.first_name);
-  const firstName = inflectMaleFirstName(birthName.second_name);
+  const surname = appendMaleGenitive(birthName.surname);
+  const firstName = inflectMaleFirstName(birthName.first_name);
   const patronymic = inflectPatronymic(birthName.patronymic);
   const inflected = [surname, firstName, patronymic].filter(Boolean).join(' ').trim();
 
