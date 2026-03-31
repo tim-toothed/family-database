@@ -1,0 +1,20 @@
+# Local helper scripts
+scripts/
+
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Logs
+*.log
+
+# Editor and OS files
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
