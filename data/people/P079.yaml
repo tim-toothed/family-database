@@ -1,0 +1,32 @@
+id: P079
+
+birth_name:
+  first_name: "Рустам"
+  second_name: "Шарифуллин"
+  patronymic: "Рахимзянович"
+
+sex: "м"
+
+birth:
+  date: "29.09.1951"
+  place: "г. Лениногорск"
+
+death:
+  date: null
+
+parents:
+  - person_id: P078
+    relation_type: "мать"
+  - person_id: P073
+    relation_type: "отец"
+
+siblings:
+  - person_id: P067
+    relation_type: "биологический"
+  - person_id: P080
+    relation_type: "биологический"
+  - person_id: P081
+    relation_type: "биологический"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

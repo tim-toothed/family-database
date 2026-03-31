@@ -1,0 +1,26 @@
+id: P103
+
+sex: "м"
+
+birth:
+  date: "???"
+
+death:
+  date: "???"
+
+parents:
+  - person_id: P062
+    relation_type: "мать"
+  - person_id: P061
+    relation_type: "отец"
+
+siblings:
+  - person_id: P063
+    relation_type: "биологический"
+  - person_id: P102
+    relation_type: "приемный"
+
+other_info: "(сын Юнаш Ксении Кирилловны и Нечитайло Ефима Евсеевича)"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

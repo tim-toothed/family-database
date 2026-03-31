@@ -1,0 +1,51 @@
+id: P064
+
+birth_name:
+  first_name: "Павел"
+  second_name: "Шароваров"
+  patronymic: "Леонтьевич"
+
+sex: "м"
+
+birth:
+  date: "07.01.1923"
+
+death:
+  date: "20.12.2012"
+  place: "г. Житомир"
+
+parents:
+  - person_id: P060
+    relation_type: "мать"
+  - person_id: P058
+    relation_type: "отец"
+
+siblings:
+  - person_id: P059
+    relation_type: "сводный по отцу"
+  - person_id: P093
+    relation_type: "биологический"
+  - person_id: P094
+    relation_type: "биологический"
+  - person_id: P095
+    relation_type: "биологический"
+  - person_id: P096
+    relation_type: "биологический"
+  - person_id: P097
+    relation_type: "биологический"
+  - person_id: P098
+    relation_type: "биологический"
+  - person_id: P099
+    relation_type: "биологический"
+
+spouses:
+  - person_id: P063
+
+children:
+  - person_id: P065
+    relation_type: "биологический"
+  - person_id: P066
+    relation_type: "биологический"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

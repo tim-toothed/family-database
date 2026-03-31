@@ -1,0 +1,31 @@
+id: P071
+
+birth_name:
+  first_name: "Разетдин"
+  second_name: "Зиатдинов"
+  patronymic: "???"
+
+sex: "м"
+
+birth:
+  date: "???"
+
+death:
+  date: "DD.MM.1932"
+  place: "Подмосковье"
+  cause: "Убит в подмосковье"
+
+spouses:
+  - person_id: P086
+  - person_id: P106
+
+children:
+  - person_id: P078
+    relation_type: "биологический"
+  - person_id: P084
+    relation_type: "биологический"
+  - person_id: P085
+    relation_type: "биологический"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

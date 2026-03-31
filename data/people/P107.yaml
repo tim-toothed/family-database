@@ -1,0 +1,28 @@
+id: P107
+
+birth_name:
+  first_name: "???"
+  second_name: "Гарин"
+  patronymic: "???"
+
+sex: "м"
+
+birth:
+  date: "???"
+
+death:
+  date: "???"
+
+spouses:
+  - person_id: P066
+
+children:
+  - person_id: P100
+    relation_type: "приемный"
+  - person_id: P101
+    relation_type: "приемный"
+
+other_info: "(супруг Шароваровой Ларисы Павловны)"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

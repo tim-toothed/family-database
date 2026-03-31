@@ -1,0 +1,34 @@
+id: P068
+
+birth_name:
+  first_name: "Дилара"
+  second_name: "Шарифуллина"
+  patronymic: "Раисовна"
+
+sex: "ж"
+
+birth:
+  date: "22.10.1973"
+
+death:
+  date: null
+
+parents:
+  - person_id: P065
+    relation_type: "мать"
+  - person_id: P067
+    relation_type: "отец"
+
+siblings:
+  - person_id: P048
+    relation_type: "биологический"
+
+spouses:
+  - person_id: P069
+
+children:
+  - person_id: P070
+    relation_type: "биологический"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

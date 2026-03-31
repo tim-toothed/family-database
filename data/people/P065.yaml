@@ -1,0 +1,36 @@
+id: P065
+
+birth_name:
+  first_name: "Светлана"
+  second_name: "Шароварова"
+  patronymic: "Павловна"
+
+sex: "ж"
+
+birth:
+  date: "06.09.1947"
+
+death:
+  date: null
+
+parents:
+  - person_id: P063
+    relation_type: "мать"
+  - person_id: P064
+    relation_type: "отец"
+
+siblings:
+  - person_id: P066
+    relation_type: "биологический"
+
+spouses:
+  - person_id: P067
+
+children:
+  - person_id: P068
+    relation_type: "биологический"
+  - person_id: P048
+    relation_type: "биологический"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

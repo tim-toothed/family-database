@@ -1,0 +1,42 @@
+id: P067
+
+birth_name:
+  first_name: "Раис"
+  second_name: "Шарифуллин"
+  patronymic: "Рахимзянович"
+
+sex: "м"
+
+birth:
+  date: "05.02.1949"
+  place: "деревня Старое Шугурово, около Лениногорска"
+
+death:
+  date: "25.11.2000"
+  place: "г. Усинск (похоронен в г. Лениногорск)"
+
+parents:
+  - person_id: P078
+    relation_type: "мать"
+  - person_id: P073
+    relation_type: "отец"
+
+siblings:
+  - person_id: P079
+    relation_type: "биологический"
+  - person_id: P080
+    relation_type: "биологический"
+  - person_id: P081
+    relation_type: "биологический"
+
+spouses:
+  - person_id: P065
+
+children:
+  - person_id: P068
+    relation_type: "биологический"
+  - person_id: P048
+    relation_type: "биологический"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

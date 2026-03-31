@@ -1,0 +1,21 @@
+id: P105
+
+sex: "ж"
+
+birth:
+  date: "???"
+
+death:
+  date: "???"
+
+spouses:
+  - person_id: P058
+
+children:
+  - person_id: P059
+    relation_type: "биологический"
+
+other_info: "(1-я жена Шаровара Леонтия Давидовича)"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

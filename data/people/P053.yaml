@@ -1,0 +1,34 @@
+id: P053
+
+birth_name:
+  first_name: "Евсей"
+  second_name: "Нечитайло"
+  patronymic: "Саввич?"
+
+sex: "м"
+
+birth:
+  date: "DD.MM.1871"
+
+death:
+  date: "DD.MM.1965"
+
+spouses:
+  - person_id: P052
+
+children:
+  - person_id: P061
+    relation_type: "биологический"
+  - person_id: P088
+    relation_type: "биологический"
+  - person_id: P089
+    relation_type: "биологический"
+  - person_id: P090
+    relation_type: "биологический"
+  - person_id: P091
+    relation_type: "биологический"
+  - person_id: P092
+    relation_type: "биологический"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"

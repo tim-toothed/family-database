@@ -1,0 +1,30 @@
+id: P084
+
+birth_name:
+  first_name: "???"
+  second_name: "Зиатдинов"
+  patronymic: "Разетдинович"
+
+sex: "м"
+
+birth:
+  date: "???"
+
+death:
+  date: "???"
+  cause: "Погиб под поездом в 16-18 лет"
+
+parents:
+  - person_id: P086
+    relation_type: "мать"
+  - person_id: P071
+    relation_type: "отец"
+
+siblings:
+  - person_id: P078
+    relation_type: "биологический"
+  - person_id: P085
+    relation_type: "сводный по отцу"
+
+sources:
+  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
