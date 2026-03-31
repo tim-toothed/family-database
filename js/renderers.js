@@ -42,6 +42,15 @@ function renderList(items, itemRenderer) {
   return `<ul>${items.map((item) => `<li>${itemRenderer(item)}</li>`).join('')}</ul>`;
 }
 
+function renderSimpleMarkdownLink(value) {
+  const text = String(value || '');
+  const match = text.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+  if (!match) return escapeHtml(text || '—');
+
+  const [, label, href] = match;
+  return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+}
+
 function renderArrayField(key, items, dataset) {
   if (!Array.isArray(items) || items.length === 0) return '';
 
@@ -82,7 +91,7 @@ function renderArrayField(key, items, dataset) {
     case 'residences':
       return renderList(items, (item) => escapeHtml(item.residence_info || '—'));
     case 'sources':
-      return renderList(items, (item) => escapeHtml(item.source || '—'));
+      return renderList(items, (item) => renderSimpleMarkdownLink(item.source || '—'));
     case 'media':
       return renderList(items, (item) => {
         const parts = [];
