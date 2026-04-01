@@ -21,6 +21,10 @@ body {
   color: var(--text);
 }
 
+body.editor-page {
+  min-height: 100dvh;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -427,6 +431,10 @@ body {
 }
 
 .details-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--line);
@@ -440,6 +448,126 @@ body {
 .person-subtitle {
   color: var(--muted);
   font-size: 14px;
+}
+
+.details-edit-button {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--muted);
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.details-edit-button:hover {
+  color: var(--accent);
+  border-color: #bfd0f5;
+}
+
+.details-edit-button.is-active {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: #bfd0f5;
+}
+
+.editor-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.editor-topbar h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+}
+
+.editor-actions {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.editor-action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.editor-layout {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.editor-shell {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.save-yaml-button {
+  border: 1px solid #1f8f4d;
+  border-radius: 14px;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(180deg, #2db863 0%, #23994f 100%);
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(35, 153, 79, 0.2);
+}
+
+.open-yaml-button {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 18px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--text);
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.open-yaml-button:hover {
+  border-color: #bfd0f5;
+  color: var(--accent);
+  background: #f8fbff;
+}
+
+.save-yaml-button:hover {
+  background: linear-gradient(180deg, #32c56c 0%, #249a50 100%);
+}
+
+.save-yaml-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+  background: linear-gradient(180deg, #9fb7a7 0%, #8ea195 100%);
+  border-color: #8ea195;
+}
+
+.state-static {
+  position: static;
+  min-height: 180px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.92);
 }
 
 .field-block {
@@ -467,6 +595,185 @@ body {
 
 .field-value li + li {
   margin-top: 6px;
+}
+
+.field-block.is-editing {
+  background: linear-gradient(180deg, #fcfdff 0%, #f7fbff 100%);
+}
+
+.field-block.is-editing.is-disabled {
+  background: linear-gradient(180deg, #f3f5f8 0%, #eceff4 100%);
+  border-color: #cfd7e4;
+}
+
+.field-block.is-editing.is-disabled .field-value {
+  opacity: 0.8;
+}
+
+.editor-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.editor-field {
+  display: grid;
+  gap: 6px;
+}
+
+.editor-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.editor-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editor-hint {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.editor-section-note {
+  margin: -2px 0 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.editor-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.editor-checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: #23994f;
+}
+
+.editor-status {
+  min-height: 18px;
+  max-width: 360px;
+  text-align: right;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.editor-status.is-valid {
+  color: #1f8f4d;
+}
+
+.editor-status.is-error {
+  color: #b42318;
+}
+
+.editor-status.is-info {
+  color: var(--muted);
+}
+
+.editor-input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: #ffffff;
+}
+
+.editor-input:disabled,
+.editor-input-textarea:disabled {
+  color: #6b7280;
+  background: #eef2f7;
+  border-color: #d5dbe6;
+  cursor: not-allowed;
+}
+
+.editor-input:focus {
+  outline: 2px solid rgba(47, 111, 237, 0.16);
+  border-color: #bfd0f5;
+}
+
+.editor-input-textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.editor-subsection {
+  display: grid;
+  gap: 10px;
+}
+
+.editor-subsection-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.editor-array {
+  display: grid;
+  gap: 12px;
+}
+
+.editor-array-item {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e2e8f3;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.editor-array-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.editor-array-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.editor-array-empty {
+  padding: 12px;
+  border: 1px dashed #c7d4ec;
+  border-radius: 14px;
+  color: var(--muted);
+  background: rgba(234, 241, 255, 0.4);
+}
+
+.editor-array-action {
+  justify-self: start;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font: inherit;
+  color: var(--muted);
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.editor-array-action:hover {
+  color: var(--accent);
+  border-color: #bfd0f5;
+}
+
+.editor-array-action.is-danger:hover {
+  color: #c02626;
+  border-color: #efb0b0;
 }
 
 .person-link,
@@ -559,6 +866,11 @@ body {
   }
 
   .topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .editor-topbar {
     flex-direction: column;
     align-items: stretch;
   }

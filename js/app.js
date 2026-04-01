@@ -16,6 +16,7 @@ const detailsContent = document.getElementById('detailsContent');
 const personTitle = document.getElementById('personTitle');
 const personSubtitle = document.getElementById('personSubtitle');
 const personBody = document.getElementById('personBody');
+const toggleEditButton = document.getElementById('toggleEditButton');
 const rootPersonInput = document.getElementById('rootPersonInput');
 const rootPersonOptions = document.getElementById('rootPersonOptions');
 const buildTreeButton = document.getElementById('buildTreeButton');
@@ -42,6 +43,25 @@ function hideLoading() {
 
 function showError(message) {
   loadingState.innerHTML = `<div class="error-box">${message}</div>`;
+}
+
+function updateEditButton(personId) {
+  if (!toggleEditButton) return;
+
+  const enabled = Boolean(personId && !isVirtualNode(personId));
+  toggleEditButton.hidden = !enabled;
+  toggleEditButton.disabled = !enabled;
+  toggleEditButton.classList.remove('is-active');
+  toggleEditButton.setAttribute('aria-pressed', 'false');
+  toggleEditButton.title = 'Редактировать карточку';
+}
+
+function openEditorPage(personId) {
+  if (!personId || isVirtualNode(personId)) return;
+
+  const url = new URL('./edit.html', window.location.href);
+  url.searchParams.set('id', personId);
+  window.open(url.toString(), '_blank', 'noopener');
 }
 
 function syncTableSelection() {
@@ -114,6 +134,7 @@ function showPerson(personId) {
   personTitle.textContent = result.title;
   personSubtitle.textContent = result.subtitle;
   personBody.innerHTML = result.html;
+  updateEditButton(personId);
 
   bindPersonLinks(personBody, (linkedId) => {
     if (currentView === 'graph') {
@@ -350,6 +371,10 @@ async function init() {
     inspectButton.addEventListener('click', (event) => {
       event.preventDefault();
       toggleInspect();
+    });
+    toggleEditButton?.addEventListener('click', (event) => {
+      event.preventDefault();
+      openEditorPage(selectedPersonId);
     });
 
     applyTabState(currentView);

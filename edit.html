@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Редактор карточки</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+  </head>
+  <body class="editor-page">
+    <header class="editor-topbar">
+      <div>
+        <h1 id="editorTitle">Редактор карточки</h1>
+        <p id="editorSubtitle" class="subtitle"></p>
+      </div>
+      <div class="editor-actions">
+        <div id="validationMessage" class="editor-status"></div>
+        <div class="editor-action-row">
+          <button id="openYamlButton" class="open-yaml-button" type="button">Открыть YAML с ПК</button>
+          <button id="saveYamlButton" class="save-yaml-button" type="button">Сохранить YAML</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="editor-layout">
+      <div id="editorLoading" class="state state-static">Загрузка карточки...</div>
+      <div id="editorError" class="error-box" hidden></div>
+      <section id="editorShell" class="editor-shell" hidden>
+        <div id="editorBody"></div>
+      </section>
+    </main>
+
+    <datalist id="editorPersonOptions"></datalist>
+    <input id="openYamlInput" type="file" accept=".yaml,.yml,text/yaml,text/x-yaml" hidden />
+    <script type="module" src="./js/editor-page.js"></script>
+  </body>
+</html>

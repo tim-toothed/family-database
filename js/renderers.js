@@ -1,5 +1,5 @@
 import { FIELD_LABELS, SECTION_ORDER } from './config.js';
-import { formatBirthName, getDatasetPersonName } from './person-name.js';
+import { formatBirthName, getDatasetPersonName, getPersonDisplayName } from './person-name.js';
 
 function escapeHtml(value) {
   return String(value)
@@ -136,11 +136,13 @@ function renderField(key, value, dataset) {
   return `<div>${escapeHtml(value)}</div>`;
 }
 
-export function renderPersonDetails(personId, dataset) {
-  const person = dataset.people.get(personId);
+export function renderPersonDetails(personId, dataset, options = {}) {
+  const person = options.personOverride || dataset.people.get(personId);
   if (!person) return null;
 
-  const title = getDatasetPersonName(dataset, personId, personId);
+  const title = options.personOverride
+    ? getPersonDisplayName(person, personId)
+    : getDatasetPersonName(dataset, personId, personId);
   const subtitleParts = [personId];
   if (person.birth?.date) subtitleParts.push(`рожд. ${person.birth.date}`);
   if (person.death?.date) subtitleParts.push(`ум. ${person.death.date}`);
