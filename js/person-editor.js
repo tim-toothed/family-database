@@ -359,6 +359,10 @@ function normalizeDraftValue(value, schemaNode, path, options) {
   return value;
 }
 
+export function normalizePersonDraft(draft, schema, options = {}) {
+  return normalizeDraftValue(draft, schema, [], options);
+}
+
 function validateDraftNode(value, schemaNode, path, errors, options) {
   const key = path[path.length - 1];
 

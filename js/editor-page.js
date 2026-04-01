@@ -5,12 +5,12 @@ import {
   hydrateDraftForEditor,
   loadEditorDescriptions,
   loadEditorSchema,
+  normalizePersonDraft,
   removeDraftArrayItem,
   renderEditablePersonDetails,
   renderPersonYaml,
   setAliveState,
   updateDraftValue,
-  validatePersonDraft,
 } from './person-editor.js';
 
 const editorLoading = document.getElementById('editorLoading');
@@ -32,7 +32,7 @@ let personId = null;
 let draft = null;
 let optionValueToId = new Map();
 
-function setBannerMessage(message, tone = 'error') {
+function setBannerMessage(message = '', tone = 'info') {
   validationMessage.textContent = message;
   validationMessage.classList.toggle('is-error', tone === 'error');
   validationMessage.classList.toggle('is-valid', tone === 'valid');
@@ -57,27 +57,11 @@ function refreshHeader() {
   document.title = `${preview.title} — редактор карточки`;
 }
 
-function updateValidationState() {
-  const result = validatePersonDraft(draft, schema, {
-    peopleById: dataset.indexById,
-    optionValueToId,
-  });
-
-  saveYamlButton.disabled = !result.valid;
-  setBannerMessage(
-    result.valid ? 'Карточка готова к сохранению.' : result.errors[0],
-    result.valid ? 'valid' : 'error',
-  );
-
-  return result;
-}
-
 function bindEditorEvents() {
   editorBody.querySelectorAll('[data-path]').forEach((input) => {
     input.addEventListener('input', () => {
       updateDraftValue(draft, input.dataset.path, input.value);
       refreshHeader();
-      updateValidationState();
     });
   });
 
@@ -117,7 +101,6 @@ function renderEditor() {
   editorSubtitle.textContent = view.subtitle;
   editorBody.innerHTML = view.html;
   bindEditorEvents();
-  updateValidationState();
 }
 
 function populatePersonOptions() {
@@ -129,10 +112,11 @@ function populatePersonOptions() {
 }
 
 function downloadYaml() {
-  const validation = updateValidationState();
-  if (!validation.valid) return;
-
-  const yamlText = renderPersonYaml(validation.normalized, schema);
+  const normalized = normalizePersonDraft(draft, schema, {
+    peopleById: dataset.indexById,
+    optionValueToId,
+  });
+  const yamlText = renderPersonYaml(normalized, schema);
   const blob = new Blob([yamlText], { type: 'text/yaml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -142,6 +126,7 @@ function downloadYaml() {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+  setBannerMessage('YAML сохранен на компьютер.', 'info');
 }
 
 function derivePersonIdFromFile(fileName, parsedYaml) {
@@ -227,6 +212,7 @@ async function init() {
     editorLoading.remove();
     editorError.hidden = true;
     editorShell.hidden = false;
+    setBannerMessage('');
 
     setupToolbarActions();
   } catch (error) {
