@@ -5,10 +5,11 @@ const NESTED_FIELD_LABELS = {
   surname: 'Фамилия',
   first_name: 'Имя',
   patronymic: 'Отчество',
-  name: 'Имя',
+  name: 'Фамилия Имя Отчество',
   date: 'Дата',
-  date_raw: 'Как записано',
+  date_raw: 'Дата в свободной форме',
   place: 'Место',
+  reason: 'Причина',
   cause: 'Причина',
   person_id: 'Персона',
   relation_type: 'Тип связи',
@@ -32,9 +33,9 @@ const NESTED_FIELD_LABELS = {
 };
 
 const RELATION_FIELD_KEYS = new Set(['person_id', 'second_parent_id']);
-const ENUM_FIELD_KEYS = new Set(['relation_type']);
+const ENUM_FIELD_KEYS = new Set(['relation_type', 'sex', 'reason']);
 const DATE_FIELD_KEYS = new Set(['date', 'marriage_date', 'divorce_date', 'birth_date']);
-const DATE_RE = /^\d{2}\.\d{2}\.\d{4}$/;
+const DATE_RE = /^(?:\d{2}|DD)\.(?:\d{2}|MM)\.(?:\d{4}|YYYY)$/;
 const UNKNOWN_DATE_VALUE = '???';
 const DATE_TEMPLATE_VALUE = 'DD.MM.YYYY';
 let schemaBundlePromise;
@@ -86,7 +87,7 @@ function normalizeDateValue(value) {
   const normalized = String(value ?? '').trim();
   if (!normalized) return normalized;
   if (normalized === UNKNOWN_DATE_VALUE || normalized === DATE_TEMPLATE_VALUE) {
-    return UNKNOWN_DATE_VALUE;
+    return '';
   }
   return normalized;
 }
@@ -121,7 +122,7 @@ function ensureContainer(target, path) {
     const next = path[index + 1];
 
     if (typeof segment === 'number') {
-      if (!Array.isArray(current[segment])) {
+      if (current[segment] === undefined || current[segment] === null) {
         current[segment] = typeof next === 'number' ? [] : {};
       }
       current = current[segment];
@@ -182,36 +183,68 @@ function renderScalarEditor(path, key, value, schemaNode, context) {
   const label = getFieldLabel(key);
   const encodedPath = escapeHtml(encodePath(path));
   const fieldValue = value === null ? '' : escapeHtml(value ?? '');
+  const rawValue = value === null ? '' : String(value ?? '');
   const multiline = ['other_info', 'character', 'appearance', 'health', 'hobbies'].includes(key);
   const hint = typeof schemaNode === 'string' && !isGenericSchemaHint(schemaNode)
     ? escapeHtml(schemaNode.trim())
     : '';
   const showInlineLabel = path.length > 1;
   const disabled = context.disableInputs ? ' disabled' : '';
-  const relationListAttr = RELATION_FIELD_KEYS.has(key) && context.personListId
-    ? ` list="${escapeHtml(context.personListId)}"`
-    : '';
   const enumOptions = ENUM_FIELD_KEYS.has(key) ? extractSchemaOptions(schemaNode) : [];
-  const enumListId = ENUM_FIELD_KEYS.has(key)
-    ? `${context.enumListIdPrefix || 'editorEnum'}-${encodePath(path).replaceAll('.', '-')}`
-    : '';
-  const enumListAttr = ENUM_FIELD_KEYS.has(key) && enumOptions.length
-    ? ` list="${escapeHtml(enumListId)}"`
-    : '';
-  const listAttr = enumListAttr || relationListAttr;
+  const relationOptions = RELATION_FIELD_KEYS.has(key) ? (context.personOptionEntries || []) : [];
+  const isSelectField = (RELATION_FIELD_KEYS.has(key) && relationOptions.length)
+    || (ENUM_FIELD_KEYS.has(key) && enumOptions.length);
   const placeholder = RELATION_FIELD_KEYS.has(key)
     ? ' placeholder="Выберите персону"'
     : ENUM_FIELD_KEYS.has(key)
       ? ' placeholder="Выберите из списка"'
       : '';
 
+  if (key === 'divorce_date') {
+    const hasDivorceDateField = value !== undefined;
+    return `
+      <div class="editor-divorce-field">
+        <label class="editor-checkbox">
+          <input type="checkbox" data-action="toggle-divorced" data-divorce-path="${encodedPath}" ${hasDivorceDateField ? 'checked' : ''}${disabled} />
+          <span>Разведены</span>
+        </label>
+        ${hasDivorceDateField ? `
+          <label class="editor-field">
+            <span class="editor-label">${escapeHtml(label)}</span>
+            <input class="editor-input" data-path="${encodedPath}" type="text" value="${fieldValue}"${disabled} />
+            ${hint ? `<span class="editor-hint">${hint}</span>` : ''}
+          </label>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  if (isSelectField) {
+    const selectOptions = RELATION_FIELD_KEYS.has(key)
+      ? relationOptions.map((entry) => ({ value: entry.label, label: entry.label }))
+      : enumOptions.map((option) => ({ value: option, label: option }));
+    const hasCurrentOption = selectOptions.some((option) => option.value === rawValue);
+    const emptyLabel = RELATION_FIELD_KEYS.has(key) ? 'Выберите персону' : 'Выберите из списка';
+
+    return `
+      <label class="editor-field">
+        ${showInlineLabel ? `<span class="editor-label">${escapeHtml(label)}</span>` : ''}
+        <select class="editor-input" data-path="${encodedPath}"${disabled}>
+          <option value="">${emptyLabel}</option>
+          ${!hasCurrentOption && rawValue ? `<option value="${escapeHtml(rawValue)}" selected>${escapeHtml(rawValue)}</option>` : ''}
+          ${selectOptions.map((option) => `<option value="${escapeHtml(option.value)}"${option.value === rawValue ? ' selected' : ''}>${escapeHtml(option.label)}</option>`).join('')}
+        </select>
+        ${hint ? `<span class="editor-hint">${hint}</span>` : ''}
+      </label>
+    `;
+  }
+
   return `
     <label class="editor-field">
       ${showInlineLabel ? `<span class="editor-label">${escapeHtml(label)}</span>` : ''}
       ${multiline
         ? `<textarea class="editor-input editor-input-textarea" data-path="${encodedPath}" rows="4"${disabled}${placeholder}>${fieldValue}</textarea>`
-        : `<input class="editor-input" data-path="${encodedPath}" type="text" value="${fieldValue}"${disabled}${listAttr}${placeholder} />`}
-      ${enumOptions.length ? `<datalist id="${escapeHtml(enumListId)}">${enumOptions.map((option) => `<option value="${escapeHtml(option)}"></option>`).join('')}</datalist>` : ''}
+        : `<input class="editor-input" data-path="${encodedPath}" type="text" value="${fieldValue}"${disabled}${placeholder} />`}
       ${hint ? `<span class="editor-hint">${hint}</span>` : ''}
     </label>
   `;
@@ -251,12 +284,27 @@ function renderArrayEditor(schemaNode, value, path, key, context) {
       ${items.length
         ? items.map((item, index) => `
             <div class="editor-array-item">
-              <div class="editor-array-item-header">
-                <span class="editor-array-item-title">${escapeHtml(getFieldLabel(key))} ${index + 1}</span>
-                <button class="editor-array-action is-danger" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}">
+              <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись" title="Удалить запись">&times;</button>
                   Удалить
-                </button>
-              </div>
+              ${renderEditorNode(schemaNode, item, [...path, index], key, context)}
+            </div>
+          `).join('')
+        : '<div class="editor-array-empty">Поле пока пустое.</div>'}
+      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить запись</button>
+    </div>
+  `;
+}
+
+function renderArrayEditorCompact(schemaNode, value, path, key, context) {
+  const items = Array.isArray(value) ? value : [];
+  const arrayPath = escapeHtml(encodePath(path));
+
+  return `
+    <div class="editor-array" data-array-path="${arrayPath}">
+      ${items.length
+        ? items.map((item, index) => `
+            <div class="editor-array-item">
+              <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись" title="Удалить запись">&times;</button>
               ${renderEditorNode(schemaNode, item, [...path, index], key, context)}
             </div>
           `).join('')
@@ -268,7 +316,7 @@ function renderArrayEditor(schemaNode, value, path, key, context) {
 
 function renderEditorNode(schemaNode, value, path, key, context) {
   if (Array.isArray(schemaNode)) {
-    return renderArrayEditor(schemaNode[0], value, path, key, context);
+    return renderArrayEditorCompact(schemaNode[0], value, path, key, context);
   }
   if (isObject(schemaNode)) {
     return renderObjectEditor(schemaNode, value, path, context);
@@ -383,8 +431,8 @@ function validateDraftNode(value, schemaNode, path, errors, options) {
 
   if (DATE_FIELD_KEYS.has(key) && value !== null) {
     const raw = normalizeDateValue(value);
-    if (raw && raw !== UNKNOWN_DATE_VALUE && !DATE_RE.test(raw)) {
-      errors.push(`Поле "${getFieldLabel(key)}" должно быть в формате DD.MM.YYYY или ???.`);
+    if (raw && !DATE_RE.test(raw)) {
+      errors.push(`Поле "${getFieldLabel(key)}" должно быть в формате DD.MM.YYYY или быть пустым.`);
     }
   }
 
@@ -450,14 +498,24 @@ export function hydrateDraftForEditor(person, schema, peopleById) {
   return hydrateDraftValue(clonePersonDraft(person), schema, [], peopleById);
 }
 
+export function createDraftFromSchema(schema) {
+  return createEmptyValue(schema);
+}
+
 export function buildPersonOptionEntries(dataset) {
   const entries = Array.from(dataset.indexById.entries())
     .map(([personId, name]) => ({
       id: personId,
       label: formatPersonOption(personId, dataset.indexById),
       sortName: String(name || personId),
+      hasCustomName: Boolean(name && name !== personId),
     }))
-    .sort((left, right) => left.sortName.localeCompare(right.sortName, 'ru'));
+    .sort((left, right) => {
+      if (left.hasCustomName !== right.hasCustomName) {
+        return left.hasCustomName ? -1 : 1;
+      }
+      return left.sortName.localeCompare(right.sortName, 'ru');
+    });
 
   const optionValueToId = new Map(entries.map((entry) => [entry.label, entry.id]));
   return { entries, optionValueToId };
@@ -476,7 +534,11 @@ export function addDraftArrayItem(draft, schema, arrayPathString) {
   const leaf = path[path.length - 1];
   if (!Array.isArray(container[leaf])) container[leaf] = [];
   const itemSchema = getSchemaNode(schema, path);
-  container[leaf].push(createEmptyValue(Array.isArray(itemSchema) ? itemSchema[0] : itemSchema));
+  const nextItem = createEmptyValue(Array.isArray(itemSchema) ? itemSchema[0] : itemSchema);
+  if (leaf === 'spouses' && isObject(nextItem) && 'divorce_date' in nextItem) {
+    delete nextItem.divorce_date;
+  }
+  container[leaf].push(nextItem);
 }
 
 export function removeDraftArrayItem(draft, arrayPathString, index) {
@@ -492,14 +554,32 @@ export function setAliveState(draft, isAlive) {
   draft.death.date = isAlive ? null : '';
 }
 
+export function setDivorcedState(draft, pathString, isDivorced) {
+  const path = parsePath(pathString);
+  if (!path.length) return;
+
+  const container = ensureContainer(draft, path);
+  const leaf = path[path.length - 1];
+
+  if (isDivorced) {
+    if (container[leaf] === undefined || container[leaf] === null) {
+      container[leaf] = '';
+    }
+    return;
+  }
+
+  delete container[leaf];
+}
+
 export function renderEditablePersonDetails(personId, person, schema, descriptions = {}, options = {}) {
   if (!person || !schema) return null;
 
   const title = getPersonDisplayName(person, personId);
   const sections = Object.keys(schema).map((key) => {
     const isAlive = key === 'death' && person.death?.date === null;
+    const isSectionDisabled = key === 'id' || (key === 'death' && isAlive);
     return `
-      <section class="field-block is-editing${key === 'death' && isAlive ? ' is-disabled' : ''}">
+      <section class="field-block is-editing${isSectionDisabled ? ' is-disabled' : ''}">
         <div class="editor-section-head">
           <h3 class="field-title">${escapeHtml(getFieldLabel(key))}</h3>
           ${key === 'death' ? `
@@ -512,9 +592,9 @@ export function renderEditablePersonDetails(personId, person, schema, descriptio
         ${descriptions[key] ? `<p class="editor-section-note">${escapeHtml(descriptions[key])}</p>` : ''}
         <div class="field-value">
           ${renderEditorNode(schema[key], person[key], [key], key, {
-            personListId: options.personListId,
+            personOptionEntries: options.personOptionEntries,
             enumListIdPrefix: options.enumListIdPrefix,
-            disableInputs: key === 'death' && isAlive,
+            disableInputs: isSectionDisabled,
           })}
         </div>
       </section>
@@ -547,6 +627,55 @@ export function validatePersonDraft(draft, schema, options = {}) {
     errors.push('Поле "Дата" в блоке "Рождение" обязательно для заполнения.');
   } else if (birthDate !== UNKNOWN_DATE_VALUE && !DATE_RE.test(birthDate)) {
     errors.push('Дата рождения должна быть в формате DD.MM.YYYY или ???.');
+  }
+
+  validateDraftNode(normalized, schema, [], errors, options);
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    normalized,
+  };
+}
+
+function hasMeaningfulValueForEditor(value, path = []) {
+  if (Array.isArray(value)) {
+    return value.some((item, index) => hasMeaningfulValueForEditor(item, [...path, index]));
+  }
+
+  if (isObject(value)) {
+    return Object.entries(value).some(([key, childValue]) => (
+      hasMeaningfulValueForEditor(childValue, [...path, key])
+    ));
+  }
+
+  if (value === null) {
+    return path.join('.') !== 'death.date';
+  }
+
+  if (value === undefined) return false;
+  if (typeof value === 'string') return Boolean(value.trim());
+  return true;
+}
+
+function hasMeaningfulContentExcludingIdForEditor(value) {
+  if (!isObject(value)) return false;
+
+  return Object.entries(value).some(([key, childValue]) => {
+    if (key === 'id') return false;
+    return hasMeaningfulValueForEditor(childValue, [key]);
+  });
+}
+
+export function validateEditorPersonDraft(draft, schema, options = {}) {
+  const errors = [];
+  const normalized = normalizeDraftValue(draft, schema, [], options);
+
+  const idValue = String(normalized?.id || '').trim();
+  if (!idValue) errors.push('Поле "ID" обязательно для заполнения.');
+
+  if (options.requireNonIdContent && !hasMeaningfulContentExcludingIdForEditor(normalized)) {
+    errors.push('Для новой карточки нужно заполнить хотя бы одно поле помимо ID.');
   }
 
   validateDraftNode(normalized, schema, [], errors, options);

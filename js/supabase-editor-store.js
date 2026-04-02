@@ -73,3 +73,17 @@ export async function saveEditablePerson(personId, payload) {
     throw new Error(error.message);
   }
 }
+
+export async function createEditablePerson(personId, payload) {
+  const normalized = normalizePersonPayload(personId, payload);
+  const { error } = await schemaClient
+    .from(tables.yaml)
+    .insert({
+      id: personId,
+      payload: normalized,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+}

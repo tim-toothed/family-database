@@ -176,7 +176,7 @@ function extractYear(value) {
   const text = String(value).trim();
   if (!text) return null;
   const match = text.match(/(\d{4})/);
-  return match ? match[1] : '???';
+  return match ? match[1] : null;
 }
 
 // Formats the birth and death years shown under a name.
@@ -186,15 +186,19 @@ function getLifeYears(person) {
   const birthDate = person?.birth?.date;
   const deathDate = person?.death?.date;
 
-  const birthYear = extractYear(birthDate) ?? '???';
+  const birthYear = extractYear(birthDate);
 
   // жив: death.date === null
   if (deathDate === null) {
-    return birthYear;
+    return birthYear ?? '';
   }
 
-  const deathYear = extractYear(deathDate) ?? '???';
-  return `${birthYear}-${deathYear}`;
+  const deathYear = extractYear(deathDate);
+  if (!birthYear && !deathYear) return '';
+  if (birthYear && deathYear) return `${birthYear}-${deathYear}`;
+  if (birthYear) return birthYear;
+  if (deathYear) return deathYear;
+  return '';
 }
 
 // Builds a vis-network node for a real person or placeholder.
