@@ -4,6 +4,17 @@ export const CONFIG = {
   personFileExtension: '.yaml',
 };
 
+export const SUPABASE_CONFIG = {
+  url: 'https://ylrbjiciudweqmfnzghc.supabase.co',
+  publishableKey: 'sb_publishable_WO_hUMzT6y8Nj3coug81Mg_8DsyoxYA',
+  project: 'html_games',
+  schema: 'family_site',
+  tables: {
+    people: 'family_people',
+    yaml: 'family_yaml',
+  },
+};
+
 export const FIELD_LABELS = {
   id: 'ID',
   birth_name: 'Имя при рождении',

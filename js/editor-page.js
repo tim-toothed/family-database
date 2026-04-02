@@ -1,17 +1,20 @@
-import { loadDataset } from './data-loader.js';
 import {
   addDraftArrayItem,
   buildPersonOptionEntries,
   hydrateDraftForEditor,
   loadEditorDescriptions,
   loadEditorSchema,
-  normalizePersonDraft,
   removeDraftArrayItem,
   renderEditablePersonDetails,
-  renderPersonYaml,
   setAliveState,
   updateDraftValue,
+  validatePersonDraft,
 } from './person-editor.js';
+import {
+  loadEditablePerson,
+  loadPeopleIndex,
+  saveEditablePerson,
+} from './supabase-editor-store.js';
 
 const editorLoading = document.getElementById('editorLoading');
 const editorError = document.getElementById('editorError');
@@ -19,9 +22,7 @@ const editorShell = document.getElementById('editorShell');
 const editorTitle = document.getElementById('editorTitle');
 const editorSubtitle = document.getElementById('editorSubtitle');
 const editorBody = document.getElementById('editorBody');
-const saveYamlButton = document.getElementById('saveYamlButton');
-const openYamlButton = document.getElementById('openYamlButton');
-const openYamlInput = document.getElementById('openYamlInput');
+const savePersonButton = document.getElementById('savePersonButton');
 const validationMessage = document.getElementById('validationMessage');
 const personOptions = document.getElementById('editorPersonOptions');
 
@@ -31,6 +32,7 @@ let descriptions;
 let personId = null;
 let draft = null;
 let optionValueToId = new Map();
+let isSaving = false;
 
 function setBannerMessage(message = '', tone = 'info') {
   validationMessage.textContent = message;
@@ -44,6 +46,14 @@ function showError(message) {
   editorShell.hidden = true;
   editorError.hidden = false;
   editorError.textContent = message;
+}
+
+function syncSaveButtonState() {
+  if (!savePersonButton) return;
+  savePersonButton.disabled = isSaving;
+  savePersonButton.textContent = isSaving
+    ? 'Сохранение...'
+    : 'Сохранить в Supabase';
 }
 
 function refreshHeader() {
@@ -62,6 +72,7 @@ function bindEditorEvents() {
     input.addEventListener('input', () => {
       updateDraftValue(draft, input.dataset.path, input.value);
       refreshHeader();
+      setBannerMessage('');
     });
   });
 
@@ -69,6 +80,7 @@ function bindEditorEvents() {
     button.addEventListener('click', () => {
       addDraftArrayItem(draft, schema, button.dataset.arrayPath);
       renderEditor();
+      setBannerMessage('');
     });
   });
 
@@ -76,6 +88,7 @@ function bindEditorEvents() {
     button.addEventListener('click', () => {
       removeDraftArrayItem(draft, button.dataset.arrayPath, Number(button.dataset.index));
       renderEditor();
+      setBannerMessage('');
     });
   });
 
@@ -83,6 +96,7 @@ function bindEditorEvents() {
     checkbox.addEventListener('change', () => {
       setAliveState(draft, checkbox.checked);
       renderEditor();
+      setBannerMessage('');
     });
   });
 }
@@ -111,72 +125,47 @@ function populatePersonOptions() {
     .join('');
 }
 
-function downloadYaml() {
-  const normalized = normalizePersonDraft(draft, schema, {
+async function saveCurrentPerson() {
+  if (!draft || !schema || isSaving) return;
+
+  const validation = validatePersonDraft(draft, schema, {
     peopleById: dataset.indexById,
     optionValueToId,
   });
-  const yamlText = renderPersonYaml(normalized, schema);
-  const blob = new Blob([yamlText], { type: 'text/yaml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${personId}.yaml`;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
-  setBannerMessage('YAML сохранен на компьютер.', 'info');
-}
 
-function derivePersonIdFromFile(fileName, parsedYaml) {
-  const yamlId = String(parsedYaml?.id || '').trim();
-  if (yamlId) return yamlId;
+  if (!validation.valid) {
+    setBannerMessage(validation.errors[0] || 'Не удалось проверить карточку.', 'error');
+    return;
+  }
 
-  const stem = String(fileName || '').replace(/\.(yaml|yml)$/i, '').trim();
-  return stem || personId;
-}
+  if (validation.normalized.id !== personId) {
+    setBannerMessage('Изменение ID через онлайн-редактор пока не поддерживается.', 'error');
+    return;
+  }
 
-async function loadYamlFromFile(file) {
+  isSaving = true;
+  syncSaveButtonState();
+
   try {
-    const text = await file.text();
-    const parsed = jsyaml.load(text);
-
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      setBannerMessage('Не удалось загрузить YAML: файл должен содержать объект карточки.', 'error');
-      return;
-    }
-
-    const loadedPersonId = derivePersonIdFromFile(file.name, parsed);
-    personId = loadedPersonId;
-    draft = hydrateDraftForEditor(parsed, schema, dataset.indexById);
-
-    const nextUrl = new URL(window.location.href);
-    nextUrl.searchParams.set('id', personId);
-    window.history.replaceState({}, '', nextUrl);
-
-    editorError.hidden = true;
-    renderEditor();
-    setBannerMessage(`Локальный файл ${file.name} загружен.`, 'info');
+    await saveEditablePerson(personId, validation.normalized);
+    const nextTitle = renderEditablePersonDetails(personId, validation.normalized, schema, descriptions, {
+      personListId: 'editorPersonOptions',
+      enumListIdPrefix: 'editorEnum',
+    })?.title || personId;
+    dataset.indexById.set(personId, nextTitle);
+    populatePersonOptions();
+    setBannerMessage('Изменения сохранены в Supabase.', 'valid');
   } catch (error) {
     console.error(error);
-    setBannerMessage(`Не удалось прочитать YAML: ${error.message}`, 'error');
+    setBannerMessage(`Не удалось сохранить карточку: ${error.message}`, 'error');
+  } finally {
+    isSaving = false;
+    syncSaveButtonState();
   }
 }
 
 function setupToolbarActions() {
-  openYamlButton.addEventListener('click', () => {
-    openYamlInput.click();
-  });
-
-  openYamlInput.addEventListener('change', async () => {
-    const [file] = openYamlInput.files || [];
-    if (!file) return;
-    await loadYamlFromFile(file);
-    openYamlInput.value = '';
-  });
-
-  saveYamlButton.addEventListener('click', downloadYaml);
+  savePersonButton.addEventListener('click', saveCurrentPerson);
 }
 
 async function init() {
@@ -189,24 +178,24 @@ async function init() {
       return;
     }
 
-    const [loadedDataset, loadedSchema, loadedDescriptions] = await Promise.all([
-      loadDataset(),
+    const [indexById, loadedPerson, loadedSchema, loadedDescriptions] = await Promise.all([
+      loadPeopleIndex(),
+      loadEditablePerson(personId),
       loadEditorSchema(),
       loadEditorDescriptions(),
     ]);
 
-    dataset = loadedDataset;
+    dataset = { indexById };
     schema = loadedSchema;
     descriptions = loadedDescriptions;
 
-    const person = dataset.people.get(personId);
-    if (!person) {
-      showError(`Карточка ${personId} не найдена.`);
+    if (!loadedPerson) {
+      showError(`Карточка ${personId} не найдена в Supabase.`);
       return;
     }
 
     populatePersonOptions();
-    draft = hydrateDraftForEditor(person, schema, dataset.indexById);
+    draft = hydrateDraftForEditor(loadedPerson, schema, dataset.indexById);
     renderEditor();
 
     editorLoading.remove();
@@ -215,6 +204,7 @@ async function init() {
     setBannerMessage('');
 
     setupToolbarActions();
+    syncSaveButtonState();
   } catch (error) {
     console.error(error);
     showError(`Не удалось открыть редактор.\n\n${error.message}`);

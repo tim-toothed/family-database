@@ -18,3 +18,7 @@ env/
 .idea/
 Thumbs.db
 .DS_Store
+
+# Environment variables file
+.env
+
