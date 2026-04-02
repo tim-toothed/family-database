@@ -5,9 +5,9 @@ birth_name:
   patronymic: ???
 sex: ж
 birth:
-  date: ???
+  date: ''
 death:
-  date: ???
+  date: ''
 spouses:
 - person_id: P051
 children:

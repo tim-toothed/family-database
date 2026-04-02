@@ -16,10 +16,10 @@ parents:
 - person_id: P046
   relation_type: мать
 education:
-- education_info: 'Школа №128 (2008). 1 класс (до зимы). '
-- education_info: Гимназия №114 (2008-2019). 1-11 класс.
-- education_info: Высшая Школа Экономики, СПб (2019-2023). Бакалавриат, обр. прогр. "Социология и Социальная Информатика"
-- education_info: WU Wien, Вена (2023-2025). Магистратура, обр. прогр. "Digital Economy"
-religion: Атеист
+- education_info: '2008. Школа №128. 1 класс (до зимы). '
+- education_info: 2008-2019. Гимназия №114. 1-11 класс.
+- education_info: 2019-2023. Высшая Школа Экономики, СПб. Бакалавриат, обр. прогр. "Социология и Социальная Информатика"
+- education_info: 2023-2025. WU Wien, Вена. Магистратура, обр. прогр. "Digital Economy"
+religion: ''
 residences:
-- residence_info: Россия, г. Санкт-Петербург, Ул. Тимуровская, д. 9
+- residence_info: ''

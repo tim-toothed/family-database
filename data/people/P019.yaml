@@ -17,8 +17,8 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P024
-  marriage_date: ???
-  divorce_date: null
+  marriage_date: ''
+  divorce_date: ''
 children:
 - person_id: P027
   relation_type: биологический

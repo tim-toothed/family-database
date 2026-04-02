@@ -5,16 +5,16 @@ birth_name:
   patronymic: ???
 name_changes:
 - name: Жиго Зинаида ???
-  date: DD.MM.YYYY
+  date: ''
   reason: брак
 sex: ж
 birth:
-  date: ???
+  date: ''
 death:
-  date: ???
+  date: ''
 spouses:
 - person_id: P040
-  marriage_date: ???
+  marriage_date: ''
 children:
 - person_id: P042
   relation_type: биологический

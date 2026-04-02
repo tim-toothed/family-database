@@ -4,16 +4,14 @@ birth_name:
   first_name: Евгения
   patronymic: Викторовна
 name_changes:
-- name: Шарифуллина Евгения Викторовна
-  date: ???
-  reason: брак
+- date: ''
 sex: ж
 birth:
   date: 20.09.1977
   date_raw: 20.09.1977
   place: г. Ленинград
 death:
-  date: null
+  date: ''
 parents:
 - person_id: P016
   relation_type: отец
@@ -23,9 +21,7 @@ siblings:
 - person_id: P047
   relation_type: биологический
 spouses:
-- person_id: P048
-  marriage_date: ???
-  divorce_date: null
+- marriage_date: ''
 children:
 - person_id: P049
   relation_type: биологический

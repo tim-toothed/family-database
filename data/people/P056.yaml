@@ -5,9 +5,9 @@ birth_name:
   patronymic: Гавриловна
 sex: ж
 birth:
-  date: ???
+  date: ''
 death:
-  date: ???
+  date: ''
 spouses:
 - person_id: P057
 children:
