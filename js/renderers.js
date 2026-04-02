@@ -71,7 +71,7 @@ function renderBirthDeath(block) {
 
   return renderKvList([
     ['Дата', block.date ? escapeHtml(formatDisplayDate(block.date)) : ''],
-    ['Как записано', block.date_raw ? escapeHtml(block.date_raw) : ''],
+    ['Дата в свободной форме', block.date_raw ? escapeHtml(block.date_raw) : ''],
     ['Место', block.place ? escapeHtml(block.place) : ''],
     ['Причина', block.cause ? escapeHtml(block.cause) : ''],
   ]);
