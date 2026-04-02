@@ -1,24 +1,17 @@
 id: P057
-
 birth_name:
-  surname: "Шаровара"
-  first_name: "Давид"
-  patronymic: "Зиновьев"
-
-sex: "м"
-
+  surname: Шаровара
+  first_name: Давид
+  patronymic: Зиновьев
+sex: м
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 spouses:
-  - person_id: P056
-
+- person_id: P056
 children:
-  - person_id: P058
-    relation_type: "биологический"
-
+- person_id: P058
+  relation_type: биологический
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

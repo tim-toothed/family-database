@@ -1,36 +1,30 @@
 id: P093
-
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 parents:
-  - person_id: P060
-    relation_type: "мать"
-  - person_id: P058
-    relation_type: "отец"
-
+- person_id: P060
+  relation_type: мать
+- person_id: P058
+  relation_type: отец
 siblings:
-  - person_id: P059
-    relation_type: "сводный по отцу"
-  - person_id: P064
-    relation_type: "биологический"
-  - person_id: P094
-    relation_type: "биологический"
-  - person_id: P095
-    relation_type: "биологический"
-  - person_id: P096
-    relation_type: "биологический"
-  - person_id: P097
-    relation_type: "биологический"
-  - person_id: P098
-    relation_type: "биологический"
-  - person_id: P099
-    relation_type: "биологический"
-
-other_info: "(ребенок Ракич Дарьи Емельяновной и Шаровара Леонтия Давидовича)"
-
+- person_id: P059
+  relation_type: сводный по отцу
+- person_id: P064
+  relation_type: биологический
+- person_id: P094
+  relation_type: биологический
+- person_id: P095
+  relation_type: биологический
+- person_id: P096
+  relation_type: биологический
+- person_id: P097
+  relation_type: биологический
+- person_id: P098
+  relation_type: биологический
+- person_id: P099
+  relation_type: биологический
+other_info: (ребенок Ракич Дарьи Емельяновной и Шаровара Леонтия Давидовича)
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

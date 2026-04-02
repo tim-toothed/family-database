@@ -1,22 +1,25 @@
 id: P049
-
 birth_name:
   surname: Шарифуллин
   first_name: Тимур
   patronymic: Маратович
-
-sex: "м"
-
+sex: м
 birth:
-  date: "06.01.2002"
-  date_raw: "06.01.2002"
-  place: "г. Всеволожск"
-
+  date: 06.01.2002
+  date_raw: 06.01.2002
+  place: г. Всеволожск
 death:
-  date: null
-
+  date: ''
 parents:
-  - person_id: P048
-    relation_type: "отец"
-  - person_id: P046
-    relation_type: "мать"
+- person_id: P048
+  relation_type: отец
+- person_id: P046
+  relation_type: мать
+education:
+- education_info: 'Школа №128 (2008). 1 класс (до зимы). '
+- education_info: Гимназия №114 (2008-2019). 1-11 класс.
+- education_info: Высшая Школа Экономики, СПб (2019-2023). Бакалавриат, обр. прогр. "Социология и Социальная Информатика"
+- education_info: WU Wien, Вена (2023-2025). Магистратура, обр. прогр. "Digital Economy"
+religion: Атеист
+residences:
+- residence_info: Россия, г. Санкт-Петербург, Ул. Тимуровская, д. 9

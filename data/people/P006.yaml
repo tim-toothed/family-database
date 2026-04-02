@@ -1,49 +1,38 @@
 id: P006
-
 birth_name:
   surname: Смирнова
   first_name: Евдокия
   patronymic: Устиновна
-
 name_changes:
-  - name: "Гречнева Евдокия Устиновна"
-    date: "???"
-    reason: "брак"
-
-sex: "ж"
-
+- name: Гречнева Евдокия Устиновна
+  date: ???
+  reason: брак
+sex: ж
 birth:
-  date: "14.03.1909"
-
+  date: 14.03.1909
 death:
-  date: "08.08.1986"
-
+  date: 08.08.1986
 parents:
-  - person_id: P003
-    relation_type: "отец"
-  - person_id: P004
-    relation_type: "мать"
-
+- person_id: P003
+  relation_type: отец
+- person_id: P004
+  relation_type: мать
 siblings:
-  - person_id: P006
-    relation_type: "биологический"
-
+- person_id: P006
+  relation_type: биологический
 spouses:
-  - person_id: P012
-    marriage_date: "03.09.1938"
-
+- person_id: P012
+  marriage_date: 03.09.1938
 children:
-  - person_id: P014
-    relation_type: "сводный"
-  - person_id: P015
-    relation_type: "сводный"
-  - person_id: P016
-    relation_type: "биологический"
-
+- person_id: P014
+  relation_type: сводный
+- person_id: P015
+  relation_type: сводный
+- person_id: P016
+  relation_type: биологический
 residences:
-  - residence_info: "г. Ленинград, ул. Желябова"
-  - residence_info: "с. Самашуры(?) Глазовского района, Удмуртская АССР (эвакуация до 1944)"
-  - residence_info: "г. Ленинград (после возвращения из эвакуации)"
-
+- residence_info: г. Ленинград, ул. Желябова
+- residence_info: с. Самашуры(?) Глазовского района, Удмуртская АССР (эвакуация до 1944)
+- residence_info: г. Ленинград (после возвращения из эвакуации)
 sources:
-  - source: "Семейные заметки, стр. 1-3 (записи Евгении Викторовны Шарифуллиной)"
+- source: Семейные заметки, стр. 1-3 (записи Евгении Викторовны Шарифуллиной)

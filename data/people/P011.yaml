@@ -1,30 +1,22 @@
 id: P011
-
 birth_name:
   surname: ???
   first_name: Татьяна
   patronymic: Ивановна
-
 name_changes:
-  - name: "Гречнева Татьяна Ивановна"
-    date: "???"
-    reason: "брак"
-
-sex: "ж"
-
+- name: Гречнева Татьяна Ивановна
+  date: ???
+  reason: брак
+sex: ж
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 spouses:
-  - person_id: P010
-    marriage_date: "???"
-
+- person_id: P010
+  marriage_date: ???
 children:
-  - person_id: P012
-    relation_type: "биологический"
-
+- person_id: P012
+  relation_type: биологический
 sources:
-  - source: "Семейные заметки, стр. 3-6 (записи Евгении Викторовны Шарифуллиной)"
+- source: Семейные заметки, стр. 3-6 (записи Евгении Викторовны Шарифуллиной)

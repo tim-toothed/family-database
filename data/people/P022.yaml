@@ -1,38 +1,29 @@
 id: P022
-
 birth_name:
   surname: Богданова
   first_name: Валентина
   patronymic: Ивановна
-
 name_changes:
-  - name: Воронина Валентина Ивановна
-    date: "???"
-    reason: брак
-  - name: Барунова Валентина Ивановна
-    date: "???"
-    reason: брак
-
-sex: "ж"
-
+- name: Воронина Валентина Ивановна
+  date: ???
+  reason: брак
+- name: Барунова Валентина Ивановна
+  date: ???
+  reason: брак
+sex: ж
 birth:
-  date: "???"
-
+  date: ???
 parents:
-  - person_id: P020
-    relation_type: "отец"
-  - person_id: P036
-    relation_type: "мать"
-    
+- person_id: P020
+  relation_type: отец
+- person_id: P036
+  relation_type: мать
 siblings:
-  - person_id: P021
-    relation_type: "биологический"
-
+- person_id: P021
+  relation_type: биологический
 children:
-  - person_id: P023
-    relation_type: "биологический"
-
-other_info: "В семейных заметках указана как «Валентина Ивановна Воронина/Барунова (Богданова)», дочь Ивана Владимировича Богданова и его жены, имя которой не установлено."
-
+- person_id: P023
+  relation_type: биологический
+other_info: В семейных заметках указана как «Валентина Ивановна Воронина/Барунова (Богданова)», дочь Ивана Владимировича Богданова и его жены, имя которой не установлено.
 sources:
-  - source: "Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)"
+- source: Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)

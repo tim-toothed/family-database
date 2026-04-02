@@ -1,26 +1,18 @@
 id: P082
-
 birth_name:
-  surname: "???"
-  first_name: "Татьяна"
-  patronymic: "???"
-
-sex: "ж"
-
+  surname: ???
+  first_name: Татьяна
+  patronymic: ???
+sex: ж
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 spouses:
-  - person_id: P080
-
+- person_id: P080
 children:
-  - person_id: P083
-    relation_type: "биологический"
-
-other_info: "(супруга Рашита, свадьба в г. Новый Уренгой DD.12.1981, развод - 1986/1987 год)"
-
+- person_id: P083
+  relation_type: биологический
+other_info: (супруга Рашита, свадьба в г. Новый Уренгой DD.12.1981, развод - 1986/1987 год)
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

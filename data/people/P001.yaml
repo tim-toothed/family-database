@@ -1,28 +1,20 @@
 id: P001
-
 birth_name:
   surname: Смирнов
   first_name: Иван
   patronymic: Ефимович
-
-sex: "м"
-
+sex: м
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 spouses:
-  - person_id: P002
-    marriage_date: "???"
-
+- person_id: P002
+  marriage_date: ???
 children:
-  - person_id: P003
-    relation_type: "биологический"
-
+- person_id: P003
+  relation_type: биологический
 residences:
-  - residence_info: "Новгородская область, Волотовский район, деревня Веретье (~ 43км до Старой Руссы)"
-
+- residence_info: Новгородская область, Волотовский район, деревня Веретье (~ 43км до Старой Руссы)
 sources:
-  - source: "Семейные заметки, стр. 1-3 (записи Евгении Викторовны Шарифуллиной)"
+- source: Семейные заметки, стр. 1-3 (записи Евгении Викторовны Шарифуллиной)

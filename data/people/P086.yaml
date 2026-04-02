@@ -1,23 +1,16 @@
 id: P086
-
-sex: "ж"
-
+sex: ж
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 spouses:
-  - person_id: P071
-
+- person_id: P071
 children:
-  - person_id: P078
-    relation_type: "биологический"
-  - person_id: P084
-    relation_type: "биологический"
-
-other_info: "(мать Фахири, супруга Разетдина)"
-
+- person_id: P078
+  relation_type: биологический
+- person_id: P084
+  relation_type: биологический
+other_info: (мать Фахири, супруга Разетдина)
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

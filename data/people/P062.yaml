@@ -1,34 +1,26 @@
 id: P062
-
 birth_name:
-  surname: "Юнаш?"
-  first_name: "Ксения (Оксана)"
-  patronymic: "Кирилловна"
-
-sex: "ж"
-
+  surname: Юнаш?
+  first_name: Ксения (Оксана)
+  patronymic: Кирилловна
+sex: ж
 birth:
-  date: "24.01.1899"
-
+  date: 24.01.1899
 death:
-  date: "10.12.1983"
-
+  date: 10.12.1983
 parents:
-  - person_id: P050
-    relation_type: "мать"
-  - person_id: P051
-    relation_type: "отец"
-
+- person_id: P050
+  relation_type: мать
+- person_id: P051
+  relation_type: отец
 spouses:
-  - person_id: P061
-
+- person_id: P061
 children:
-  - person_id: P063
-    relation_type: "биологический"
-  - person_id: P102
-    relation_type: "приемный"
-  - person_id: P103
-    relation_type: "биологический"
-
+- person_id: P063
+  relation_type: биологический
+- person_id: P102
+  relation_type: приемный
+- person_id: P103
+  relation_type: биологический
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

@@ -1,26 +1,19 @@
 id: P054
-
 birth_name:
-  surname: "???"
-  first_name: "Софья (Пелагея)"
-  patronymic: "Степановна"
-
-sex: "ж"
-
+  surname: ???
+  first_name: Софья (Пелагея)
+  patronymic: Степановна
+sex: ж
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 spouses:
-  - person_id: P055
-
+- person_id: P055
 children:
-  - person_id: P060
-    relation_type: "биологический"
-  - person_id: P104
-    relation_type: "биологический"
-
+- person_id: P060
+  relation_type: биологический
+- person_id: P104
+  relation_type: биологический
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

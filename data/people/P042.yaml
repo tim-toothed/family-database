@@ -1,27 +1,20 @@
 id: P042
-
 birth_name:
   surname: Жиго
   first_name: Анатолий
   patronymic: Александрович
-
-sex: "м"
-
+sex: м
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 parents:
-  - person_id: P040
-    relation_type: "отец"
-  - person_id: P041
-    relation_type: "мать"
-
+- person_id: P040
+  relation_type: отец
+- person_id: P041
+  relation_type: мать
 siblings:
-  - person_id: P043
-    relation_type: "биологический"
-
+- person_id: P043
+  relation_type: биологический
 sources:
-  - source: "Семейные заметки, стр. 10-12, 34-35 (записи Евгении Викторовны Шарифуллиной)"
+- source: Семейные заметки, стр. 10-12, 34-35 (записи Евгении Викторовны Шарифуллиной)

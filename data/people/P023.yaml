@@ -1,21 +1,15 @@
 id: P023
-
 birth_name:
   surname: Воронин
   first_name: Валерий
   patronymic: ???
-
-sex: "м"
-
+sex: м
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 parents:
-  - person_id: P022
-    relation_type: "мать"
-
+- person_id: P022
+  relation_type: мать
 sources:
-  - source: "Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)"
+- source: Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)

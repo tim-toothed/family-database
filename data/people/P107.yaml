@@ -1,28 +1,20 @@
 id: P107
-
 birth_name:
-  surname: "Гарин"
-  first_name: "???"
-  patronymic: "???"
-
-sex: "м"
-
+  surname: Гарин
+  first_name: ???
+  patronymic: ???
+sex: м
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 spouses:
-  - person_id: P066
-
+- person_id: P066
 children:
-  - person_id: P100
-    relation_type: "приемный"
-  - person_id: P101
-    relation_type: "приемный"
-
-other_info: "(супруг Шароваровой Ларисы Павловны)"
-
+- person_id: P100
+  relation_type: приемный
+- person_id: P101
+  relation_type: приемный
+other_info: (супруг Шароваровой Ларисы Павловны)
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

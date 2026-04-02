@@ -1,29 +1,22 @@
 id: P047
-
 birth_name:
   surname: Гречнева
   first_name: Маргарита
   patronymic: Викторовна
-
-sex: "ж"
-
+sex: ж
 birth:
-  date: "18.08.1981"
-  date_raw: "18.08.1981"
-  place: "г. Ленинград"
-
+  date: 18.08.1981
+  date_raw: 18.08.1981
+  place: г. Ленинград
 death:
   date: null
-
 parents:
-  - person_id: P016
-    relation_type: "отец"
-  - person_id: P031
-    relation_type: "мать"
-
+- person_id: P016
+  relation_type: отец
+- person_id: P031
+  relation_type: мать
 siblings:
-  - person_id: P046
-    relation_type: "биологический"
-
+- person_id: P046
+  relation_type: биологический
 sources:
-  - source: "Семейные заметки, стр. 16-17, 18-20 (записи Евгении Викторовны Шарифуллиной)"
+- source: Семейные заметки, стр. 16-17, 18-20 (записи Евгении Викторовны Шарифуллиной)

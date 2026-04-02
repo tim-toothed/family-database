@@ -1,27 +1,20 @@
 id: P010
-
 birth_name:
   surname: Гречнев
   first_name: Василий
   patronymic: Федотович
-
-sex: "м"
-
+sex: м
 birth:
-  date: "??.??.1871"
-  date_raw: "1870 (по старому стилю) / 1871 (по новому стилю)"
-
+  date: ??.??.1871
+  date_raw: 1870 (по старому стилю) / 1871 (по новому стилю)
 death:
-  date: "??.??.1941"
-  date_raw: "1941/1943"
-
+  date: ??.??.1941
+  date_raw: 1941/1943
 spouses:
-  - person_id: P011
-    marriage_date: "???"
-
+- person_id: P011
+  marriage_date: ???
 children:
-  - person_id: P012
-    relation_type: "биологический"
-
+- person_id: P012
+  relation_type: биологический
 sources:
-  - source: "Семейные заметки, стр. 3-6 (записи Евгении Викторовны Шарифуллиной)"
+- source: Семейные заметки, стр. 3-6 (записи Евгении Викторовны Шарифуллиной)

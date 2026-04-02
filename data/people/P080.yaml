@@ -1,40 +1,31 @@
 id: P080
-
 birth_name:
-  surname: "Шарифуллин"
-  first_name: "Рашит"
-  patronymic: "Рахимзянович"
-
-sex: "м"
-
+  surname: Шарифуллин
+  first_name: Рашит
+  patronymic: Рахимзянович
+sex: м
 birth:
-  date: "21.01.1954"
-  place: "г. Лениногорск"
-
+  date: 21.01.1954
+  place: г. Лениногорск
 death:
-  date: "24.01.1995"
-  place: "г. Новый Уренгой"
-
+  date: 24.01.1995
+  place: г. Новый Уренгой
 parents:
-  - person_id: P078
-    relation_type: "мать"
-  - person_id: P073
-    relation_type: "отец"
-
+- person_id: P078
+  relation_type: мать
+- person_id: P073
+  relation_type: отец
 siblings:
-  - person_id: P067
-    relation_type: "биологический"
-  - person_id: P079
-    relation_type: "биологический"
-  - person_id: P081
-    relation_type: "биологический"
-
+- person_id: P067
+  relation_type: биологический
+- person_id: P079
+  relation_type: биологический
+- person_id: P081
+  relation_type: биологический
 spouses:
-  - person_id: P082
-
+- person_id: P082
 children:
-  - person_id: P083
-    relation_type: "биологический"
-
+- person_id: P083
+  relation_type: биологический
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

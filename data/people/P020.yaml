@@ -1,34 +1,25 @@
 id: P020
-
 birth_name:
   surname: Богданов
   first_name: Иван
   patronymic: Владимирович
-
-sex: "м"
-
+sex: м
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "???"
-
+  date: ???
 siblings:
-  - person_id: P019
-    relation_type: "биологический"
-
+- person_id: P019
+  relation_type: биологический
 children:
-  - person_id: P021
-    relation_type: "биологический"
-  - person_id: P022
-    relation_type: "биологический"
-
+- person_id: P021
+  relation_type: биологический
+- person_id: P022
+  relation_type: биологический
 profession:
-  - title: "Моряк или служил на флоте (судя по фото)."
-
+- title: Моряк или служил на флоте (судя по фото).
 military:
   military_service:
-    - service_info: "Моряк или служил на флоте (судя по фото)."
-
+  - service_info: Моряк или служил на флоте (судя по фото).
 sources:
-  - source: "Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)"
+- source: Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)

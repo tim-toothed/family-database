@@ -1,31 +1,24 @@
 id: P071
-
 birth_name:
-  surname: "Зиатдинов"
-  first_name: "Разетдин"
-  patronymic: "???"
-
-sex: "м"
-
+  surname: Зиатдинов
+  first_name: Разетдин
+  patronymic: ???
+sex: м
 birth:
-  date: "???"
-
+  date: ???
 death:
-  date: "DD.MM.1932"
-  place: "Подмосковье"
-  cause: "Убит в подмосковье"
-
+  date: DD.MM.1932
+  place: Подмосковье
+  cause: Убит в подмосковье
 spouses:
-  - person_id: P086
-  - person_id: P106
-
+- person_id: P086
+- person_id: P106
 children:
-  - person_id: P078
-    relation_type: "биологический"
-  - person_id: P084
-    relation_type: "биологический"
-  - person_id: P085
-    relation_type: "биологический"
-
+- person_id: P078
+  relation_type: биологический
+- person_id: P084
+  relation_type: биологический
+- person_id: P085
+  relation_type: биологический
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

@@ -1,43 +1,34 @@
 id: P078
-
 birth_name:
-  surname: "Зиатдинова"
-  first_name: "Фахиря"
-  patronymic: "Разетдиновна"
-
-sex: "ж"
-
+  surname: Зиатдинова
+  first_name: Фахиря
+  patronymic: Разетдиновна
+sex: ж
 birth:
-  date: "15.05.1924"
-
+  date: 15.05.1924
 death:
-  date: "02.10.1999"
-  place: "г. Лениногорск"
-
+  date: 02.10.1999
+  place: г. Лениногорск
 parents:
-  - person_id: P086
-    relation_type: "мать"
-  - person_id: P071
-    relation_type: "отец"
-
+- person_id: P086
+  relation_type: мать
+- person_id: P071
+  relation_type: отец
 siblings:
-  - person_id: P084
-    relation_type: "биологический"
-  - person_id: P085
-    relation_type: "сводный по отцу"
-
+- person_id: P084
+  relation_type: биологический
+- person_id: P085
+  relation_type: сводный по отцу
 spouses:
-  - person_id: P073
-
+- person_id: P073
 children:
-  - person_id: P067
-    relation_type: "биологический"
-  - person_id: P079
-    relation_type: "биологический"
-  - person_id: P080
-    relation_type: "биологический"
-  - person_id: P081
-    relation_type: "биологический"
-
+- person_id: P067
+  relation_type: биологический
+- person_id: P079
+  relation_type: биологический
+- person_id: P080
+  relation_type: биологический
+- person_id: P081
+  relation_type: биологический
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

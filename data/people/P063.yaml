@@ -1,39 +1,30 @@
 id: P063
-
 birth_name:
-  surname: "Нечитайло"
-  first_name: "Нина"
-  patronymic: "Ефимовна"
-
-sex: "ж"
-
+  surname: Нечитайло
+  first_name: Нина
+  patronymic: Ефимовна
+sex: ж
 birth:
-  date: "18.10.1923"
-
+  date: 18.10.1923
 death:
-  date: "26.02.1973"
-  place: "г. Житомир"
-
+  date: 26.02.1973
+  place: г. Житомир
 parents:
-  - person_id: P062
-    relation_type: "мать"
-  - person_id: P061
-    relation_type: "отец"
-
+- person_id: P062
+  relation_type: мать
+- person_id: P061
+  relation_type: отец
 siblings:
-  - person_id: P102
-    relation_type: "приемный"
-  - person_id: P103
-    relation_type: "биологический"
-
+- person_id: P102
+  relation_type: приемный
+- person_id: P103
+  relation_type: биологический
 spouses:
-  - person_id: P064
-
+- person_id: P064
 children:
-  - person_id: P065
-    relation_type: "биологический"
-  - person_id: P066
-    relation_type: "биологический"
-
+- person_id: P065
+  relation_type: биологический
+- person_id: P066
+  relation_type: биологический
 sources:
-  - source: "[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)"
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'
