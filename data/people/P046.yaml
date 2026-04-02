@@ -4,7 +4,8 @@ birth_name:
   first_name: Евгения
   patronymic: Викторовна
 name_changes:
-- date: ''
+- name: Шарифуллина Евгения Викторовна
+  reason: брак
 sex: ж
 birth:
   date: 20.09.1977

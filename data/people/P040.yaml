@@ -9,10 +9,10 @@ birth:
   date_raw: '1920'
   place: Саратовская область, деревня Золотая Горка (возможна ошибка; сведения из базы данных «Нашего народа»(?))
 death:
-  date: ???
-  date_raw: ???
-  place: ???
-  cause: ???
+  date: ''
+  date_raw: ''
+  place: ''
+  cause: ''
 parents:
 - person_id: P037
   relation_type: отец
@@ -27,7 +27,7 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P041
-  marriage_date: ???
+  marriage_date: ''
 children:
 - person_id: P042
   relation_type: биологический
