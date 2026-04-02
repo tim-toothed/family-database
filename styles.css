@@ -120,7 +120,7 @@ body.editor-page {
   color: var(--muted);
   background: #ffffff;
   cursor: pointer;
-  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .view-tab:hover {
@@ -231,7 +231,7 @@ body.editor-page {
   color: var(--muted);
   cursor: pointer;
   user-select: none;
-  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .people-table-sort-trigger::-webkit-details-marker {
@@ -271,7 +271,7 @@ body.editor-page {
   color: var(--muted);
   background: #ffffff;
   cursor: pointer;
-  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .people-table-sort-button:hover {
@@ -371,7 +371,7 @@ body.editor-page {
 
 .people-table-row {
   cursor: pointer;
-  transition: background 0.18s ease, transform 0.18s ease;
+  transition: background-color 0.18s ease, transform 0.18s ease;
 }
 
 .people-table-row:hover,
@@ -462,7 +462,7 @@ body.editor-page {
   font: inherit;
   font-size: 18px;
   cursor: pointer;
-  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+  transition: color 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .details-edit-button:hover {

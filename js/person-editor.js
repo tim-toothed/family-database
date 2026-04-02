@@ -275,7 +275,7 @@ function renderObjectEditor(schemaNode, value, path, context) {
   `;
 }
 
-function renderArrayEditor(schemaNode, value, path, key, context) {
+function renderArrayEditorLegacyUnused(schemaNode, value, path, key, context) {
   const items = Array.isArray(value) ? value : [];
   const arrayPath = escapeHtml(encodePath(path));
 
@@ -295,7 +295,26 @@ function renderArrayEditor(schemaNode, value, path, key, context) {
   `;
 }
 
-function renderArrayEditorCompact(schemaNode, value, path, key, context) {
+function renderArrayEditorBrokenLegacy(schemaNode, value, path, key, context) {
+  const items = Array.isArray(value) ? value : [];
+  const arrayPath = escapeHtml(encodePath(path));
+
+  return `
+    <div class="editor-array" data-array-path="${arrayPath}">
+      ${items.length
+        ? items.map((item, index) => `
+            <div class="editor-array-item">
+              <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись" title="Удалить запись">&times;</button>
+              ${renderEditorNode(schemaNode, item, [...path, index], key, context)}
+            </div>
+          `).join('')
+        : '<div class="editor-array-empty">Поле пока пустое.</div>'}
+      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить запись</button>
+    </div>
+  `;
+}
+
+function renderArrayEditorClean(schemaNode, value, path, key, context) {
   const items = Array.isArray(value) ? value : [];
   const arrayPath = escapeHtml(encodePath(path));
 
@@ -316,7 +335,7 @@ function renderArrayEditorCompact(schemaNode, value, path, key, context) {
 
 function renderEditorNode(schemaNode, value, path, key, context) {
   if (Array.isArray(schemaNode)) {
-    return renderArrayEditorCompact(schemaNode[0], value, path, key, context);
+    return renderArrayEditorClean(schemaNode[0], value, path, key, context);
   }
   if (isObject(schemaNode)) {
     return renderObjectEditor(schemaNode, value, path, context);
