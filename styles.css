@@ -859,6 +859,40 @@ body.editor-page {
   color: #475569;
 }
 
+.relation-list {
+  display: grid;
+  gap: 10px;
+  padding-left: 18px;
+}
+
+.relation-list li + li {
+  margin-top: 0;
+}
+
+.relation-stack {
+  display: grid;
+  gap: 6px;
+}
+
+.relation-main {
+  line-height: 1.5;
+}
+
+.relation-meta {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+}
+
+.relation-meta .badge {
+  margin-left: 0;
+}
+
+.relation-secondary {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .kv-list {
   display: grid;
   grid-template-columns: 130px 1fr;

@@ -115,6 +115,10 @@ function getSchemaNode(schemaNode, path) {
   return current;
 }
 
+function isNameChangeItemPath(path) {
+  return path.length >= 2 && path[path.length - 2] === 'name_changes' && typeof path[path.length - 1] === 'number';
+}
+
 function ensureContainer(target, path) {
   let current = target;
   for (let index = 0; index < path.length - 1; index += 1) {
@@ -255,6 +259,13 @@ function renderObjectEditor(schemaNode, value, path, context) {
   return `
     <div class="editor-grid">
       ${Object.keys(schemaNode).map((key) => {
+        if (key === 'date' && isNameChangeItemPath(path)) {
+          const reason = String(objectValue.reason || '').trim().toLowerCase();
+          if (reason !== 'смена имени') {
+            return '';
+          }
+        }
+
         const childSchema = schemaNode[key];
         const childPath = [...path, key];
         const childContent = renderEditorNode(childSchema, objectValue[key], childPath, key, context);
@@ -588,6 +599,25 @@ export function setDivorcedState(draft, pathString, isDivorced) {
   }
 
   delete container[leaf];
+}
+
+export function syncNameChangeDateField(draft, reasonPathString, reasonValue) {
+  const path = parsePath(reasonPathString);
+  if (!path.length) return;
+
+  const container = ensureContainer(draft, path);
+  const leaf = path[path.length - 1];
+  container[leaf] = reasonValue;
+
+  const normalizedReason = String(reasonValue || '').trim().toLowerCase();
+  if (normalizedReason === 'смена имени') {
+    if (container.date === undefined || container.date === null) {
+      container.date = '';
+    }
+    return;
+  }
+
+  delete container.date;
 }
 
 export function renderEditablePersonDetails(personId, person, schema, descriptions = {}, options = {}) {

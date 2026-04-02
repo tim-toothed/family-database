@@ -9,6 +9,7 @@ import {
   renderEditablePersonDetails,
   setAliveState,
   setDivorcedState,
+  syncNameChangeDateField,
   updateDraftValue,
   validateEditorPersonDraft,
 } from './person-editor.js';
@@ -89,7 +90,15 @@ function refreshHeader() {
 function bindEditorEvents() {
   editorBody.querySelectorAll('[data-path]').forEach((input) => {
     const syncDraftValue = () => {
-      updateDraftValue(draft, input.dataset.path, input.value);
+      const pathString = String(input.dataset.path || '');
+      if (pathString.endsWith('.reason') && pathString.includes('name_changes.')) {
+        syncNameChangeDateField(draft, pathString, input.value);
+        renderEditor();
+        setBannerMessage('');
+        return;
+      }
+
+      updateDraftValue(draft, pathString, input.value);
       refreshHeader();
       setBannerMessage('');
     };
