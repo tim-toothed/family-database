@@ -7,7 +7,7 @@ sex: ж
 birth:
   date: 06.09.1947
 death:
-  date: null
+  date: ''
 parents:
 - person_id: P063
   relation_type: мать

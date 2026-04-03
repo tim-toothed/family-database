@@ -3,11 +3,14 @@ birth_name:
   surname: Шароварова
   first_name: Лариса
   patronymic: Павловна
+name_changes:
+- name: Гарина Лариса Павловна
+  reason: брак
 sex: ж
 birth:
-  date: ???
+  date: ''
 death:
-  date: ???
+  date: ''
 parents:
 - person_id: P063
   relation_type: мать
@@ -23,6 +26,6 @@ children:
   relation_type: приемный
 - person_id: P101
   relation_type: приемный
-other_info: (в замужестве Гарина, есть 2 дочери)
+other_info: ''
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'
