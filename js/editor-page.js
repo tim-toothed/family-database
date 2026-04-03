@@ -43,6 +43,7 @@ let isSaving = false;
 let isCreatingNew = false;
 let lastSavedDraftSnapshot = '';
 let hasUnsavedChanges = false;
+let suppressBeforeUnloadPrompt = false;
 
 function serializeDraftSnapshot(personDraft = draft) {
   return JSON.stringify(personDraft ?? {});
@@ -63,7 +64,7 @@ function confirmDiscardUnsavedChanges() {
 }
 
 function handleBeforeUnload(event) {
-  if (!hasUnsavedChanges) return;
+  if (!hasUnsavedChanges || suppressBeforeUnloadPrompt) return;
   event.preventDefault();
   event.returnValue = '';
 }
@@ -329,6 +330,7 @@ function setupToolbarActions() {
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set('id', targetId);
     nextUrl.searchParams.delete('new');
+    suppressBeforeUnloadPrompt = true;
     window.location.href = nextUrl.toString();
   });
 }
