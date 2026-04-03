@@ -41,6 +41,32 @@ let optionValueToId = new Map();
 let personOptionEntries = [];
 let isSaving = false;
 let isCreatingNew = false;
+let lastSavedDraftSnapshot = '';
+let hasUnsavedChanges = false;
+
+function serializeDraftSnapshot(personDraft = draft) {
+  return JSON.stringify(personDraft ?? {});
+}
+
+function syncUnsavedChangesState() {
+  hasUnsavedChanges = Boolean(draft) && serializeDraftSnapshot() !== lastSavedDraftSnapshot;
+}
+
+function markDraftAsSaved() {
+  lastSavedDraftSnapshot = serializeDraftSnapshot();
+  hasUnsavedChanges = false;
+}
+
+function confirmDiscardUnsavedChanges() {
+  if (!hasUnsavedChanges) return true;
+  return window.confirm('Есть несохраненные изменения. Если продолжить, они будут потеряны.');
+}
+
+function handleBeforeUnload(event) {
+  if (!hasUnsavedChanges) return;
+  event.preventDefault();
+  event.returnValue = '';
+}
 
 function setBannerMessage(message = '', tone = 'info') {
   validationMessage.textContent = message;
@@ -94,12 +120,14 @@ function bindEditorEvents() {
       if (pathString.endsWith('.reason') && pathString.includes('name_changes.')) {
         syncNameChangeDateField(draft, pathString, input.value);
         renderEditor();
+        syncUnsavedChangesState();
         setBannerMessage('');
         return;
       }
 
       updateDraftValue(draft, pathString, input.value);
       refreshHeader();
+      syncUnsavedChangesState();
       setBannerMessage('');
     };
 
@@ -111,6 +139,7 @@ function bindEditorEvents() {
     button.addEventListener('click', () => {
       addDraftArrayItem(draft, schema, button.dataset.arrayPath);
       renderEditor();
+      syncUnsavedChangesState();
       setBannerMessage('');
     });
   });
@@ -119,6 +148,7 @@ function bindEditorEvents() {
     button.addEventListener('click', () => {
       removeDraftArrayItem(draft, button.dataset.arrayPath, Number(button.dataset.index));
       renderEditor();
+      syncUnsavedChangesState();
       setBannerMessage('');
     });
   });
@@ -127,6 +157,7 @@ function bindEditorEvents() {
     checkbox.addEventListener('change', () => {
       setAliveState(draft, checkbox.checked);
       renderEditor();
+      syncUnsavedChangesState();
       setBannerMessage('');
     });
   });
@@ -135,6 +166,7 @@ function bindEditorEvents() {
     checkbox.addEventListener('change', () => {
       setDivorcedState(draft, checkbox.dataset.divorcePath, checkbox.checked);
       renderEditor();
+      syncUnsavedChangesState();
       setBannerMessage('');
     });
   });
@@ -187,11 +219,17 @@ function computeNextPersonId() {
   return `P${String(maxId + 1).padStart(width, '0')}`;
 }
 
-function openNewPersonDraft() {
+function openNewPersonDraft(options = {}) {
+  const { force = false } = options;
+  if (!force && !confirmDiscardUnsavedChanges()) {
+    return false;
+  }
+
   isCreatingNew = true;
   personId = null;
   draft = createDraftFromSchema(schema);
   draft.id = computeNextPersonId();
+  markDraftAsSaved();
   renderEditor();
   syncSaveButtonState();
   if (personJumpSelect) personJumpSelect.value = '';
@@ -201,6 +239,7 @@ function openNewPersonDraft() {
   nextUrl.searchParams.delete('id');
   nextUrl.searchParams.set('new', '1');
   window.history.replaceState({}, '', nextUrl);
+  return true;
 }
 
 async function saveCurrentPerson() {
@@ -251,6 +290,7 @@ async function saveCurrentPerson() {
     }
 
     draft = hydrateDraftForEditor(validation.normalized, schema, dataset.indexById);
+    markDraftAsSaved();
     const nextTitle = renderEditablePersonDetails(personId, validation.normalized, schema, descriptions, {
       personOptionEntries,
       enumListIdPrefix: 'editorEnum',
@@ -281,6 +321,11 @@ function setupToolbarActions() {
   personJumpSelect?.addEventListener('change', () => {
     const targetId = String(personJumpSelect.value || '').trim();
     if (!targetId) return;
+    if (targetId === personId && !isCreatingNew) return;
+    if (!confirmDiscardUnsavedChanges()) {
+      personJumpSelect.value = personId || '';
+      return;
+    }
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set('id', targetId);
     nextUrl.searchParams.delete('new');
@@ -307,7 +352,7 @@ async function init() {
     populatePersonOptions();
 
     if (requestedNew) {
-      openNewPersonDraft();
+      openNewPersonDraft({ force: true });
     } else if (requestedId) {
       personId = requestedId;
       const loadedPerson = await loadEditablePerson(personId);
@@ -316,6 +361,7 @@ async function init() {
         return;
       }
       draft = hydrateDraftForEditor(loadedPerson, schema, dataset.indexById);
+      markDraftAsSaved();
       renderEditor();
     } else {
       showError('Не указан ID карточки. Откройте редактор с основной страницы или создайте новую карточку.');
@@ -334,5 +380,7 @@ async function init() {
     showError(`Не удалось открыть редактор.\n\n${error.message}`);
   }
 }
+
+window.addEventListener('beforeunload', handleBeforeUnload);
 
 init();
