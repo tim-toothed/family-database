@@ -1,8 +1,8 @@
-import { loadDataset } from './data-loader.js';
-import { buildGraph, createNetwork } from './graph.js';
-import { renderPeopleTable, setPeopleTableSelection, TABLE_SORTS } from './people-table.js';
-import { renderPersonDetails, bindPersonLinks } from './renderers.js';
-import { getDatasetPersonName } from './person-name.js';
+import { loadDataset } from './render/data-loader.js';
+import { buildGraph, createNetwork, GRAPH_VISUALIZATIONS, getGraphVisualizationLabel } from './visualization/graph.js';
+import { renderPeopleTable, setPeopleTableSelection, TABLE_SORTS } from './visualization/table-view.js';
+import { renderPersonDetails, bindPersonLinks } from './render/renderers.js';
+import { getDatasetPersonName } from './render/person-name.js';
 
 const loadingState = document.getElementById('loadingState');
 const graphContainer = document.getElementById('graph');
@@ -17,24 +17,31 @@ const personTitle = document.getElementById('personTitle');
 const personSubtitle = document.getElementById('personSubtitle');
 const personBody = document.getElementById('personBody');
 const toggleEditButton = document.getElementById('toggleEditButton');
-const rootPersonInput = document.getElementById('rootPersonInput');
-const rootPersonOptions = document.getElementById('rootPersonOptions');
+const rootPersonSelect = document.getElementById('rootPersonSelect');
 const buildTreeButton = document.getElementById('buildTreeButton');
 const modeHint = document.getElementById('modeHint');
-const inspectButton = document.getElementById('inspectButton');
+const graphLayoutMenu = document.getElementById('graphLayoutMenu');
+const graphLayoutTrigger = document.getElementById('graphLayoutTrigger');
+const graphLayoutList = document.getElementById('graphLayoutList');
 
 let dataset;
 let network;
 let selectedPersonId = null;
 let currentRootId = null;
-let currentFocusId = null;
 let currentView = 'graph';
+let currentGraphVisualization = 'tree';
 let needsGraphRender = false;
 let currentTableSort = TABLE_SORTS.ALPHABET_ASC;
 let currentTableGroupByFamily = true;
+let graphLayoutHintDismissed = false;
 
 function isVirtualNode(personId) {
   return !personId || personId.startsWith('junction:') || personId.startsWith('unknown:');
+}
+
+function isVisibleInGraph(personId) {
+  if (!network || isVirtualNode(personId)) return false;
+  return Boolean(network.body?.data?.nodes?.get(personId));
 }
 
 function hideLoading() {
@@ -42,6 +49,7 @@ function hideLoading() {
 }
 
 function showError(message) {
+  loadingState.style.display = 'grid';
   loadingState.innerHTML = `<div class="error-box">${message}</div>`;
 }
 
@@ -74,12 +82,10 @@ function refreshNetworkLayout() {
   network.redraw();
   network.fit({ animation: false });
 
-  const targetId = currentFocusId || currentRootId;
-  if (targetId && !isVirtualNode(targetId)) {
+  const targetId = isVisibleInGraph(selectedPersonId) ? selectedPersonId : currentRootId;
+  if (isVisibleInGraph(targetId)) {
     network.selectNodes([targetId]);
   }
-
-  updateInspectButton();
 }
 
 function updateModeHint() {
@@ -89,37 +95,9 @@ function updateModeHint() {
   }
 
   modeHint.hidden = false;
-  if (currentFocusId) {
-    const name = getDatasetPersonName(dataset, currentFocusId, currentFocusId);
-    modeHint.textContent = `Основное дерево + Inspect: ${name}`;
-    return;
-  }
-
   const name = getDatasetPersonName(dataset, currentRootId, currentRootId);
-  modeHint.textContent = `Основное дерево от ${name}`;
-}
-
-function updateInspectButton() {
-  if (currentView !== 'graph' || !network || !selectedPersonId || isVirtualNode(selectedPersonId)) {
-    inspectButton.hidden = true;
-    return;
-  }
-
-  const position = network.getPositions([selectedPersonId])[selectedPersonId];
-  if (!position) {
-    inspectButton.hidden = true;
-    return;
-  }
-
-  const box = network.getBoundingBox(selectedPersonId);
-  const topRight = network.canvasToDOM({ x: box.right, y: box.top });
-
-  inspectButton.hidden = false;
-  inspectButton.style.left = `${topRight.x - 24}px`;
-  inspectButton.style.top = `${topRight.y + 8}px`;
-  inspectButton.title = selectedPersonId === currentFocusId
-    ? 'Вернуться к основному дереву'
-    : 'Показать связи этого человека';
+  const visualizationLabel = getGraphVisualizationLabel(currentGraphVisualization);
+  modeHint.textContent = `${visualizationLabel} от ${name}`;
 }
 
 function showPerson(personId) {
@@ -144,37 +122,21 @@ function showPerson(personId) {
   });
 
   syncTableSelection();
-  updateInspectButton();
-}
-
-function findPersonId(query) {
-  const normalized = query.trim().toLowerCase();
-  if (!normalized) return null;
-
-  const exactId = Array.from(dataset.indexById.keys()).find(
-    (id) => id.toLowerCase() === normalized
-  );
-  if (exactId) return exactId;
-
-  const exactName = Array.from(dataset.indexById.entries()).find(
-    ([, name]) => name.toLowerCase() === normalized
-  );
-
-  return exactName?.[0] || null;
 }
 
 function selectAndFocus(personId, scale = 1.05) {
-  if (!personId || !network || isVirtualNode(personId)) return;
+  if (!isVisibleInGraph(personId)) return;
+
   network.selectNodes([personId]);
   network.focus(personId, { scale, animation: true });
   selectedPersonId = personId;
   syncTableSelection();
-  updateInspectButton();
 }
 
 function populateRootSuggestions() {
-  const entries = Array.from(dataset.indexById.entries());
+  if (!rootPersonSelect) return;
 
+  const entries = Array.from(dataset.indexById.entries());
   const valid = [];
   const invalid = [];
 
@@ -189,9 +151,15 @@ function populateRootSuggestions() {
   const sortedValid = valid.sort((a, b) => a[1].localeCompare(b[1], 'ru'));
   const sortedInvalid = invalid.sort((a, b) => (a[1] || '').localeCompare(b[1] || '', 'ru'));
 
-  rootPersonOptions.innerHTML = [...sortedValid, ...sortedInvalid]
-    .map(([id, name]) => `<option value="${name}" label="${id}"></option>`)
-    .join('');
+  rootPersonSelect.innerHTML = [
+    '<option value="">От кого строить дерево...</option>',
+    ...[...sortedValid, ...sortedInvalid].map(([id, name]) => `<option value="${id}">${name || id}</option>`),
+  ].join('');
+}
+
+function updateBuildTreeButtonState() {
+  if (!buildTreeButton) return;
+  buildTreeButton.disabled = !rootPersonSelect?.value;
 }
 
 function renderTable() {
@@ -221,48 +189,52 @@ function renderGraph() {
     return;
   }
 
-  const graphData = buildGraph(dataset, {
-    mode: 'main',
-    rootId: currentRootId,
-    focusNodeId: currentFocusId,
-  });
+  try {
+    const graphData = buildGraph(dataset, {
+      rootId: currentRootId,
+      visualization: currentGraphVisualization,
+    });
 
-  if (network) {
-    network.destroy();
-  }
-
-  network = createNetwork(graphContainer, graphData, {
-    onSelect(personId) {
-      if (isVirtualNode(personId)) {
-        selectedPersonId = null;
-        syncTableSelection();
-        updateInspectButton();
-        return;
-      }
-
-      showPerson(personId);
-      selectedPersonId = personId;
-      syncTableSelection();
-      updateInspectButton();
-    },
-    onViewportChanged() {
-      updateInspectButton();
-    },
-  });
-
-  requestAnimationFrame(() => {
-    network.fit({ animation: true });
-    const targetId = currentFocusId || currentRootId;
-    if (targetId && !isVirtualNode(targetId)) {
-      selectedPersonId = targetId;
-      network.selectNodes([targetId]);
-      syncTableSelection();
-      updateInspectButton();
+    if (network) {
+      network.destroy();
     }
-  });
 
-  needsGraphRender = false;
-  updateModeHint();
+    network = createNetwork(graphContainer, graphData, {
+      onSelect(personId) {
+        if (isVirtualNode(personId)) {
+          selectedPersonId = null;
+          syncTableSelection();
+          return;
+        }
+
+        showPerson(personId);
+        syncTableSelection();
+      },
+    });
+
+    hideLoading();
+    requestAnimationFrame(() => {
+      network.fit({ animation: true });
+
+      const targetId = isVisibleInGraph(selectedPersonId) ? selectedPersonId : currentRootId;
+      if (isVisibleInGraph(targetId)) {
+        selectedPersonId = targetId;
+        network.selectNodes([targetId]);
+        syncTableSelection();
+      }
+    });
+
+    needsGraphRender = false;
+    updateModeHint();
+  } catch (error) {
+    if (network) {
+      network.destroy();
+      network = null;
+    }
+
+    console.error(error);
+    showError(`Graph error: ${error.message}`);
+  }
 }
 
 function scheduleGraphRender() {
@@ -274,31 +246,92 @@ function scheduleGraphRender() {
   needsGraphRender = true;
 }
 
+function renderGraphLayoutMenu() {
+  if (!graphLayoutList) return;
+
+  graphLayoutList.innerHTML = GRAPH_VISUALIZATIONS
+    .map((item) => `
+      <button
+        type="button"
+        class="graph-layout-option${item.id === currentGraphVisualization ? ' is-active' : ''}"
+        data-graph-layout="${item.id}"
+      >
+        ${item.label}
+      </button>
+    `)
+    .join('');
+
+  graphLayoutList.querySelectorAll('[data-graph-layout]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const nextMode = button.dataset.graphLayout;
+      if (!nextMode) return;
+
+      currentGraphVisualization = nextMode;
+      graphLayoutMenu?.removeAttribute('open');
+      renderGraphLayoutTrigger();
+      renderGraphLayoutMenu();
+      scheduleGraphRender();
+    });
+  });
+}
+
+function updateGraphLayoutTriggerState() {
+  if (!graphLayoutMenu || !graphLayoutTrigger) return;
+
+  const shouldExpand = graphLayoutMenu.open || !graphLayoutHintDismissed;
+  graphLayoutMenu.classList.toggle('is-expanded', shouldExpand);
+  graphLayoutTrigger.setAttribute(
+    'aria-label',
+    shouldExpand ? 'Выбрать визуализацию' : 'Открыть меню визуализации'
+  );
+}
+
+function dismissGraphLayoutHint() {
+  if (graphLayoutHintDismissed) return;
+
+  graphLayoutHintDismissed = true;
+  updateGraphLayoutTriggerState();
+}
+
+function renderGraphLayoutTrigger() {
+  if (!graphLayoutTrigger) return;
+
+  const visualizationLabel = getGraphVisualizationLabel(currentGraphVisualization);
+  graphLayoutTrigger.innerHTML = `
+    <span class="graph-layout-trigger-icon" aria-hidden="true">
+      <svg class="graph-layout-trigger-glyph" viewBox="0 0 24 24" focusable="false">
+        <path class="graph-layout-trigger-link" d="M8.2 8.4h7.6M8.9 9.6l2.7 6M15.1 9.6l-2.7 6"></path>
+        <circle cx="8" cy="8" r="2.1"></circle>
+        <circle cx="16" cy="8" r="2.1"></circle>
+        <circle cx="12" cy="16" r="2.1"></circle>
+      </svg>
+    </span>
+    <span class="graph-layout-trigger-copy">
+      <span class="graph-layout-trigger-label">Тип визуализации</span>
+      <span class="graph-layout-trigger-value">${visualizationLabel}</span>
+    </span>
+  `;
+}
+
+function setupGraphLayoutTrigger() {
+  if (!graphLayoutTrigger) return;
+
+  graphLayoutTrigger.setAttribute('aria-label', 'Выбрать визуализацию');
+  renderGraphLayoutTrigger();
+  graphLayoutMenu?.addEventListener('toggle', updateGraphLayoutTriggerState);
+  graphContainer?.addEventListener('pointerdown', dismissGraphLayoutHint, { passive: true });
+  graphContainer?.addEventListener('wheel', dismissGraphLayoutHint, { passive: true });
+  graphContainer?.addEventListener('touchstart', dismissGraphLayoutHint, { passive: true });
+
+  updateGraphLayoutTriggerState();
+}
+
 function setMainView(rootId) {
   currentRootId = rootId;
-  currentFocusId = null;
-  rootPersonInput.value = getDatasetPersonName(dataset, rootId, rootId);
+  if (rootPersonSelect) rootPersonSelect.value = '';
+  updateBuildTreeButtonState();
   scheduleGraphRender();
   showPerson(rootId);
-}
-
-function setInspectView(personId) {
-  if (isVirtualNode(personId)) return;
-  currentFocusId = personId;
-  scheduleGraphRender();
-  showPerson(personId);
-}
-
-function toggleInspect() {
-  const targetId = selectedPersonId || currentFocusId || currentRootId;
-  if (!targetId || isVirtualNode(targetId)) return;
-
-  if (targetId === currentFocusId) {
-    setMainView(currentRootId);
-    return;
-  }
-
-  setInspectView(targetId);
 }
 
 function applyTabState(activeView) {
@@ -318,7 +351,6 @@ function setActiveView(view) {
   if (view === 'table') {
     renderTable();
     updateModeHint();
-    updateInspectButton();
     return;
   }
 
@@ -332,15 +364,14 @@ function setActiveView(view) {
 
 function setupRootSelector() {
   const buildTree = () => {
-    const personId = findPersonId(rootPersonInput.value);
+    const personId = rootPersonSelect?.value || null;
     if (!personId) return;
     setMainView(personId);
   };
 
   buildTreeButton.addEventListener('click', buildTree);
-  rootPersonInput.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') buildTree();
-  });
+  rootPersonSelect?.addEventListener('change', updateBuildTreeButtonState);
+  updateBuildTreeButtonState();
 }
 
 function setupTabs() {
@@ -359,6 +390,7 @@ function setupTabs() {
 
 async function init() {
   try {
+    setupGraphLayoutTrigger();
     dataset = await loadDataset();
     currentRootId = dataset.people.has('P049')
       ? 'P049'
@@ -367,11 +399,8 @@ async function init() {
     populateRootSuggestions();
     setupRootSelector();
     setupTabs();
+    renderGraphLayoutMenu();
 
-    inspectButton.addEventListener('click', (event) => {
-      event.preventDefault();
-      toggleInspect();
-    });
     toggleEditButton?.addEventListener('click', (event) => {
       event.preventDefault();
       openEditorPage(selectedPersonId);
@@ -380,7 +409,8 @@ async function init() {
     applyTabState(currentView);
     renderGraph();
     showPerson(currentRootId);
-    rootPersonInput.value = getDatasetPersonName(dataset, currentRootId, currentRootId);
+    if (rootPersonSelect) rootPersonSelect.value = '';
+    updateBuildTreeButtonState();
     hideLoading();
 
     if (dataset.peopleTable?.warnings?.length) {

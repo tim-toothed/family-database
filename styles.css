@@ -57,6 +57,7 @@ body.editor-page {
 }
 
 .toolbar input,
+.toolbar select,
 .toolbar button {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -66,12 +67,18 @@ body.editor-page {
   min-height: 38px;
 }
 
-.toolbar input {
+.toolbar input,
+.toolbar select {
   min-width: 280px;
 }
 
 .toolbar button {
   cursor: pointer;
+}
+
+.toolbar button:disabled {
+  cursor: default;
+  opacity: 0.55;
 }
 
 .layout {
@@ -102,6 +109,454 @@ body.editor-page {
   width: 100%;
   height: 100%;
   min-height: 0;
+  position: relative;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.graph-layout-menu {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 8;
+  display: grid;
+  justify-items: end;
+}
+
+.graph-layout-trigger {
+  list-style: none;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 1px solid rgba(47, 111, 237, 0.2);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 249, 255, 0.98) 100%);
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.12),
+    0 0 0 1px rgba(255, 255, 255, 0.72) inset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  cursor: pointer;
+  color: #355da8;
+  user-select: none;
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    width 0.24s ease,
+    padding 0.24s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.graph-layout-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.graph-layout-menu.is-expanded .graph-layout-trigger {
+  width: 208px;
+  padding: 8px 14px 8px 8px;
+  gap: 12px;
+  justify-content: flex-start;
+}
+
+.graph-layout-trigger:hover {
+  transform: translateY(-1px);
+  border-color: rgba(47, 111, 237, 0.28);
+  box-shadow:
+    0 16px 32px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.78) inset;
+}
+
+.graph-layout-trigger:focus-visible {
+  outline: none;
+  border-color: rgba(47, 111, 237, 0.42);
+  box-shadow:
+    0 0 0 4px rgba(47, 111, 237, 0.14),
+    0 16px 32px rgba(15, 23, 42, 0.14),
+    0 0 0 1px rgba(255, 255, 255, 0.78) inset;
+}
+
+.graph-layout-trigger-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(234, 241, 255, 0.98) 0%, rgba(220, 233, 255, 0.98) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.graph-layout-trigger-glyph {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.graph-layout-trigger-glyph circle {
+  fill: currentColor;
+}
+
+.graph-layout-trigger-link {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.8;
+}
+
+.graph-layout-trigger-copy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.graph-layout-trigger-dots {
+  display: none;
+}
+
+.graph-layout-trigger-label {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+  transform: translateX(6px);
+  transition: max-width 0.24s ease, opacity 0.18s ease, transform 0.24s ease;
+}
+
+.graph-layout-menu.is-expanded .graph-layout-trigger-label {
+  max-width: 170px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.graph-layout-trigger-value {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  transform: translateX(6px);
+  transition: max-width 0.24s ease, opacity 0.18s ease, transform 0.24s ease;
+}
+
+.graph-layout-menu.is-expanded .graph-layout-trigger-value {
+  max-width: 170px;
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.graph-layout-menu[open] .graph-layout-trigger {
+  color: #274f93;
+  border-color: rgba(47, 111, 237, 0.34);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(237, 244, 255, 0.98) 100%);
+  box-shadow:
+    0 18px 36px rgba(15, 23, 42, 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.82) inset;
+}
+
+.graph-layout-list {
+  margin-top: 10px;
+  min-width: 180px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 42px rgba(21, 35, 70, 0.16);
+  display: grid;
+  gap: 6px;
+}
+
+.graph-layout-option {
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #ffffff;
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.graph-layout-option:hover {
+  border-color: #d8e3fb;
+  background: #f8fbff;
+}
+
+.graph-layout-option.is-active {
+  border-color: #bfd0f5;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.tree-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.tree-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+
+.tree-canvas:active {
+  cursor: grabbing;
+}
+
+.tree-link {
+  stroke: #94a3b8;
+  stroke-width: 2;
+  fill: none;
+  stroke-linecap: round;
+}
+
+.radial-arc {
+  stroke-width: 1.4px;
+  cursor: pointer;
+  transition: filter 0.18s ease, stroke-width 0.18s ease;
+}
+
+.radial-root {
+  stroke-width: 1.4px;
+  cursor: pointer;
+  transition: filter 0.18s ease, stroke-width 0.18s ease;
+}
+
+.radial-arc:hover {
+  filter: brightness(0.98);
+}
+
+.radial-root:hover {
+  filter: brightness(0.98);
+}
+
+.radial-arc.is-selected {
+  stroke: #1f2937;
+  stroke-width: 2.2px;
+}
+
+.radial-root.is-selected {
+  stroke: #1f2937;
+  stroke-width: 2.2px;
+}
+
+.radial-arc.is-placeholder,
+.radial-root.is-placeholder {
+  stroke-dasharray: 7 5;
+}
+
+.radial-label {
+  fill: #243243;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.radial-label.is-placeholder {
+  fill: #3b4756;
+}
+
+.radial-label-line {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.radial-label.is-placeholder .radial-label-line {
+  font-weight: 500;
+}
+
+.radial-label-years {
+  font-size: 9px;
+  fill: #516074;
+}
+
+.radial-label.is-selected .radial-label-line,
+.radial-label.is-selected .radial-label-years {
+  fill: #111827;
+}
+
+.tree-card {
+  width: 196px;
+  height: 92px;
+  border: 2.5px solid;
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  line-height: 1.18;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-width 0.18s ease;
+  cursor: pointer;
+}
+
+.tree-card.is-placeholder {
+  border-style: dashed;
+  box-shadow: none;
+}
+
+.tree-card.is-selected {
+  border-width: 2.4px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+}
+
+.tree-card-name {
+  font-weight: 500;
+}
+
+.tree-card-years {
+  margin-top: 6px;
+  font-size: 0.92em;
+  color: #64748b;
+}
+
+.panorama-band-shape {
+  fill: rgba(244, 247, 252, 0.94);
+  stroke: rgba(203, 213, 225, 0.82);
+  stroke-width: 1.2px;
+}
+
+.panorama-band-label {
+  fill: #64748b;
+  font-size: 24px;
+  font-weight: 700;
+  dominant-baseline: middle;
+}
+
+.panorama-link-continuation {
+  fill: none;
+  stroke: rgba(100, 116, 139, 0.36);
+  stroke-width: 1.8px;
+  stroke-dasharray: 7 8;
+}
+
+.panorama-family-box {
+  stroke-width: 2px;
+  filter: drop-shadow(0 14px 26px rgba(15, 23, 42, 0.08));
+}
+
+.panorama-family-header {
+  stroke: none;
+}
+
+.panorama-family-title {
+  fill: #1f2937;
+  font-size: 14px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
+
+.panorama-family-meta {
+  fill: #64748b;
+  font-size: 11px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: middle;
+  letter-spacing: 0.02em;
+}
+
+.panorama-family.is-selected .panorama-family-box {
+  stroke-width: 2.8px;
+  filter: drop-shadow(0 18px 30px rgba(15, 23, 42, 0.12));
+}
+
+.panorama-link-couple,
+.panorama-link-trunk,
+.panorama-link-bus,
+.panorama-link-child {
+  fill: none;
+  stroke: rgba(71, 85, 105, 0.78);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.panorama-link-couple {
+  stroke-width: 2.8px;
+}
+
+.panorama-link-trunk {
+  stroke-width: 2.2px;
+}
+
+.panorama-link-bus {
+  stroke-width: 2px;
+}
+
+.panorama-link-child {
+  stroke-width: 1.8px;
+}
+
+.panorama-card {
+  width: 150px;
+  height: 84px;
+  border: 2px solid;
+  border-radius: 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  color: #243243;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
+  transition: box-shadow 0.18s ease, transform 0.18s ease, border-width 0.18s ease;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.panorama-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 16px 28px rgba(15, 23, 42, 0.12);
+}
+
+.panorama-card.is-selected {
+  border-width: 2.6px;
+  box-shadow: 0 18px 32px rgba(15, 23, 42, 0.14);
+}
+
+.panorama-card-body {
+  flex: 1;
+  padding: 8px 10px 9px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  line-height: 1.12;
+}
+
+.panorama-card.is-parent .panorama-card-body {
+  padding-top: 8px;
+}
+
+.panorama-card.is-child .panorama-card-body {
+  padding-top: 9px;
+}
+
+.panorama-card-name {
+  font-weight: 600;
+}
+
+.panorama-card-years {
+  margin-top: 4px;
+  font-size: 0.88em;
+  color: #64748b;
 }
 
 .view-tabs {
@@ -934,7 +1389,8 @@ body.editor-page {
     flex-wrap: wrap;
   }
 
-  .toolbar input {
+  .toolbar input,
+  .toolbar select {
     min-width: 0;
     flex: 1;
   }
@@ -997,18 +1453,4 @@ body.editor-page {
   padding: 4px 10px;
   border-radius: 8px;
   z-index: 4;
-}
-
-.inspect-button {
-  position: absolute;
-  z-index: 5;
-  width: 26px;
-  height: 26px;
-  border: 1px solid #cbd5e1;
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18);
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
 }

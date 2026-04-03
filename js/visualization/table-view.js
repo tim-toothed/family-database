@@ -1,5 +1,5 @@
-import { getDatasetPersonName } from './person-name.js';
-import { sortFamilyGroups } from './family-groups.js';
+import { getDatasetPersonName } from '../render/person-name.js';
+import { sortFamilyGroups } from './table-family-groups.js';
 
 const PERSON_ID_NAME_RE = /^P\d{3}$/i;
 

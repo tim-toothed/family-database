@@ -1,7 +1,7 @@
-import { CONFIG } from './config.js';
-import { buildFamilyGroups } from './family-groups.js';
+import { CONFIG } from '../config.js';
+import { buildFamilyGroups } from '../visualization/table-family-groups.js';
 import { getPersonDisplayName } from './person-name.js';
-import { buildPeopleTableData } from './people-table.js';
+import { buildPeopleTableData } from '../visualization/table-view.js';
 
 async function fetchText(path) {
   const response = await fetch(path);

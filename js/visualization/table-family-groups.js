@@ -1,19 +1,7 @@
-import { getDatasetPersonName } from './person-name.js';
+import { getDatasetPersonName } from '../render/person-name.js';
+import { buildFamilyColorTheme } from './family-colors.js';
 
 const PERSON_ID_NAME_RE = /^P\d{3}$/i;
-
-const GROUP_COLORS = [
-  '#f97316',
-  '#14b8a6',
-  '#8b5cf6',
-  '#eab308',
-  '#0ea5e9',
-  '#ef4444',
-  '#10b981',
-  '#6366f1',
-  '#f59e0b',
-  '#06b6d4',
-];
 
 function normalizeText(value) {
   return String(value ?? '').trim().toLowerCase();
@@ -237,33 +225,6 @@ function buildFamilyTitle(dataset, ownerId) {
   return `Семья ${inflected || originalName}`;
 }
 
-function hashString(value) {
-  let hash = 0;
-  const text = String(value || '');
-  for (let index = 0; index < text.length; index += 1) {
-    hash = ((hash << 5) - hash) + text.charCodeAt(index);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
-
-function hexToRgba(hex, alpha) {
-  const clean = String(hex || '').replace('#', '');
-  if (clean.length !== 6) return `rgba(148, 163, 184, ${alpha})`;
-  const red = Number.parseInt(clean.slice(0, 2), 16);
-  const green = Number.parseInt(clean.slice(2, 4), 16);
-  const blue = Number.parseInt(clean.slice(4, 6), 16);
-  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
-}
-
-function buildGroupColors(groupId) {
-  const color = GROUP_COLORS[hashString(groupId) % GROUP_COLORS.length];
-  return {
-    color,
-    softColor: hexToRgba(color, 0.12),
-  };
-}
-
 function getRoleToneBySex(person) {
   const sex = getSexLabel(person);
   if (sex === 'м') return 'male';
@@ -423,7 +384,11 @@ function buildFamilyGroup(pairIds, childIds, dataset, tableData) {
       : firstParentId;
   const motherId = fatherId === firstParentId ? secondParentId : firstParentId;
   const groupId = `family:${pairKey(pairIds[0], pairIds[1])}`;
-  const { color, softColor } = buildGroupColors(groupId);
+  const theme = buildFamilyColorTheme(dataset, tableData, {
+    branchPersonId: fatherId || firstParentId || motherId,
+    personIds: [fatherId, motherId].filter(Boolean),
+    variantKey: groupId,
+  });
   const childMembers = buildChildMembers(childIds, dataset, tableData);
   const parentMembers = buildParentMembers(dataset, tableData, fatherId, motherId);
   const parentGenerations = [fatherId, motherId]
@@ -448,8 +413,11 @@ function buildFamilyGroup(pairIds, childIds, dataset, tableData) {
     title: '',
     sortTitle: '',
     generationId: parentGenerations[0] ?? childGenerations[0] ?? null,
-    color,
-    softColor,
+    color: theme.color,
+    softColor: theme.softColor,
+    headerColor: theme.headerColor,
+    branchColor: theme.branchColor,
+    branchId: theme.branchId,
     oldestChildYear,
     members: [...parentMembers, ...childMembers],
   };
@@ -473,8 +441,7 @@ function buildUngroupedGroup(dataset, tableData, groupedPeopleIds) {
     title: 'Прочие люди',
     sortTitle: 'Прочие люди',
     generationId: null,
-    color: '#94a3b8',
-    softColor: 'rgba(148, 163, 184, 0.12)',
+    ...buildFamilyColorTheme(dataset, tableData, { neutral: true }),
     oldestChildYear: null,
     members: ungroupedIds.map((personId) => {
       const relationDescription = describeUngroupedRelation(personId, dataset, tableData);

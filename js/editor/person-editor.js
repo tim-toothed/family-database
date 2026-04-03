@@ -1,5 +1,5 @@
-import { FIELD_LABELS } from './config.js';
-import { getPersonDisplayName } from './person-name.js';
+import { FIELD_LABELS } from '../config.js';
+import { getPersonDisplayName } from '../render/person-name.js';
 
 const NESTED_FIELD_LABELS = {
   surname: 'Фамилия',

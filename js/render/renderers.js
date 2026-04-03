@@ -1,4 +1,4 @@
-import { FIELD_LABELS, SECTION_ORDER } from './config.js';
+import { FIELD_LABELS, SECTION_ORDER } from '../config.js';
 import { formatBirthName, getDatasetPersonName, getPersonDisplayName } from './person-name.js';
 
 function escapeHtml(value) {
@@ -59,11 +59,20 @@ function renderKvList(entries) {
   return `<div class="kv-list">${meaningfulEntries
     .map(
       ([label, value]) => `
-        <div class="kv-label">${escapeHtml(label)}</div>
+        <div class="kv-label">${escapeHtml(shortenDetailsLabel(label))}</div>
         <div>${value}</div>
       `
     )
     .join('')}</div>`;
+}
+
+function shortenDetailsLabel(label) {
+  const normalized = String(label || '').trim().toLowerCase();
+  if (normalized.includes('\u0441\u0432\u043e\u0431\u043e\u0434') && normalized.includes('\u0434\u0430\u0442')) {
+    return 'Дата (текст)';
+  }
+
+  return label;
 }
 
 function renderBirthDeath(block) {

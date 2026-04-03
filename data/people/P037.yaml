@@ -5,17 +5,17 @@ birth_name:
   patronymic: Михайлович
 sex: м
 birth:
-  date: ???
+  date: ''
   date_raw: примерно 1880-е годы (предположительно около 1884)
   place: г. Вильно (ныне Вильнюс, Литва)
 death:
-  date: ???
+  date: ''
   date_raw: примерно начало 1950-х годов
-  place: ???
-  cause: ???
+  place: ''
+  cause: ''
 spouses:
 - person_id: P038
-  marriage_date: ???
+  marriage_date: ''
 children:
 - person_id: P040
   relation_type: биологический

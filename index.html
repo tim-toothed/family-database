@@ -7,11 +7,7 @@
     <link rel="stylesheet" href="./styles.css" />
 
     <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
-    <script src="https://unpkg.com/vis-network@9.1.9/dist/vis-network.min.js"></script>
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/vis-network@9.1.9/styles/vis-network.min.css"
-    />
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   </head>
   <body>
     <header class="topbar">
@@ -20,8 +16,9 @@
         <p class="subtitle">made by P049 Шарифуллин Тимур Маратович</p>
       </div>
       <div class="toolbar">
-        <input id="rootPersonInput" type="search" list="rootPersonOptions" placeholder="От кого строить дерево" />
-        <datalist id="rootPersonOptions"></datalist>
+        <select id="rootPersonSelect" class="editor-person-jump" aria-label="От кого строить дерево">
+          <option value="">От кого строить дерево...</option>
+        </select>
         <button id="buildTreeButton" type="button">Построить дерево</button>
       </div>
     </header>
@@ -30,7 +27,7 @@
       <section class="graph-panel">
         <div class="view-tabs" role="tablist" aria-label="Режим отображения">
           <button id="graphTabButton" class="view-tab is-active" type="button" role="tab" aria-selected="true">
-            Граф
+            Визуализация
           </button>
           <button id="tableTabButton" class="view-tab" type="button" role="tab" aria-selected="false">
             Таблица
@@ -41,9 +38,12 @@
           <div id="loadingState" class="state">Загрузка данных...</div>
 
           <div id="graphView" class="view-content">
+            <details id="graphLayoutMenu" class="graph-layout-menu">
+              <summary id="graphLayoutTrigger" class="graph-layout-trigger" aria-label="Тип визуализации">⋯</summary>
+              <div id="graphLayoutList" class="graph-layout-list"></div>
+            </details>
             <div id="graph"></div>
             <span id="modeHint" class="mode-hint"></span>
-            <button id="inspectButton" class="inspect-button" type="button" hidden>⌕</button>
           </div>
 
           <div id="tableView" class="view-content hidden">

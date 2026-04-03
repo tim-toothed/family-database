@@ -1,4 +1,4 @@
-import { getDatasetPersonName } from './person-name.js';
+import { getDatasetPersonName } from '../render/person-name.js';
 
 const EDGE_COLORS = {
   parent: '#94a3b8',
