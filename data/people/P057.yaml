@@ -1,13 +1,13 @@
 id: P057
 birth_name:
-  surname: Шаровара
+  surname: Шаравара
   first_name: Давид
-  patronymic: Зиновьев
+  patronymic: Зиновьевич
 sex: м
 birth:
-  date: ???
+  date: ''
 death:
-  date: ???
+  date: ''
 spouses:
 - person_id: P056
 children:

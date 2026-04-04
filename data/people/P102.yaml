@@ -1,9 +1,16 @@
 id: P102
+birth_name:
+  surname: Иванченко
+  first_name: Евдокия
+  patronymic: Никоновна
+name_changes:
+- name: Сабадаш Евдокия Никоновна
+  reason: брак
 sex: ж
 birth:
-  date: ???
+  date: DD.MM.1930
 death:
-  date: ???
+  date: ''
 parents:
 - person_id: P062
   relation_type: приемная мать
@@ -12,8 +19,8 @@ parents:
 siblings:
 - person_id: P063
   relation_type: приемный
-- person_id: P103
+- person_id: P108
   relation_type: приемный
-other_info: (приемная дочь? Юнаш Ксении Кирилловны и Нечитайло Ефима Евсеевича)
+other_info: Племянница Юнаш Ксении Кирилловны, и по совместительству ее приемная дочь. (ШСП, стр. 6)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

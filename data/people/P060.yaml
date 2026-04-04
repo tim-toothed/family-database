@@ -1,6 +1,6 @@
 id: P060
 birth_name:
-  surname: Ракович?
+  surname: Ракович
   first_name: Дарья
   patronymic: Емельяновна
 sex: ж
@@ -35,5 +35,6 @@ children:
   relation_type: биологический
 - person_id: P099
   relation_type: биологический
+other_info: ''
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

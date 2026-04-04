@@ -6,6 +6,7 @@ birth_name:
 sex: м
 birth:
   date: 07.01.1923
+  date_raw: 7 января 1923 года
 death:
   date: 20.12.2012
   place: г. Житомир
@@ -38,5 +39,13 @@ children:
   relation_type: биологический
 - person_id: P066
   relation_type: биологический
+profession:
+- title: Офицер-танкист
+job_places:
+- job: ~1950. Курильские острова, о. Шумшу (самый северный в гряде)
+military:
+  military_service:
+  - service_info: Офицер-танкист
+appearance: 'Светловолосый '
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

@@ -1,13 +1,13 @@
 id: P059
 birth_name:
-  surname: Шаровара
+  surname: Шаравара
   first_name: Григорий
   patronymic: Леонтьевич
 sex: м
 birth:
-  date: ???
+  date: ''
 death:
-  date: ???
+  date: ''
 parents:
 - person_id: P105
   relation_type: мать

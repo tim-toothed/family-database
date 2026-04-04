@@ -1,8 +1,13 @@
 id: P093
+birth_name:
+  surname: Шароваров
+  first_name: Михаил
+  patronymic: Леонтьевич
+sex: м
 birth:
-  date: ???
+  date: ''
 death:
-  date: ???
+  date: ''
 parents:
 - person_id: P060
   relation_type: мать
@@ -25,6 +30,6 @@ siblings:
   relation_type: биологический
 - person_id: P099
   relation_type: биологический
-other_info: (ребенок Ракич Дарьи Емельяновной и Шаровара Леонтия Давидовича)
+other_info: (крестный Шароваровой Светланы Павловной, дочери родного брата)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

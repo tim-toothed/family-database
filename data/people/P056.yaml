@@ -3,6 +3,9 @@ birth_name:
   surname: ???
   first_name: Елена
   patronymic: Гавриловна
+name_changes:
+- name: Шаравара Елена Гавриловна
+  reason: брак
 sex: ж
 birth:
   date: ''

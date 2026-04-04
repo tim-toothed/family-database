@@ -8,7 +8,9 @@ name_changes:
   reason: брак
 sex: ж
 birth:
-  date: ''
+  date: 27.11.1951
+  date_raw: '27 ноября 1951 года '
+  place: 'СССР, Украинская ССР, Житомирская обл., г. Овруч '
 death:
   date: ''
 parents:
@@ -26,6 +28,7 @@ children:
   relation_type: приемный
 - person_id: P101
   relation_type: приемный
+health: При выходе из роддома - "появилось на одной стороне тела 3 нарыва" (ШСП, стр. 4)
 other_info: ''
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

@@ -31,7 +31,8 @@ children:
   relation_type: биологический
 - person_id: P102
   relation_type: приемный
-- person_id: P103
+- person_id: P108
   relation_type: биологический
+other_info: Юхым - украинская вариация имени Ефим
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

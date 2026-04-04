@@ -3,6 +3,9 @@ birth_name:
   surname: ???
   first_name: Дарья
   patronymic: ???
+name_changes:
+- name: Юнаш Дарья ???
+  reason: брак
 sex: ж
 birth:
   date: ''
@@ -13,5 +16,12 @@ spouses:
 children:
 - person_id: P062
   relation_type: биологический
+class_title: Свободная крестьянка, кулак
+profession:
+- title: '"были крепкими хозяевами кулаками" (ШСП, стр. 7)'
+job_places:
+- job: '"занимались сельским хозяйством" (ШСП, стр. 7)'
+residences:
+- residence_info: '"жили в слободах" (ШСП, стр. 7)'
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

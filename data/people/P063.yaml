@@ -6,6 +6,7 @@ birth_name:
 sex: ж
 birth:
   date: 18.10.1923
+  date_raw: 18 октября 1923 года
 death:
   date: 26.02.1973
   place: г. Житомир
@@ -17,7 +18,7 @@ parents:
 siblings:
 - person_id: P102
   relation_type: приемный
-- person_id: P103
+- person_id: P108
   relation_type: биологический
 spouses:
 - person_id: P064
@@ -26,5 +27,10 @@ children:
   relation_type: биологический
 - person_id: P066
   relation_type: биологический
+military:
+  war_participation:
+  - war: Великая Отечественная Война
+character: ''
+appearance: Красивая, черноволосая. Была чуть выше ростом своего мужа, Павла Леонтьевича.
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'
