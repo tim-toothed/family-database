@@ -26,9 +26,13 @@ const editorShell = document.getElementById('editorShell');
 const editorTitle = document.getElementById('editorTitle');
 const editorSubtitle = document.getElementById('editorSubtitle');
 const editorBody = document.getElementById('editorBody');
+const editorSectionNav = document.getElementById('editorSectionNav');
+const editorSectionNavToggle = document.getElementById('editorSectionNavToggle');
+const editorSectionNavCurrent = document.getElementById('editorSectionNavCurrent');
+const editorSectionNavList = document.getElementById('editorSectionNavList');
 const savePersonButton = document.getElementById('savePersonButton');
 const newPersonButton = document.getElementById('newPersonButton');
-const personJumpSelect = document.getElementById('personJumpSelect');
+const personJumpInput = document.getElementById('personJumpInput');
 const validationMessage = document.getElementById('validationMessage');
 const personOptions = document.getElementById('editorPersonOptions');
 
@@ -44,6 +48,126 @@ let isCreatingNew = false;
 let lastSavedDraftSnapshot = '';
 let hasUnsavedChanges = false;
 let suppressBeforeUnloadPrompt = false;
+let sectionObserver = null;
+let sectionNavOpen = false;
+let activeEditorSectionId = '';
+
+function getEditorSections() {
+  return Array.from(editorBody.querySelectorAll('[data-editor-section]'));
+}
+
+function setSectionNavOpen(nextOpen) {
+  if (!editorSectionNav || editorSectionNav.hidden) {
+    sectionNavOpen = false;
+    return;
+  }
+
+  sectionNavOpen = Boolean(nextOpen);
+  editorSectionNav.classList.toggle('is-open', sectionNavOpen);
+  editorSectionNavToggle?.setAttribute('aria-expanded', String(sectionNavOpen));
+}
+
+function setActiveEditorSection(sectionId) {
+  activeEditorSectionId = sectionId || '';
+
+  let currentLabel = 'Навигация';
+  editorSectionNavList?.querySelectorAll('[data-target-section]').forEach((button) => {
+    const isActive = button.dataset.targetSection === activeEditorSectionId;
+    button.classList.toggle('is-active', isActive);
+    if (isActive) {
+      currentLabel = button.dataset.sectionLabel || button.textContent || currentLabel;
+    }
+  });
+
+  if (editorSectionNavCurrent) {
+    editorSectionNavCurrent.textContent = currentLabel;
+  }
+}
+
+function syncSectionNavVisibility() {
+  if (!editorSectionNav || editorSectionNav.hidden) return;
+
+  const shouldShow = getEditorSections().length > 1 && window.scrollY > 180;
+  editorSectionNav.classList.toggle('is-visible', shouldShow);
+
+  if (!shouldShow) {
+    setSectionNavOpen(false);
+  }
+}
+
+function rebuildSectionObserver(sections) {
+  if (sectionObserver) {
+    sectionObserver.disconnect();
+    sectionObserver = null;
+  }
+
+  if (!sections.length) return;
+
+  sectionObserver = new IntersectionObserver((entries) => {
+    const visibleEntries = entries
+      .filter((entry) => entry.isIntersecting)
+      .sort((left, right) => (
+        right.intersectionRatio - left.intersectionRatio
+        || left.boundingClientRect.top - right.boundingClientRect.top
+      ));
+
+    if (visibleEntries[0]) {
+      setActiveEditorSection(visibleEntries[0].target.id);
+      return;
+    }
+
+    const closestSection = sections.find((section) => section.getBoundingClientRect().top >= 120)
+      || sections[sections.length - 1];
+    if (closestSection) {
+      setActiveEditorSection(closestSection.id);
+    }
+  }, {
+    rootMargin: '-18% 0px -58% 0px',
+    threshold: [0, 0.1, 0.25, 0.5, 0.8],
+  });
+
+  sections.forEach((section) => {
+    sectionObserver.observe(section);
+  });
+}
+
+function buildSectionNavigation() {
+  if (!editorSectionNav || !editorSectionNavList) return;
+
+  const sections = getEditorSections();
+  editorSectionNavList.replaceChildren();
+
+  if (sections.length <= 1) {
+    editorSectionNav.hidden = true;
+    setSectionNavOpen(false);
+    if (sectionObserver) {
+      sectionObserver.disconnect();
+      sectionObserver = null;
+    }
+    return;
+  }
+
+  sections.forEach((section) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'editor-section-nav-item';
+    button.dataset.targetSection = section.id;
+    button.dataset.sectionLabel = section.dataset.sectionLabel || section.id;
+    button.textContent = section.dataset.sectionLabel || section.id;
+    button.addEventListener('click', () => {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setActiveEditorSection(section.id);
+      setSectionNavOpen(false);
+    });
+    editorSectionNavList.append(button);
+  });
+
+  editorSectionNav.hidden = false;
+  const preferredSection = sections.find((section) => section.id === activeEditorSectionId) || sections[0];
+  setActiveEditorSection(preferredSection.id);
+  rebuildSectionObserver(sections);
+  syncSectionNavVisibility();
+}
 
 function serializeDraftSnapshot(personDraft = draft) {
   return JSON.stringify(personDraft ?? {});
@@ -107,10 +231,9 @@ function refreshHeader() {
     enumListIdPrefix: 'editorEnum',
   });
   if (!preview) return;
+
   editorTitle.textContent = preview.title;
-  editorSubtitle.textContent = isCreatingNew
-    ? 'Новая карточка'
-    : preview.subtitle;
+  editorSubtitle.textContent = isCreatingNew ? 'Новая карточка' : preview.subtitle;
   document.title = `${preview.title} — редактор карточки`;
 }
 
@@ -187,6 +310,25 @@ function renderEditor() {
   editorSubtitle.textContent = isCreatingNew ? 'Новая карточка' : view.subtitle;
   editorBody.innerHTML = view.html;
   bindEditorEvents();
+  buildSectionNavigation();
+}
+
+function resolvePersonJumpTarget(value) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  if (dataset?.indexById?.has(normalized)) return normalized;
+  if (optionValueToId.has(normalized)) return optionValueToId.get(normalized);
+
+  const match = normalized.match(/\[(P\d+)\]$/i) || normalized.match(/^(P\d+)$/i);
+  if (!match) return null;
+
+  const normalizedId = match[1].toUpperCase();
+  return dataset?.indexById?.has(normalizedId) ? normalizedId : null;
+}
+
+function syncPersonJumpInputValue() {
+  if (!personJumpInput) return;
+  personJumpInput.value = '';
 }
 
 function populatePersonOptions() {
@@ -196,14 +338,7 @@ function populatePersonOptions() {
   personOptions.innerHTML = entries
     .map((entry) => `<option value="${entry.label}"></option>`)
     .join('');
-
-  if (personJumpSelect) {
-    personJumpSelect.innerHTML = [
-      '<option value="">Перейти к карточке...</option>',
-      ...entries.map((entry) => `<option value="${entry.id}">${entry.label}</option>`),
-    ].join('');
-    personJumpSelect.value = personId || '';
-  }
+  syncPersonJumpInputValue();
 }
 
 function computeNextPersonId() {
@@ -233,7 +368,7 @@ function openNewPersonDraft(options = {}) {
   markDraftAsSaved();
   renderEditor();
   syncSaveButtonState();
-  if (personJumpSelect) personJumpSelect.value = '';
+  syncPersonJumpInputValue();
   setBannerMessage('Заполните обязательные поля и сохраните новую карточку.', 'info');
 
   const nextUrl = new URL(window.location.href);
@@ -299,6 +434,7 @@ async function saveCurrentPerson() {
     dataset.indexById.set(personId, nextTitle);
     populatePersonOptions();
     renderEditor();
+    syncPersonJumpInputValue();
     setBannerMessage(
       wasCreatingNew
         ? 'Карточка создана в Supabase.'
@@ -319,19 +455,61 @@ function setupToolbarActions() {
   newPersonButton?.addEventListener('click', () => {
     openNewPersonDraft();
   });
-  personJumpSelect?.addEventListener('change', () => {
-    const targetId = String(personJumpSelect.value || '').trim();
-    if (!targetId) return;
-    if (targetId === personId && !isCreatingNew) return;
-    if (!confirmDiscardUnsavedChanges()) {
-      personJumpSelect.value = personId || '';
+
+  editorSectionNavToggle?.addEventListener('click', () => {
+    setSectionNavOpen(!sectionNavOpen);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!sectionNavOpen || !editorSectionNav) return;
+    if (editorSectionNav.contains(event.target)) return;
+    setSectionNavOpen(false);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && sectionNavOpen) {
+      setSectionNavOpen(false);
+    }
+  });
+
+  window.addEventListener('scroll', syncSectionNavVisibility, { passive: true });
+  window.addEventListener('resize', syncSectionNavVisibility);
+
+  const openSelectedPerson = () => {
+    const rawValue = String(personJumpInput?.value || '').trim();
+    const targetId = resolvePersonJumpTarget(rawValue);
+
+    if (targetId === '') return;
+    if (!targetId) {
+      setBannerMessage('Выберите существующую карточку из подсказок или введите ID в формате P123.', 'error');
       return;
     }
+    if (targetId === personId && !isCreatingNew) {
+      syncPersonJumpInputValue();
+      return;
+    }
+    if (!confirmDiscardUnsavedChanges()) {
+      syncPersonJumpInputValue();
+      return;
+    }
+
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set('id', targetId);
     nextUrl.searchParams.delete('new');
     suppressBeforeUnloadPrompt = true;
     window.location.href = nextUrl.toString();
+  };
+
+  personJumpInput?.addEventListener('input', () => {
+    if (validationMessage.classList.contains('is-error')) {
+      setBannerMessage('');
+    }
+  });
+  personJumpInput?.addEventListener('change', openSelectedPerson);
+  personJumpInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    openSelectedPerson();
   });
 }
 
@@ -365,6 +543,7 @@ async function init() {
       draft = hydrateDraftForEditor(loadedPerson, schema, dataset.indexById);
       markDraftAsSaved();
       renderEditor();
+      syncPersonJumpInputValue();
     } else {
       showError('Не указан ID карточки. Откройте редактор с основной страницы или создайте новую карточку.');
       return;
