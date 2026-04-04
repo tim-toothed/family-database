@@ -119,6 +119,10 @@ function isNameChangeItemPath(path) {
   return path.length >= 2 && path[path.length - 2] === 'name_changes' && typeof path[path.length - 1] === 'number';
 }
 
+function getEditorSectionAnchorId(key) {
+  return `editor-section-${String(key || '').trim()}`;
+}
+
 function ensureContainer(target, path) {
   let current = target;
   for (let index = 0; index < path.length - 1; index += 1) {
@@ -286,45 +290,6 @@ function renderObjectEditor(schemaNode, value, path, context) {
   `;
 }
 
-function renderArrayEditorLegacyUnused(schemaNode, value, path, key, context) {
-  const items = Array.isArray(value) ? value : [];
-  const arrayPath = escapeHtml(encodePath(path));
-
-  return `
-    <div class="editor-array" data-array-path="${arrayPath}">
-      ${items.length
-        ? items.map((item, index) => `
-            <div class="editor-array-item">
-              <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись" title="Удалить запись">&times;</button>
-                  Удалить
-              ${renderEditorNode(schemaNode, item, [...path, index], key, context)}
-            </div>
-          `).join('')
-        : '<div class="editor-array-empty">Поле пока пустое.</div>'}
-      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить запись</button>
-    </div>
-  `;
-}
-
-function renderArrayEditorBrokenLegacy(schemaNode, value, path, key, context) {
-  const items = Array.isArray(value) ? value : [];
-  const arrayPath = escapeHtml(encodePath(path));
-
-  return `
-    <div class="editor-array" data-array-path="${arrayPath}">
-      ${items.length
-        ? items.map((item, index) => `
-            <div class="editor-array-item">
-              <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись" title="Удалить запись">&times;</button>
-              ${renderEditorNode(schemaNode, item, [...path, index], key, context)}
-            </div>
-          `).join('')
-        : '<div class="editor-array-empty">Поле пока пустое.</div>'}
-      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить запись</button>
-    </div>
-  `;
-}
-
 function renderArrayEditorClean(schemaNode, value, path, key, context) {
   const items = Array.isArray(value) ? value : [];
   const arrayPath = escapeHtml(encodePath(path));
@@ -339,7 +304,7 @@ function renderArrayEditorClean(schemaNode, value, path, key, context) {
             </div>
           `).join('')
         : '<div class="editor-array-empty">Поле пока пустое.</div>'}
-      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить запись</button>
+      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить ещё запись</button>
     </div>
   `;
 }
@@ -627,10 +592,17 @@ export function renderEditablePersonDetails(personId, person, schema, descriptio
   const sections = Object.keys(schema).map((key) => {
     const isAlive = key === 'death' && person.death?.date === null;
     const isSectionDisabled = key === 'id' || (key === 'death' && isAlive);
+    const sectionLabel = getFieldLabel(key);
     return `
-      <section class="field-block is-editing${isSectionDisabled ? ' is-disabled' : ''}">
+      <section
+        id="${escapeHtml(getEditorSectionAnchorId(key))}"
+        class="field-block is-editing${isSectionDisabled ? ' is-disabled' : ''}"
+        data-editor-section
+        data-section-key="${escapeHtml(key)}"
+        data-section-label="${escapeHtml(sectionLabel)}"
+      >
         <div class="editor-section-head">
-          <h3 class="field-title">${escapeHtml(getFieldLabel(key))}</h3>
+          <h3 class="field-title">${escapeHtml(sectionLabel)}</h3>
           ${key === 'death' ? `
             <label class="editor-checkbox">
               <input type="checkbox" data-action="toggle-alive" ${isAlive ? 'checked' : ''} />

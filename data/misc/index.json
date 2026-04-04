@@ -1,0 +1,18 @@
+{
+  "documents": [
+    {
+      "id": "notes-evgenia-2025",
+      "title": "Записи Шарифуллиной Евгении Викторовны",
+      "description": "Семейные заметки в Markdown, 2025 год",
+      "type": "markdown",
+      "path": "./data/sources/text_documents/Записи_Шарифуллиной_Евгении_Викторовны_2025.md"
+    },
+    {
+      "id": "notes-svetlana-2004-2006",
+      "title": "Записи Шарифуллиной Светланы Павловны",
+      "description": "Текстовый документ Word, 2004-2006 годы",
+      "type": "docx",
+      "path": "./data/sources/text_documents/Записи_Шарифуллиной_Светланы_Павловны_2004_2006.docx"
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Семейные документы</title>
+    <link rel="stylesheet" href="./styles.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  </head>
+  <body class="documents-page">
+    <header class="topbar documents-topbar">
+      <div>
+        <h1>Семейные документы</h1>
+        <p class="subtitle">Чтение, навигация и ручная разметка имен, родства и персон</p>
+      </div>
+      <div class="toolbar">
+        <select id="documentSelect" class="editor-person-jump" aria-label="Выбор документа">
+          <option value="">Выберите документ...</option>
+        </select>
+        <input
+          id="documentSearchInput"
+          type="search"
+          placeholder="Фильтр по пометкам: имя, id, родство"
+          aria-label="Фильтр по пометкам"
+          autocomplete="off"
+        />
+        <button id="searchPrevButton" type="button" aria-label="Предыдущее упоминание">↑</button>
+        <button id="searchNextButton" type="button" aria-label="Следующее упоминание">↓</button>
+        <a class="toolbar-link" href="./index.html">К дереву</a>
+      </div>
+    </header>
+
+    <main class="documents-layout">
+      <aside class="documents-sidebar">
+        <section class="documents-side-section">
+          <div class="documents-side-title-row">
+            <h2 class="documents-side-title">Документы</h2>
+            <span id="documentCountBadge" class="documents-side-badge">0</span>
+          </div>
+          <div id="documentList" class="document-list"></div>
+        </section>
+
+        <section class="documents-side-section">
+          <div class="documents-side-title-row">
+            <h2 class="documents-side-title">Оглавление</h2>
+            <span id="outlineCountBadge" class="documents-side-badge">0</span>
+          </div>
+          <nav id="documentOutline" class="document-outline" aria-label="Оглавление документа"></nav>
+        </section>
+      </aside>
+
+      <section class="documents-reader-panel">
+        <div id="documentLoadingState" class="state state-static hidden">Загрузка документа...</div>
+
+        <div class="documents-reader-header">
+          <div>
+            <p id="documentMeta" class="documents-reader-meta">Документ не выбран</p>
+            <h2 id="documentTitle" class="documents-reader-title">Откройте документ из списка слева</h2>
+          </div>
+          <div class="documents-reader-actions">
+            <span id="searchStatus" class="documents-status-pill">Пометки не созданы</span>
+            <a id="documentSourceLink" class="toolbar-link toolbar-link-subtle hidden" href="#" target="_blank" rel="noopener">
+              Открыть исходник
+            </a>
+          </div>
+        </div>
+
+        <div class="document-reader-shell">
+          <article id="documentReader" class="document-reader" aria-live="polite">
+            <div class="documents-empty-state">
+              Здесь будет цельный текст выбранного документа. Выделяйте в нем фразы, чтобы создавать свои пометки
+              для имен, родства, неизвестных людей и любых важных мест.
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <aside class="documents-inspector">
+        <div class="documents-side-title-row">
+          <h2 class="documents-side-title">Пометки</h2>
+          <span id="annotationCountBadge" class="documents-side-badge">0</span>
+        </div>
+
+        <div id="annotationSummary" class="documents-entity-summary">
+          Выделите текст в документе, чтобы добавить свою пометку.
+        </div>
+
+        <section class="documents-inspector-section">
+          <div class="documents-inspector-label">Новая пометка</div>
+
+          <div id="selectionPreview" class="documents-selection-preview is-empty">
+            Сначала выделите в тексте имя, родственное описание или другой фрагмент.
+          </div>
+
+          <form id="annotationForm" class="documents-annotation-form">
+            <label class="documents-form-field">
+              <span>Тип</span>
+              <select id="annotationTypeInput">
+                <option value="person">Персона</option>
+                <option value="relation">Родство</option>
+                <option value="name">Имя / вариант имени</option>
+                <option value="other">Другое</option>
+              </select>
+            </label>
+
+            <label class="documents-form-field">
+              <span>Подпись</span>
+              <input id="annotationLabelInput" type="text" placeholder="Например: мать Евдокии" />
+            </label>
+
+            <label class="documents-form-field">
+              <span>Person ID, если уже известен</span>
+              <input id="annotationPersonIdInput" type="text" placeholder="Например: P049" />
+            </label>
+
+            <label class="documents-form-field">
+              <span>Заметка</span>
+              <textarea id="annotationNoteInput" rows="3" placeholder="Короткая пометка для себя"></textarea>
+            </label>
+
+            <div class="documents-form-actions">
+              <button id="saveAnnotationButton" type="submit">Сохранить пометку</button>
+              <button id="clearSelectionButton" type="button">Сбросить выделение</button>
+            </div>
+          </form>
+
+          <div id="annotationFormStatus" class="documents-form-status">
+            Пометки сохраняются локально в браузере для текущего документа.
+          </div>
+        </section>
+
+        <section id="activeAnnotationCard" class="documents-active-entity hidden">
+          <div class="documents-inspector-label">Активная группа</div>
+          <div id="activeAnnotationTitle" class="documents-active-entity-title"></div>
+          <div id="activeAnnotationMeta" class="documents-active-entity-meta"></div>
+          <div id="activeAnnotationDetails" class="documents-active-entity-variants"></div>
+          <div class="documents-form-actions">
+            <button id="clearActiveAnnotationButton" type="button">Снять фокус</button>
+            <button id="deleteAnnotationGroupButton" type="button" class="documents-danger-button">Удалить группу</button>
+          </div>
+        </section>
+
+        <section class="documents-inspector-section">
+          <div class="documents-inspector-label">Список пометок</div>
+          <div id="annotationEmpty" class="documents-empty-state documents-empty-state-compact">
+            В этом документе пока нет сохраненных пометок.
+          </div>
+          <div id="annotationList" class="document-entity-list hidden"></div>
+        </section>
+
+        <section class="documents-inspector-section">
+          <div class="documents-inspector-label">Что уже умеет страница</div>
+          <div class="documents-entity-hints">
+            <span class="documents-entity-chip">ручные выделения</span>
+            <span class="documents-entity-chip">person id опционален</span>
+            <span class="documents-entity-chip">навигация по группе</span>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <script type="module" src="./js/documents-page.js"></script>
+  </body>
+</html>

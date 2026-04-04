@@ -186,6 +186,19 @@ python data\people\build_manifest.py
 4. Закоммитить YAML и обновлённый `index.json`.
 5. Задеплоить статическую версию.
 
+## NLP для документов
+
+Для страницы `documents.html` можно заранее построить автоentity для текстовых документов:
+
+```powershell
+python -m pip install -r requirements-text-entities.txt
+python scripts\build_text_document_entities.py
+```
+
+Скрипт читает `data/sources/text_documents/index.json`, извлекает блоки текста из `markdown` и `docx`, ищет имена через `Natasha`, добавляет родственные упоминания по словарным правилам и сохраняет результат в `data/sources/text_documents/entities/`.
+
+После этого `documents.html` подхватывает готовые JSON-файлы и показывает авто-подсветку entity поверх текста.
+
 ## Локальный запуск
 
 Открывать `index.html` или `edit.html` через `file://` не стоит: браузер блокирует `fetch` локальных файлов и CDN-импортов.

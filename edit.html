@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Редактор карточки</title>
-    <link rel="stylesheet" href="./styles.css?v=20260404-1" />
+    <link rel="stylesheet" href="./styles.css?v=20260404-3" />
     <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   </head>
   <body class="editor-page">
@@ -16,9 +16,15 @@
       <div class="editor-actions">
         <div id="validationMessage" class="editor-status"></div>
         <div class="editor-action-row">
-          <select id="personJumpSelect" class="editor-person-jump" aria-label="Перейти к карточке">
-            <option value="">Перейти к карточке...</option>
-          </select>
+          <input
+            id="personJumpInput"
+            class="editor-person-jump"
+            type="text"
+            list="editorPersonOptions"
+            autocomplete="off"
+            placeholder="Поиск карточки..."
+            aria-label="Поиск карточки"
+          />
           <button id="newPersonButton" class="open-yaml-button" type="button">Новая карточка</button>
           <button id="savePersonButton" class="save-yaml-button" type="button">Сохранить в Supabase</button>
         </div>
@@ -33,7 +39,23 @@
       </section>
     </main>
 
+    <aside id="editorSectionNav" class="editor-section-nav" hidden>
+      <button
+        id="editorSectionNavToggle"
+        class="editor-section-nav-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="editorSectionNavPanel"
+      >
+        <span class="editor-section-nav-caption">Разделы</span>
+        <span id="editorSectionNavCurrent" class="editor-section-nav-current">Навигация</span>
+      </button>
+      <div id="editorSectionNavPanel" class="editor-section-nav-panel" aria-label="Навигация по разделам">
+        <div id="editorSectionNavList" class="editor-section-nav-list"></div>
+      </div>
+    </aside>
+
     <datalist id="editorPersonOptions"></datalist>
-    <script type="module" src="./js/editor/editor-page.js?v=20260403-1"></script>
+    <script type="module" src="./js/editor/editor-page.js?v=20260404-2"></script>
   </body>
 </html>
