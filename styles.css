@@ -1523,15 +1523,14 @@ body.documents-page {
 
 .documents-layout {
   display: grid;
-  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr) minmax(280px, 340px);
+  grid-template-columns: minmax(250px, 300px) minmax(0, 1fr);
   gap: 20px;
   padding: 20px;
   min-height: calc(100dvh - 89px);
 }
 
 .documents-sidebar,
-.documents-reader-panel,
-.documents-inspector {
+.documents-reader-panel {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -1539,8 +1538,7 @@ body.documents-page {
   min-height: 0;
 }
 
-.documents-sidebar,
-.documents-inspector {
+.documents-sidebar {
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -1692,8 +1690,8 @@ body.documents-page {
 }
 
 .document-prose {
-  width: min(920px, 100%);
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   color: #243041;
   font-size: 16px;
   line-height: 1.78;
@@ -1994,15 +1992,15 @@ body.documents-page {
   display: inline;
   padding: 0 0.08em;
   border-radius: 0.24em;
-  cursor: pointer;
+  cursor: default;
   transition: background-color 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
 }
 
 .entity-candidate.entity-kind-name {
   background:
-    linear-gradient(180deg, rgba(191, 219, 254, 0.08), rgba(191, 219, 254, 0.08)),
-    linear-gradient(180deg, transparent 56%, rgba(96, 165, 250, 0.28) 56%);
-  box-shadow: inset 0 -1px 0 rgba(59, 130, 246, 0.26);
+    linear-gradient(180deg, rgba(253, 224, 71, 0.08), rgba(253, 224, 71, 0.08)),
+    linear-gradient(180deg, transparent 56%, rgba(250, 204, 21, 0.28) 56%);
+  box-shadow: inset 0 -1px 0 rgba(217, 119, 6, 0.22);
 }
 
 .entity-candidate.entity-kind-kinship {
@@ -2010,11 +2008,6 @@ body.documents-page {
     linear-gradient(180deg, rgba(253, 224, 71, 0.08), rgba(253, 224, 71, 0.08)),
     linear-gradient(180deg, transparent 56%, rgba(250, 204, 21, 0.28) 56%);
   box-shadow: inset 0 -1px 0 rgba(217, 119, 6, 0.22);
-}
-
-.entity-candidate:hover {
-  opacity: 0.96;
-  filter: saturate(1.08);
 }
 
 .person-entity {
@@ -2321,8 +2314,7 @@ body.documents-page {
     min-height: auto;
   }
 
-  .documents-sidebar,
-  .documents-inspector {
+  .documents-sidebar {
     overflow: visible;
   }
 
