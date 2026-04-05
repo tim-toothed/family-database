@@ -5,10 +5,11 @@ birth_name:
   patronymic: Рахимзяновна
 sex: ж
 birth:
-  date: 21.12.1957
+  date:
+    day: 21
+    month: 12
+    year: 1957
   place: г. Лениногорск
-death:
-  date: null
 parents:
 - person_id: P078
   relation_type: мать

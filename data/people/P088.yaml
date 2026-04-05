@@ -1,8 +1,4 @@
 id: P088
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: P052
   relation_type: мать
@@ -19,6 +15,9 @@ siblings:
   relation_type: биологический
 - person_id: P092
   relation_type: биологический
-other_info: (ребенок Евдокии и Нечитайло Евсея Саввича)
+other_info:
+  other_info1:
+    label: Заметка
+    text: (ребенок Евдокии и Нечитайло Евсея Саввича)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

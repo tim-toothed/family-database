@@ -4,10 +4,6 @@ birth_name:
   first_name: Устин
   patronymic: Иванович
 sex: м
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: P001
   relation_type: отец
@@ -15,7 +11,6 @@ parents:
   relation_type: мать
 spouses:
 - person_id: P004
-  marriage_date: ???
 children:
 - person_id: P005
   relation_type: биологический

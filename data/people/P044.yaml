@@ -5,11 +5,9 @@ birth_name:
   patronymic: Юлианович
 sex: м
 birth:
-  date: ???
   date_raw: 1927/1928
   place: предположительно г. Саратов
 death:
-  date: ???
   date_raw: умер 5-месячным(?) ребенком(?)
   place: предположительно г. Саратов
 parents:

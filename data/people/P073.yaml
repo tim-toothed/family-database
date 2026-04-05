@@ -5,10 +5,16 @@ birth_name:
   patronymic: Галиуллович
 sex: м
 birth:
-  date: 01.04.1919
+  date:
+    day: 1
+    month: 4
+    year: 1919
   place: Шугурово Бугульминский уезд Самарской губернии
 death:
-  date: 03.01.1997
+  date:
+    day: 3
+    month: 1
+    year: 1997
   place: г. Лениногорск
 parents:
 - person_id: P087
@@ -26,7 +32,10 @@ siblings:
   relation_type: сводный по отцу
 spouses:
 - person_id: P078
-  marriage_date: DD.07.1947
+  marriage:
+  - date:
+      month: 7
+      year: 1947
 children:
 - person_id: P067
   relation_type: биологический

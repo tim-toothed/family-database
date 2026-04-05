@@ -4,10 +4,9 @@ birth_name:
   first_name: Разетдин
   patronymic: ???
 sex: м
-birth:
-  date: ???
 death:
-  date: DD.MM.1932
+  date:
+    year: 1932
   place: Подмосковье
   cause: Убит в подмосковье
 spouses:

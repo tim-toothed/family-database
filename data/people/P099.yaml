@@ -1,8 +1,4 @@
 id: P099
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: P060
   relation_type: мать
@@ -25,6 +21,9 @@ siblings:
   relation_type: биологический
 - person_id: P098
   relation_type: биологический
-other_info: (ребенок Ракич Дарьи Емельяновной и Шаровара Леонтия Давидовича)
+other_info:
+  other_info1:
+    label: Заметка
+    text: (ребенок Ракич Дарьи Емельяновной и Шаровара Леонтия Давидовича)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

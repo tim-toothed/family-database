@@ -4,10 +4,6 @@ birth_name:
   first_name: Давид
   patronymic: Зиновьевич
 sex: м
-birth:
-  date: ''
-death:
-  date: ''
 spouses:
 - person_id: P056
 children:

@@ -4,10 +4,6 @@ birth_name:
   first_name: Зоя
   patronymic: Александровна
 sex: ж
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: P040
   relation_type: отец
@@ -19,6 +15,9 @@ siblings:
 residences:
 - residence_info: г. Баку
 - residence_info: Украина (после замужества)
-other_info: Вышла замуж за военного в Баку и переехала за ним в Украину.
+other_info:
+  other_info1:
+    label: Заметка
+    text: Вышла замуж за военного в Баку и переехала за ним в Украину.
 sources:
 - source: Семейные заметки, стр. 10-12, 34-35 (записи Евгении Викторовны Шарифуллиной)

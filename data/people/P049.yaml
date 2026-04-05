@@ -5,11 +5,12 @@ birth_name:
   patronymic: Маратович
 sex: м
 birth:
-  date: 06.01.2002
+  date:
+    day: 6
+    month: 1
+    year: 2002
   date_raw: 06.01.2002
   place: г. Всеволожск
-death:
-  date: ''
 parents:
 - person_id: P048
   relation_type: отец
@@ -20,6 +21,3 @@ education:
 - education_info: 2008-2019. Гимназия №114. 1-11 класс.
 - education_info: 2019-2023. Высшая Школа Экономики, СПб. Бакалавриат, обр. прогр. "Социология и Социальная Информатика"
 - education_info: 2023-2025. WU Wien, Вена. Магистратура, обр. прогр. "Digital Economy"
-religion: ''
-residences:
-- residence_info: ''

@@ -5,11 +5,12 @@ birth_name:
   patronymic: Викторовна
 sex: ж
 birth:
-  date: 18.08.1981
+  date:
+    day: 18
+    month: 8
+    year: 1981
   date_raw: 18.08.1981
   place: г. Ленинград
-death:
-  date: null
 parents:
 - person_id: P016
   relation_type: отец

@@ -5,22 +5,19 @@ birth_name:
   patronymic: ???
 name_changes:
 - name: Жиго Зинаида ???
-  date: ''
   reason: брак
 sex: ж
-birth:
-  date: ''
-death:
-  date: ''
 spouses:
 - person_id: P040
-  marriage_date: ''
 children:
 - person_id: P042
   relation_type: биологический
 - person_id: P043
   relation_type: биологический
 nationality: украинка
-other_info: 'В заметках указана как Зинаида: на фото 1968 г. есть подпись «От Толи и Зины». Позже вернулась в Украину.'
+other_info:
+  other_info1:
+    label: Заметка
+    text: 'В заметках указана как Зинаида: на фото 1968 г. есть подпись «От Толи и Зины». Позже вернулась в Украину.'
 sources:
 - source: Семейные заметки, стр. 10-12, 34-35 (записи Евгении Викторовны Шарифуллиной)

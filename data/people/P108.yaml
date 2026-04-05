@@ -3,43 +3,20 @@ birth_name:
   surname: Нечитайло
   first_name: Николай
   patronymic: Ефимович
-name_changes: []
 sex: м
-birth:
-  date: ''
-  date_raw: ''
-  place: ''
 death:
-  date: DD.MM.1942
+  date:
+    year: 1942
   date_raw: 1942 год
-  place: ''
-  cause: ''
 parents:
 - person_id: P061
   relation_type: отец
 - person_id: P062
   relation_type: мать
-siblings: []
-spouses: []
-children: []
-education: []
-class_title: ''
-religion: ''
-nationality: ''
 profession:
 - title: Военный, сапёр
-job_places: []
 military:
   military_service:
   - service_info: Лейтенант Красной Армии, сапёр
-  war_participation: []
-  awards: []
-residences: []
-hobbies: ''
-character: ''
-appearance: ''
-health: ''
-other_info: ''
 sources:
 - source: (ШСП, стр. 6)
-media: []

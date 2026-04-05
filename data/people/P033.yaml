@@ -4,13 +4,12 @@ birth_name:
   first_name: Анна?
   patronymic: ???
 sex: ж
-birth:
-  date: ???
-death:
-  date: ???
 children:
 - person_id: P032
   relation_type: биологический
-other_info: Упоминается как мать Натальи ??? Богдановой. Сведения не проверены.
+other_info:
+  other_info1:
+    label: Заметка
+    text: Упоминается как мать Натальи ??? Богдановой. Сведения не проверены.
 sources:
 - source: Семейные заметки, стр. 31-33 (записи Евгении Викторовны Шарифуллиной)

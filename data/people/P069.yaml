@@ -5,9 +5,10 @@ birth_name:
   patronymic: Валерьевич
 sex: м
 birth:
-  date: 30.04.1974
-death:
-  date: null
+  date:
+    day: 30
+    month: 4
+    year: 1974
 spouses:
 - person_id: P068
 children:

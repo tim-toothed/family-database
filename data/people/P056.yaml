@@ -7,10 +7,6 @@ name_changes:
 - name: Шаравара Елена Гавриловна
   reason: брак
 sex: ж
-birth:
-  date: ''
-death:
-  date: ''
 spouses:
 - person_id: P057
 children:

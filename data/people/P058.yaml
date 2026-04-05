@@ -5,9 +5,13 @@ birth_name:
   patronymic: Давидович
 sex: м
 birth:
-  date: DD.MM.1885
+  date:
+    year: 1885
 death:
-  date: 06.03.1968
+  date:
+    day: 6
+    month: 3
+    year: 1968
 parents:
 - person_id: P056
   relation_type: мать

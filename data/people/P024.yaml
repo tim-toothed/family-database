@@ -5,14 +5,15 @@ birth_name:
   patronymic: Михайловна
 name_changes:
 - name: Богданова Клавдия Михайловна
-  date: ???
   reason: брак
 sex: ж
 birth:
-  date: DD.MM.1893
+  date:
+    year: 1893
   place: с. Сергиевское (Сергеевское), Локнянский район Псковского уезда
 death:
-  date: DD.MM.1973
+  date:
+    year: 1973
   place: г. Ленинград
   cause: умерла 5 лет спустя после паралича/инсульта
 siblings:
@@ -22,7 +23,6 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P019
-  marriage_date: ???
 children:
 - person_id: P027
   relation_type: биологический

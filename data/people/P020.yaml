@@ -4,10 +4,6 @@ birth_name:
   first_name: Иван
   patronymic: Владимирович
 sex: м
-birth:
-  date: ???
-death:
-  date: ???
 siblings:
 - person_id: P019
   relation_type: биологический

@@ -5,9 +5,10 @@ birth_name:
   patronymic: Раисовна
 sex: ж
 birth:
-  date: 22.10.1973
-death:
-  date: null
+  date:
+    day: 22
+    month: 10
+    year: 1973
 parents:
 - person_id: P065
   relation_type: мать

@@ -5,10 +5,11 @@ birth_name:
   patronymic: Рахимзянович
 sex: м
 birth:
-  date: 29.09.1951
+  date:
+    day: 29
+    month: 9
+    year: 1951
   place: г. Лениногорск
-death:
-  date: null
 parents:
 - person_id: P078
   relation_type: мать

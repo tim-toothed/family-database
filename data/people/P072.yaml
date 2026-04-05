@@ -4,10 +4,6 @@ birth_name:
   first_name: Галиулла
   patronymic: ???
 sex: м
-birth:
-  date: ???
-death:
-  date: ???
 spouses:
 - person_id: P087
 children:

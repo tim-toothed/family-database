@@ -5,10 +5,16 @@ birth_name:
   patronymic: Рахимзянович
 sex: м
 birth:
-  date: 05.02.1949
+  date:
+    day: 5
+    month: 2
+    year: 1949
   place: деревня Старое Шугурово, около Лениногорска
 death:
-  date: 25.11.2000
+  date:
+    day: 25
+    month: 11
+    year: 2000
   place: г. Усинск (похоронен в г. Лениногорск)
   cause: Инфаркт и инсульт одновременно
 parents:
@@ -25,7 +31,11 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P065
-  marriage_date: 28.04.1973
+  marriage:
+  - date:
+      day: 28
+      month: 4
+      year: 1973
 children:
 - person_id: P068
   relation_type: биологический

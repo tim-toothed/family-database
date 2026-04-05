@@ -8,9 +8,15 @@ name_changes:
   reason: брак
 sex: ж
 birth:
-  date: 14.03.1909
+  date:
+    day: 14
+    month: 3
+    year: 1909
 death:
-  date: 08.08.1986
+  date:
+    day: 8
+    month: 8
+    year: 1986
 parents:
 - person_id: P003
   relation_type: отец
@@ -21,7 +27,11 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P012
-  marriage_date: 03.09.1938
+  marriage:
+  - date:
+      day: 3
+      month: 9
+      year: 1938
 children:
 - person_id: P014
   relation_type: сводный

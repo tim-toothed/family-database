@@ -5,10 +5,16 @@ birth_name:
   patronymic: Рахимзянович
 sex: м
 birth:
-  date: 21.01.1954
+  date:
+    day: 21
+    month: 1
+    year: 1954
   place: г. Лениногорск
 death:
-  date: 24.01.1995
+  date:
+    day: 24
+    month: 1
+    year: 1995
   place: г. Новый Уренгой
 parents:
 - person_id: P078

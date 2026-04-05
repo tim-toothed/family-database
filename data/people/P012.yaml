@@ -5,10 +5,16 @@ birth_name:
   patronymic: Васильевич
 sex: м
 birth:
-  date: 12.07.1897
+  date:
+    day: 12
+    month: 7
+    year: 1897
   date_raw: 29.06 (ст.ст.) / 12.07 (н.ст.) 1897
 death:
-  date: 09.09.1941
+  date:
+    day: 9
+    month: 9
+    year: 1941
   date_raw: 02(09).09.1941
   place: г. Красногвардейск (ныне Гатчина)
 parents:
@@ -18,9 +24,12 @@ parents:
   relation_type: мать
 spouses:
 - person_id: P013
-  marriage_date: ???
 - person_id: P006
-  marriage_date: 03.09.1938
+  marriage:
+  - date:
+      day: 3
+      month: 9
+      year: 1938
 children:
 - person_id: P014
   relation_type: биологический

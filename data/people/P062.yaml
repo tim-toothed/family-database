@@ -5,9 +5,15 @@ birth_name:
   patronymic: Кирилловна
 sex: ж
 birth:
-  date: 24.01.1899
+  date:
+    day: 24
+    month: 1
+    year: 1899
 death:
-  date: 10.12.1983
+  date:
+    day: 10
+    month: 12
+    year: 1983
 parents:
 - person_id: P050
   relation_type: мать

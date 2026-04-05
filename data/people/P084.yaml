@@ -4,10 +4,7 @@ birth_name:
   first_name: ???
   patronymic: Разетдинович
 sex: м
-birth:
-  date: ???
 death:
-  date: ???
   cause: Погиб под поездом в 16-18 лет
 parents:
 - person_id: P086

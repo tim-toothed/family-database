@@ -4,15 +4,14 @@ birth_name:
   first_name: Анна
   patronymic: Михайловна
 sex: ж
-birth:
-  date: ???
-death:
-  date: ???
 siblings:
 - person_id: P024
   relation_type: биологический
 - person_id: P026
   relation_type: биологический
-other_info: У Клавдии Михайловны Румянцевой было две сестры — Анна и Мария.
+other_info:
+  other_info1:
+    label: Заметка
+    text: У Клавдии Михайловны Румянцевой было две сестры — Анна и Мария.
 sources:
 - source: Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)

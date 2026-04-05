@@ -5,11 +5,14 @@ birth_name:
   patronymic: Алексеевич
 sex: м
 birth:
-  date: DD.MM.1923
+  date:
+    year: 1923
   date_raw: '1923'
   place: с. Сергиевское (Сергеевское), Локнянский район Псковского уезда
 death:
-  date: DD.02.1942
+  date:
+    month: 2
+    year: 1942
   date_raw: Февраль 1942
   place: неизвестно
   cause: Пропал без вести на фронте, погиб в боях

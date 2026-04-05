@@ -5,16 +5,10 @@ birth_name:
   patronymic: Ивановна
 name_changes:
 - name: Гречнева Татьяна Ивановна
-  date: ???
   reason: брак
 sex: ж
-birth:
-  date: ???
-death:
-  date: ???
 spouses:
 - person_id: P010
-  marriage_date: ???
 children:
 - person_id: P012
   relation_type: биологический

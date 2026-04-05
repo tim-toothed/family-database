@@ -4,13 +4,8 @@ birth_name:
   first_name: Иван
   patronymic: Ефимович
 sex: м
-birth:
-  date: ???
-death:
-  date: ???
 spouses:
 - person_id: P002
-  marriage_date: ???
 children:
 - person_id: P003
   relation_type: биологический

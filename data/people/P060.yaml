@@ -5,9 +5,13 @@ birth_name:
   patronymic: Емельяновна
 sex: ж
 birth:
-  date: DD.MM.1892
+  date:
+    year: 1892
 death:
-  date: 02.01.1978
+  date:
+    day: 2
+    month: 1
+    year: 1978
 parents:
 - person_id: P054
   relation_type: мать
@@ -35,6 +39,5 @@ children:
   relation_type: биологический
 - person_id: P099
   relation_type: биологический
-other_info: ''
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

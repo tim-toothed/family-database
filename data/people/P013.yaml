@@ -1,16 +1,10 @@
 id: P013
 name_changes:
 - name: Гречнева ??? ???
-  date: ???
   reason: брак
 sex: ж
-birth:
-  date: ???
-death:
-  date: ???
 spouses:
 - person_id: P012
-  marriage_date: ???
 children:
 - person_id: P014
   relation_type: биологический

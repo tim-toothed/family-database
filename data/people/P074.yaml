@@ -4,10 +4,6 @@ birth_name:
   first_name: Зинатулла
   patronymic: Галиуллович
 sex: м
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: ???
   relation_type: мать
@@ -22,6 +18,9 @@ siblings:
   relation_type: сводный по отцу
 - person_id: P077
   relation_type: сводный по отцу
-other_info: (старший брат Рахимджана)
+other_info:
+  other_info1:
+    label: Заметка
+    text: (старший брат Рахимджана)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

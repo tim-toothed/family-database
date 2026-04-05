@@ -5,9 +5,10 @@ birth_name:
   patronymic: Александровна
 sex: ж
 birth:
-  date: 19.06.1999
-death:
-  date: null
+  date:
+    day: 19
+    month: 6
+    year: 1999
 parents:
 - person_id: P068
   relation_type: мать

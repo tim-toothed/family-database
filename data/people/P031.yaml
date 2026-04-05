@@ -5,15 +5,18 @@ birth_name:
   patronymic: Леонидовна
 name_changes:
 - name: Гречнева Ольга Леонидовна
-  date: DD.01.1977
+  date:
+    month: 1
+    year: 1977
   reason: брак
 sex: ж
 birth:
-  date: 07.04.1955
+  date:
+    day: 7
+    month: 4
+    year: 1955
   date_raw: 7 апреля 1955 года
   place: г. Ленинград
-death:
-  date: null
 parents:
 - person_id: P027
   relation_type: отец
@@ -24,7 +27,10 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P016
-  marriage_date: DD.01.1977
+  marriage:
+  - date:
+      month: 1
+      year: 1977
 children:
 - person_id: P046
   relation_type: биологический

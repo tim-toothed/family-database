@@ -5,15 +5,18 @@ birth_name:
   patronymic: Васильевна
 sex: ж
 birth:
-  date: DD.MM.1936
+  date:
+    year: 1936
   date_raw: 1936 год
   place: г. Ленинград
-death:
-  date: ???
 spouses:
 - person_id: P016
-  marriage_date: DD.MM.1964
-  divorce_date: DD.MM.1966
+  marriage:
+  - date:
+      year: 1964
+  divorce:
+  - date:
+      year: 1966
 profession:
 - title: инженер
 job_places:

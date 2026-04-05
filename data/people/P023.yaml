@@ -4,10 +4,6 @@ birth_name:
   first_name: Валерий
   patronymic: ???
 sex: м
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: P022
   relation_type: мать

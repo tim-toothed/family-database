@@ -4,10 +4,6 @@ birth_name:
   first_name: Григорий
   patronymic: Леонтьевич
 sex: м
-birth:
-  date: ''
-death:
-  date: ''
 parents:
 - person_id: P105
   relation_type: мать

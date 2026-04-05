@@ -5,11 +5,17 @@ birth_name:
   patronymic: Иванович
 sex: м
 birth:
-  date: 05.03.1940
+  date:
+    day: 5
+    month: 3
+    year: 1940
   date_raw: 5 марта 1940 года
   place: г. Ленинград
 death:
-  date: 31.05.2007
+  date:
+    day: 31
+    month: 5
+    year: 2007
   date_raw: 31 мая 2007 года (67 лет)
   place: г. Санкт-Петербург
   cause: Инсульт
@@ -25,14 +31,23 @@ siblings:
   relation_type: сводный по отцу
 spouses:
 - person_id: P017
-  marriage_date: DD.MM.1964
-  divorce_date: DD.MM.1966
+  marriage:
+  - date:
+      year: 1964
+  divorce:
+  - date:
+      year: 1966
 - person_id: P018
-  marriage_date: DD.MM.1967
-  divorce_date: DD.MM.1975
+  marriage:
+  - date:
+      year: 1967
+  divorce:
+  - date:
+      year: 1975
 - person_id: P031
-  marriage_date: DD.MM.1977
-  divorce_date: null
+  marriage:
+  - date:
+      year: 1977
 children:
 - person_id: P046
   relation_type: биологический

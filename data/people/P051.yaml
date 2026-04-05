@@ -4,10 +4,6 @@ birth_name:
   first_name: Кирилл
   patronymic: Трофимович
 sex: м
-birth:
-  date: ''
-death:
-  date: ''
 spouses:
 - person_id: P050
 children:

@@ -8,9 +8,8 @@ name_changes:
   reason: брак
 sex: ж
 birth:
-  date: DD.MM.1930
-death:
-  date: ''
+  date:
+    year: 1930
 parents:
 - person_id: P062
   relation_type: приемная мать
@@ -21,6 +20,9 @@ siblings:
   relation_type: приемный
 - person_id: P108
   relation_type: приемный
-other_info: Племянница Юнаш Ксении Кирилловны, и по совместительству ее приемная дочь. (ШСП, стр. 6)
+other_info:
+  other_info1:
+    label: Заметка
+    text: Племянница Юнаш Ксении Кирилловны, и по совместительству ее приемная дочь. (ШСП, стр. 6)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

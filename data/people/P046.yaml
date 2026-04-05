@@ -8,11 +8,12 @@ name_changes:
   reason: брак
 sex: ж
 birth:
-  date: 20.09.1977
+  date:
+    day: 20
+    month: 9
+    year: 1977
   date_raw: 20.09.1977
   place: г. Ленинград
-death:
-  date: ''
 parents:
 - person_id: P016
   relation_type: отец
@@ -21,8 +22,6 @@ parents:
 siblings:
 - person_id: P047
   relation_type: биологический
-spouses:
-- marriage_date: ''
 children:
 - person_id: P049
   relation_type: биологический

@@ -4,10 +4,6 @@ birth_name:
   first_name: Тимофей
   patronymic: ???
 sex: м
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: P034
   relation_type: мать

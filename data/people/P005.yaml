@@ -5,9 +5,8 @@ birth_name:
   patronymic: Устинович
 sex: м
 birth:
-  date: DD.MM.1907
-death:
-  date: ???
+  date:
+    year: 1907
 parents:
 - person_id: P003
   relation_type: отец

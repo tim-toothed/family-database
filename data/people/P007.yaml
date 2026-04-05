@@ -5,9 +5,10 @@ birth_name:
   patronymic: Устинович
 sex: м
 birth:
-  date: 26.11.1911
-death:
-  date: ???
+  date:
+    day: 26
+    month: 11
+    year: 1911
 parents:
 - person_id: P003
   relation_type: отец
@@ -15,7 +16,6 @@ parents:
   relation_type: мать
 spouses:
 - person_id: P008
-  marriage_date: ???
 children:
 - person_id: P009
   relation_type: биологический

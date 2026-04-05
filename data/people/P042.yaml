@@ -4,10 +4,6 @@ birth_name:
   first_name: Анатолий
   patronymic: Александрович
 sex: м
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: P040
   relation_type: отец

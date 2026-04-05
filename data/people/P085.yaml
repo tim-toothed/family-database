@@ -4,10 +4,6 @@ birth_name:
   first_name: Фануза
   patronymic: Разетдиновна
 sex: ж
-birth:
-  date: ''
-death:
-  date: ''
 parents:
 - person_id: P106
   relation_type: мать

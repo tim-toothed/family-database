@@ -5,10 +5,11 @@ birth_name:
   patronymic: Раисович
 sex: м
 birth:
-  date: 15.05.1975
+  date:
+    day: 15
+    month: 5
+    year: 1975
   place: Лениногорск, Татарская АССР
-death:
-  date: ''
 parents:
 - person_id: P065
   relation_type: мать
@@ -19,8 +20,11 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P046
-  marriage_date: 14.09.2001
-  divorce_date: ''
+  marriage:
+  - date:
+      day: 14
+      month: 9
+      year: 2001
 children:
 - person_id: P049
   relation_type: биологический

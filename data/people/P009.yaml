@@ -4,10 +4,6 @@ birth_name:
   first_name: Борис
   patronymic: Яковлевич
 sex: м
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: P007
   relation_type: отец

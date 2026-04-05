@@ -5,9 +5,8 @@ birth_name:
   patronymic: Рашитович
 sex: м
 birth:
-  date: DD.MM.1983
-death:
-  date: ???
+  date:
+    year: 1983
 parents:
 - person_id: P082
   relation_type: мать

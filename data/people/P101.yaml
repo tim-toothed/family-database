@@ -1,9 +1,5 @@
 id: P101
 sex: ж
-birth:
-  date: ???
-death:
-  date: ???
 parents:
 - person_id: P066
   relation_type: приемная мать
@@ -12,6 +8,9 @@ parents:
 siblings:
 - person_id: P100
   relation_type: приемный
-other_info: (дочь Шароваровой Ларисы Павловны)
+other_info:
+  other_info1:
+    label: Заметка
+    text: (дочь Шароваровой Ларисы Павловны)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

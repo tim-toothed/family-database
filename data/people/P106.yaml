@@ -1,14 +1,13 @@
 id: P106
 sex: ж
-birth:
-  date: ???
-death:
-  date: ???
 spouses:
 - person_id: P071
 children:
 - person_id: P085
   relation_type: биологический
-other_info: (мать Фамузы?, другая супруга Разетдина)
+other_info:
+  other_info1:
+    label: Заметка
+    text: (мать Фамузы?, другая супруга Разетдина)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

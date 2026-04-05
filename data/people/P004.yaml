@@ -5,16 +5,10 @@ birth_name:
   patronymic: Никифоровна
 name_changes:
 - name: Смирнова Настасья Никифоровна
-  date: ???
   reason: брак
 sex: ж
-birth:
-  date: ???
-death:
-  date: ???
 spouses:
 - person_id: P003
-  marriage_date: ???
 children:
 - person_id: P005
   relation_type: биологический

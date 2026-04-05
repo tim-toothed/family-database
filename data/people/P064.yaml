@@ -5,10 +5,16 @@ birth_name:
   patronymic: Леонтьевич
 sex: м
 birth:
-  date: 07.01.1923
+  date:
+    day: 7
+    month: 1
+    year: 1923
   date_raw: 7 января 1923 года
 death:
-  date: 20.12.2012
+  date:
+    day: 20
+    month: 12
+    year: 2012
   place: г. Житомир
 parents:
 - person_id: P060
