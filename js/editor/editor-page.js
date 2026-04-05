@@ -13,6 +13,7 @@ import {
   updateDraftValue,
   validateEditorPersonDraft,
 } from './person-editor.js';
+import { collectDocumentSnippetTokens } from '../document-links.js';
 import {
   createEditablePerson,
   loadEditablePerson,
@@ -51,6 +52,130 @@ let suppressBeforeUnloadPrompt = false;
 let sectionObserver = null;
 let sectionNavOpen = false;
 let activeEditorSectionId = '';
+const LINK_MASK_URL_RE = /(https?:\/\/[^\s<>"']+|doc:\/\/[^\s<>"']+)/giu;
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function collectLinkMaskTokens(value) {
+  const source = String(value || '');
+  const tokens = collectDocumentSnippetTokens(source).map((token) => ({
+    text: token.raw,
+    start: token.start,
+    end: token.end,
+  }));
+  let match;
+
+  LINK_MASK_URL_RE.lastIndex = 0;
+  while ((match = LINK_MASK_URL_RE.exec(source))) {
+    let url = match[0];
+    let end = match.index + url.length;
+
+    while (url && /[),.;!?]$/.test(url)) {
+      url = url.slice(0, -1);
+      end -= 1;
+    }
+
+    if (!url) continue;
+    tokens.push({
+      text: url,
+      start: match.index,
+      end,
+    });
+  }
+
+  return tokens.sort((left, right) => left.start - right.start || left.end - right.end);
+}
+
+function buildMaskedLinkHtml(value) {
+  const source = String(value || '');
+  const tokens = collectLinkMaskTokens(source);
+  if (!tokens.length) {
+    return '';
+  }
+
+  let cursor = 0;
+  let html = '';
+
+  for (const token of tokens) {
+    if (token.start > cursor) {
+      html += escapeHtml(source.slice(cursor, token.start));
+    }
+
+    html += `<span class="editor-link-token" data-link-start="${token.start}" data-link-end="${token.end}">[link]</span>`;
+    cursor = token.end;
+  }
+
+  if (cursor < source.length) {
+    html += escapeHtml(source.slice(cursor));
+  }
+
+  return html
+    .replace(/\r\n/g, '\n')
+    .replace(/\n/g, '<br>');
+}
+
+function updateLinkMaskedField(shell) {
+  const input = shell.querySelector('.editor-link-mask-target');
+  const overlay = shell.querySelector('[data-link-mask-overlay]');
+  if (!input || !overlay) return;
+
+  const maskedHtml = buildMaskedLinkHtml(input.value);
+  const hasLinks = Boolean(maskedHtml);
+  const isEditing = document.activeElement === input && !input.disabled;
+
+  shell.classList.toggle('has-links', hasLinks);
+  shell.classList.toggle('is-editing', isEditing);
+  shell.classList.toggle('is-masked', hasLinks && !isEditing);
+  overlay.classList.toggle('hidden', !hasLinks || isEditing);
+  overlay.innerHTML = hasLinks ? maskedHtml : '';
+}
+
+function focusMaskedLinkTarget(input, token) {
+  if (input.disabled) return;
+  input.focus();
+
+  if (!token) return;
+  const start = Number(token.dataset.linkStart);
+  const end = Number(token.dataset.linkEnd);
+  if (Number.isFinite(start) && Number.isFinite(end) && typeof input.setSelectionRange === 'function') {
+    input.setSelectionRange(start, end);
+  }
+}
+
+function initializeLinkMaskedFields() {
+  editorBody.querySelectorAll('[data-link-mask-shell]').forEach((shell) => {
+    const input = shell.querySelector('.editor-link-mask-target');
+    const overlay = shell.querySelector('[data-link-mask-overlay]');
+    if (!input || !overlay) return;
+
+    const refresh = () => updateLinkMaskedField(shell);
+
+    input.addEventListener('focus', refresh);
+    input.addEventListener('blur', () => {
+      window.requestAnimationFrame(refresh);
+    });
+    input.addEventListener('input', refresh);
+    input.addEventListener('change', refresh);
+
+    overlay.addEventListener('mousedown', (event) => {
+      event.preventDefault();
+    });
+
+    overlay.addEventListener('click', (event) => {
+      const token = event.target.closest('.editor-link-token');
+      focusMaskedLinkTarget(input, token);
+    });
+
+    refresh();
+  });
+}
 
 function getEditorSections() {
   return Array.from(editorBody.querySelectorAll('[data-editor-section]'));
@@ -258,6 +383,8 @@ function bindEditorEvents() {
     input.addEventListener('input', syncDraftValue);
     input.addEventListener('change', syncDraftValue);
   });
+
+  initializeLinkMaskedFields();
 
   editorBody.querySelectorAll('[data-action="add-array-item"]').forEach((button) => {
     button.addEventListener('click', () => {

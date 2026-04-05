@@ -247,12 +247,17 @@ function renderScalarEditor(path, key, value, schemaNode, context) {
     `;
   }
 
+  const textControl = multiline
+    ? `<textarea class="editor-input editor-input-textarea editor-link-mask-target" data-path="${encodedPath}" rows="4"${disabled}${placeholder}>${fieldValue}</textarea>`
+    : `<input class="editor-input editor-link-mask-target" data-path="${encodedPath}" type="text" value="${fieldValue}"${disabled}${placeholder} />`;
+
   return `
     <label class="editor-field">
       ${showInlineLabel ? `<span class="editor-label">${escapeHtml(label)}</span>` : ''}
-      ${multiline
-        ? `<textarea class="editor-input editor-input-textarea" data-path="${encodedPath}" rows="4"${disabled}${placeholder}>${fieldValue}</textarea>`
-        : `<input class="editor-input" data-path="${encodedPath}" type="text" value="${fieldValue}"${disabled}${placeholder} />`}
+      <div class="editor-link-mask-shell${multiline ? ' is-textarea' : ''}${disabled ? ' is-disabled' : ''}" data-link-mask-shell>
+        ${textControl}
+        <div class="editor-link-mask-overlay hidden${multiline ? ' is-textarea' : ''}" data-link-mask-overlay aria-hidden="true"></div>
+      </div>
       ${hint ? `<span class="editor-hint">${hint}</span>` : ''}
     </label>
   `;

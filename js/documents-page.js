@@ -1,8 +1,12 @@
+import { buildDocumentSnippet } from './document-links.js';
+
 const MANIFEST_PATH = './data/misc/index.json';
 const DEFAULT_ENTITIES_BASE_PATH = './data/misc/entities_experimental';
+const LINKABLE_TEXT_SKIP_SELECTOR = 'script, style';
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
 const ENTITY_BLOCK_SELECTOR = 'h1, h2, h3, h4, h5, h6, p, li, td, th, blockquote';
 const ENTITY_SKIP_SELECTOR = 'script, style, .entity-candidate';
+const SELECTION_QUOTE_LIMIT = 160;
 
 const state = {
   documents: [],
@@ -12,6 +16,7 @@ const state = {
   currentDocumentEntityData: null,
   outline: [],
   highlightedEntities: [],
+  shareSelection: null,
 };
 
 const documentSelect = document.getElementById('documentSelect');
@@ -23,7 +28,13 @@ const documentLoadingState = document.getElementById('documentLoadingState');
 const documentMeta = document.getElementById('documentMeta');
 const documentTitle = document.getElementById('documentTitle');
 const documentSourceLink = document.getElementById('documentSourceLink');
+const copySelectionLinkButton = document.getElementById('copySelectionLinkButton');
+const copySelectionLinkStatus = document.getElementById('copySelectionLinkStatus');
 const documentReader = document.getElementById('documentReader');
+const documentReaderShell = document.querySelector('.document-reader-shell');
+const selectionLinkBubble = document.getElementById('selectionLinkBubble');
+let copySelectionLinkStatusTimer = 0;
+let selectionLinkBubbleStateTimer = 0;
 
 function normalizeWhitespace(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -44,6 +55,125 @@ function escapeHtml(value) {
 
 function getDocumentRoot() {
   return documentReader.querySelector('.document-prose');
+}
+
+function setCopySelectionLinkStatus(message = '', tone = 'neutral') {
+  if (copySelectionLinkStatus) {
+    copySelectionLinkStatus.textContent = message;
+    copySelectionLinkStatus.dataset.tone = tone;
+  }
+
+  if (copySelectionLinkStatusTimer) {
+    window.clearTimeout(copySelectionLinkStatusTimer);
+    copySelectionLinkStatusTimer = 0;
+  }
+
+  if (message) {
+    copySelectionLinkStatusTimer = window.setTimeout(() => {
+      if (copySelectionLinkStatus) {
+        copySelectionLinkStatus.textContent = '';
+        copySelectionLinkStatus.dataset.tone = 'neutral';
+      }
+      copySelectionLinkStatusTimer = 0;
+    }, 2200);
+  }
+}
+
+function setSelectionLinkBubbleCopiedState(isCopied) {
+  if (!selectionLinkBubble) return;
+  selectionLinkBubble.classList.toggle('is-copied', Boolean(isCopied));
+
+  if (selectionLinkBubbleStateTimer) {
+    window.clearTimeout(selectionLinkBubbleStateTimer);
+    selectionLinkBubbleStateTimer = 0;
+  }
+
+  if (isCopied) {
+    selectionLinkBubbleStateTimer = window.setTimeout(() => {
+      selectionLinkBubble.classList.remove('is-copied');
+      selectionLinkBubbleStateTimer = 0;
+    }, 1200);
+  }
+}
+
+function updateCopySelectionLinkButton() {
+  if (!copySelectionLinkButton) return;
+  copySelectionLinkButton.disabled = !state.shareSelection || !state.currentDocumentId;
+}
+
+function setShareSelection(selection) {
+  state.shareSelection = selection;
+  updateCopySelectionLinkButton();
+}
+
+function clearShareSelection() {
+  setShareSelection(null);
+  hideSelectionLinkBubble();
+}
+
+function hideSelectionLinkBubble() {
+  if (!selectionLinkBubble) return;
+  selectionLinkBubble.classList.remove('is-copied');
+  selectionLinkBubble.classList.add('hidden');
+}
+
+function showSelectionLinkBubble() {
+  if (!selectionLinkBubble) return;
+  selectionLinkBubble.classList.remove('hidden');
+}
+
+function positionSelectionLinkBubble(range) {
+  if (!selectionLinkBubble) return;
+
+  const rects = Array.from(range.getClientRects()).filter((item) => item.width || item.height);
+  const rect = rects[0] || range.getBoundingClientRect();
+  if (!rect || (!rect.width && !rect.height)) {
+    hideSelectionLinkBubble();
+    return;
+  }
+
+  showSelectionLinkBubble();
+  selectionLinkBubble.style.left = '0px';
+  selectionLinkBubble.style.top = '0px';
+
+  const bubbleRect = selectionLinkBubble.getBoundingClientRect();
+  const margin = 12;
+  const preferredTop = rect.top - bubbleRect.height - margin;
+  const fallbackTop = rect.bottom + margin;
+  const top = preferredTop >= margin
+    ? preferredTop
+    : Math.min(window.innerHeight - bubbleRect.height - margin, fallbackTop);
+  const centerX = rect.left + (rect.width / 2);
+  const left = Math.min(
+    Math.max(margin, centerX - (bubbleRect.width / 2)),
+    window.innerWidth - bubbleRect.width - margin,
+  );
+
+  selectionLinkBubble.style.left = `${Math.round(left)}px`;
+  selectionLinkBubble.style.top = `${Math.round(top)}px`;
+}
+
+function refreshSelectionLinkBubblePosition() {
+  const root = getDocumentRoot();
+  const selection = window.getSelection();
+  if (!root || !state.shareSelection || !selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    clearShareSelection();
+    return;
+  }
+
+  const range = selection.getRangeAt(0);
+  if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) {
+    clearShareSelection();
+    return;
+  }
+
+  positionSelectionLinkBubble(range);
+}
+
+function scheduleSelectionRefresh() {
+  window.requestAnimationFrame(() => {
+    updateShareSelectionFromDom();
+  });
 }
 
 function showLoading(message) {
@@ -122,7 +252,8 @@ function renderDocumentList() {
   documentCountBadge.textContent = String(state.documents.length);
 }
 
-function syncLocation(documentId, headingId = '') {
+function syncLocation(documentId, headingId = '', options = {}) {
+  const preserveSelection = Boolean(options?.preserveSelection);
   const url = new URL(window.location.href);
   if (documentId) {
     url.searchParams.set('doc', documentId);
@@ -130,7 +261,18 @@ function syncLocation(documentId, headingId = '') {
     url.searchParams.delete('doc');
   }
 
-  url.hash = headingId;
+  if (!preserveSelection) {
+    url.searchParams.delete('start');
+    url.searchParams.delete('end');
+    url.searchParams.delete('quote');
+  }
+
+  if (headingId) {
+    url.hash = headingId;
+  } else if (!preserveSelection) {
+    url.hash = '';
+  }
+
   history.replaceState({}, '', url);
 }
 
@@ -194,11 +336,12 @@ function findMatchingRenderedBlock(sourceBlock, renderedBlocks, startIndex = 0) 
   return -1;
 }
 
-function findTextPositionWithin(element, targetOffset) {
+function findTextPositionWithin(element, targetOffset, options = {}) {
+  const skipSelector = options.skipSelector ?? ENTITY_SKIP_SELECTOR;
   const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       if (!node.nodeValue) return NodeFilter.FILTER_REJECT;
-      if (node.parentElement?.closest(ENTITY_SKIP_SELECTOR)) return NodeFilter.FILTER_REJECT;
+      if (skipSelector && node.parentElement?.closest(skipSelector)) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     },
   });
@@ -229,6 +372,224 @@ function findTextPositionWithin(element, targetOffset) {
   }
 
   return null;
+}
+
+function getTextOffsetWithin(root, container, offset) {
+  const range = document.createRange();
+  range.selectNodeContents(root);
+  range.setEnd(container, offset);
+  return range.toString().length;
+}
+
+function getNearestHeadingId(root, node) {
+  const headings = Array.from(root.querySelectorAll(HEADING_SELECTOR));
+  let nearestHeadingId = '';
+
+  for (const heading of headings) {
+    if (heading.contains(node)) {
+      return heading.id || nearestHeadingId;
+    }
+
+    const position = heading.compareDocumentPosition(node);
+    if (position & Node.DOCUMENT_POSITION_FOLLOWING) {
+      nearestHeadingId = heading.id || nearestHeadingId;
+    }
+  }
+
+  return nearestHeadingId;
+}
+
+function readRequestedTextSelection() {
+  const params = new URLSearchParams(window.location.search);
+  const documentId = params.get('doc') || '';
+  const start = Number(params.get('start'));
+  const end = Number(params.get('end'));
+  const quote = params.get('quote') || '';
+
+  if (!documentId || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) {
+    return null;
+  }
+
+  return {
+    documentId,
+    start,
+    end,
+    quote,
+  };
+}
+
+function resolveRequestedSelectionOffsets(root, selectionTarget) {
+  const fullText = root.textContent || '';
+  const quote = String(selectionTarget?.quote || '');
+  const normalizedQuote = normalizeWhitespace(quote);
+
+  if (selectionTarget.end <= fullText.length) {
+    const directText = fullText.slice(selectionTarget.start, selectionTarget.end);
+    if (!normalizedQuote || normalizeWhitespace(directText) === normalizedQuote) {
+      return {
+        start: selectionTarget.start,
+        end: selectionTarget.end,
+      };
+    }
+  }
+
+  if (!quote) {
+    return null;
+  }
+
+  const matches = [];
+  let searchFrom = 0;
+  while (searchFrom < fullText.length) {
+    const foundAt = fullText.indexOf(quote, searchFrom);
+    if (foundAt < 0) break;
+    matches.push(foundAt);
+    searchFrom = foundAt + Math.max(1, quote.length);
+  }
+
+  if (!matches.length) {
+    return null;
+  }
+
+  const nearestStart = matches.reduce((best, candidate) => (
+    Math.abs(candidate - selectionTarget.start) < Math.abs(best - selectionTarget.start) ? candidate : best
+  ), matches[0]);
+
+  return {
+    start: nearestStart,
+    end: nearestStart + quote.length,
+  };
+}
+
+function applyRequestedSelection(root) {
+  const selectionTarget = readRequestedTextSelection();
+  if (!selectionTarget || selectionTarget.documentId !== state.currentDocumentId) {
+    return false;
+  }
+
+  const resolved = resolveRequestedSelectionOffsets(root, selectionTarget);
+  if (!resolved) {
+    return false;
+  }
+
+  const start = findTextPositionWithin(root, resolved.start, { skipSelector: LINKABLE_TEXT_SKIP_SELECTOR });
+  const end = findTextPositionWithin(root, resolved.end, { skipSelector: LINKABLE_TEXT_SKIP_SELECTOR });
+  if (!start || !end || (start.node === end.node && start.offset === end.offset)) {
+    return false;
+  }
+
+  const range = document.createRange();
+  range.setStart(start.node, start.offset);
+  range.setEnd(end.node, end.offset);
+
+  const wrapper = document.createElement('mark');
+  wrapper.className = 'document-shared-selection';
+  wrapper.title = 'Ссылка на фрагмент документа';
+
+  const extracted = range.extractContents();
+  wrapper.append(extracted);
+  range.insertNode(wrapper);
+  wrapper.scrollIntoView({ behavior: 'auto', block: 'center' });
+  return true;
+}
+
+function updateShareSelectionFromDom() {
+  const root = getDocumentRoot();
+  const selection = window.getSelection();
+
+  if (!root || !selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    clearShareSelection();
+    return;
+  }
+
+  const range = selection.getRangeAt(0);
+  if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) {
+    clearShareSelection();
+    return;
+  }
+
+  const preview = normalizeWhitespace(selection.toString());
+  if (!preview) {
+    clearShareSelection();
+    return;
+  }
+
+  const start = getTextOffsetWithin(root, range.startContainer, range.startOffset);
+  const end = getTextOffsetWithin(root, range.endContainer, range.endOffset);
+  if (end <= start) {
+    clearShareSelection();
+    return;
+  }
+
+  setShareSelection({
+    start,
+    end,
+    quote: String(selection.toString()).replace(/\s+/g, ' ').trim().slice(0, SELECTION_QUOTE_LIMIT),
+    headingId: getNearestHeadingId(root, range.startContainer),
+  });
+  positionSelectionLinkBubble(range);
+}
+
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return true;
+  }
+
+  const fallback = document.createElement('textarea');
+  fallback.value = text;
+  fallback.setAttribute('readonly', '');
+  fallback.style.position = 'fixed';
+  fallback.style.opacity = '0';
+  document.body.append(fallback);
+  fallback.select();
+
+  try {
+    return document.execCommand('copy');
+  } finally {
+    fallback.remove();
+  }
+}
+
+function buildSelectionLinkUrl() {
+  if (!state.currentDocumentId || !state.shareSelection) {
+    return null;
+  }
+
+  return buildDocumentSnippet({
+    documentId: state.currentDocumentId,
+    start: state.shareSelection.start,
+    end: state.shareSelection.end,
+    headingId: state.shareSelection.headingId || '',
+  });
+}
+
+async function copySelectionLinkSilently() {
+  const snippet = buildSelectionLinkUrl();
+  if (!snippet) return;
+
+  try {
+    await copyTextToClipboard(snippet);
+    setSelectionLinkBubbleCopiedState(true);
+  } catch {
+    setSelectionLinkBubbleCopiedState(false);
+  }
+}
+
+async function copySelectionLink() {
+  if (!state.currentDocumentId || !state.shareSelection) {
+    setCopySelectionLinkStatus('Сначала выделите фрагмент текста.', 'error');
+    return;
+  }
+
+  const snippet = buildSelectionLinkUrl();
+  if (!snippet) return;
+
+  try {
+    await copyTextToClipboard(snippet);
+    setCopySelectionLinkStatus('Ссылка скопирована.', 'success');
+  } catch (error) {
+    setCopySelectionLinkStatus(error instanceof Error ? error.message : 'Не удалось скопировать ссылку.', 'error');
+  }
 }
 
 function resolveEntityOffsetsInBlock(blockText, entity) {
@@ -402,9 +763,11 @@ function renderDocumentView() {
 
   documentReader.innerHTML = `<div class="document-prose">${state.currentDocumentHtml}</div>`;
   const root = getDocumentRoot();
+  clearShareSelection();
 
   buildOutline(root);
   applyDetectedCandidates(root);
+  applyRequestedSelection(root);
 
   const stats = getHighlightedEntityStats();
   const currentDocument = state.documents.find((entry) => entry.id === state.currentDocumentId);
@@ -499,9 +862,10 @@ function showReaderError(message) {
   state.currentDocumentHtml = '';
   state.currentDocumentEntityData = null;
   state.highlightedEntities = [];
+  clearShareSelection();
 }
 
-async function loadAndRenderDocument(documentId) {
+async function loadAndRenderDocument(documentId, options = {}) {
   const documentEntry = state.documents.find((entry) => entry.id === documentId);
   if (!documentEntry) throw new Error('Document not found.');
 
@@ -525,7 +889,7 @@ async function loadAndRenderDocument(documentId) {
     documentSourceLink.href = documentEntry.path;
     documentSourceLink.classList.remove('hidden');
     renderDocumentView();
-    syncLocation(documentEntry.id);
+    syncLocation(documentEntry.id, '', { preserveSelection: options.preserveSelection });
   } catch (error) {
     if (loadToken !== state.currentLoadToken) return;
     showReaderError(error instanceof Error ? error.message : String(error));
@@ -558,11 +922,59 @@ documentOutline?.addEventListener('click', (event) => {
   syncLocation(state.currentDocumentId, button.dataset.headingId);
 });
 
+copySelectionLinkButton?.addEventListener('click', () => {
+  copySelectionLink();
+});
+
+selectionLinkBubble?.addEventListener('click', () => {
+  copySelectionLinkSilently();
+});
+
+selectionLinkBubble?.addEventListener('mousedown', (event) => {
+  event.preventDefault();
+});
+
+document.addEventListener('selectionchange', () => {
+  updateShareSelectionFromDom();
+});
+
+document.addEventListener('pointerdown', (event) => {
+  if (selectionLinkBubble?.contains(event.target)) {
+    return;
+  }
+
+  const root = getDocumentRoot();
+  if (!root || !root.contains(event.target)) {
+    window.getSelection()?.removeAllRanges();
+    clearShareSelection();
+    return;
+  }
+
+  hideSelectionLinkBubble();
+});
+
+document.addEventListener('pointerup', () => {
+  scheduleSelectionRefresh();
+});
+
+document.addEventListener('keyup', () => {
+  scheduleSelectionRefresh();
+});
+
+window.addEventListener('resize', () => {
+  refreshSelectionLinkBubblePosition();
+});
+
+documentReaderShell?.addEventListener('scroll', () => {
+  refreshSelectionLinkBubblePosition();
+});
+
 async function init() {
   try {
     state.documents = await loadDocumentManifest();
     renderDocumentList();
 
+    const requestedSelection = readRequestedTextSelection();
     const requestedId = new URLSearchParams(window.location.search).get('doc');
     const initialDocument = requestedId && state.documents.some((entry) => entry.id === requestedId)
       ? requestedId
@@ -572,10 +984,12 @@ async function init() {
       throw new Error('No document available.');
     }
 
-    await loadAndRenderDocument(initialDocument);
+    await loadAndRenderDocument(initialDocument, {
+      preserveSelection: Boolean(requestedSelection && requestedSelection.documentId === initialDocument),
+    });
 
     const requestedHash = window.location.hash ? window.location.hash.slice(1) : '';
-    if (requestedHash) {
+    if (requestedHash && !requestedSelection) {
       document.getElementById(requestedHash)?.scrollIntoView({ behavior: 'auto', block: 'start' });
     }
   } catch (error) {

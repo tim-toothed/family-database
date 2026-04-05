@@ -1,4 +1,5 @@
 import { FIELD_LABELS, SECTION_ORDER } from '../config.js';
+import { buildDocumentHref, collectDocumentSnippetTokens, parseDocumentSnippet } from '../document-links.js';
 import { formatBirthName, getDatasetPersonName, getPersonDisplayName } from './person-name.js';
 
 function escapeHtml(value) {
@@ -101,11 +102,48 @@ function renderSimpleMarkdownLink(value) {
   const text = String(value || '').trim();
   if (!text) return '';
 
+  const directDocumentSnippet = parseDocumentSnippet(text);
+  if (directDocumentSnippet) {
+    return `<a href="${escapeHtml(buildDocumentHref(directDocumentSnippet))}">[link]</a>`;
+  }
+
   const match = text.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
   if (!match) return escapeHtml(text);
 
   const [, label, href] = match;
   return `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+}
+
+function renderInlineText(value) {
+  const source = String(value || '').trim();
+  if (!source) return '';
+
+  const tokens = collectDocumentSnippetTokens(source);
+  if (!tokens.length) {
+    return escapeHtml(source);
+  }
+
+  let cursor = 0;
+  let html = '';
+  for (const token of tokens) {
+    if (token.start > cursor) {
+      html += escapeHtml(source.slice(cursor, token.start));
+    }
+
+    html += `<a href="${escapeHtml(buildDocumentHref({
+      documentId: token.documentId,
+      start: token.rangeStart,
+      end: token.rangeEnd,
+      headingId: token.headingId,
+    }))}" class="inline-doc-link">[link]</a>`;
+    cursor = token.end;
+  }
+
+  if (cursor < source.length) {
+    html += escapeHtml(source.slice(cursor));
+  }
+
+  return html;
 }
 
 function renderRelationLine(personId, relationType, dataset) {
@@ -188,13 +226,13 @@ function renderArrayField(key, items, dataset) {
     case 'name_changes':
       return renderList(items, (item) => renderNameChangeItem(item), 'relation-list');
     case 'education':
-      return renderList(items, (item) => escapeHtml(String(item?.education_info || '').trim()));
+      return renderList(items, (item) => renderInlineText(String(item?.education_info || '').trim()));
     case 'profession':
-      return renderList(items, (item) => escapeHtml(String(item?.title || '').trim()));
+      return renderList(items, (item) => renderInlineText(String(item?.title || '').trim()));
     case 'job_places':
-      return renderList(items, (item) => escapeHtml(String(item?.job || '').trim()));
+      return renderList(items, (item) => renderInlineText(String(item?.job || '').trim()));
     case 'residences':
-      return renderList(items, (item) => escapeHtml(String(item?.residence_info || '').trim()));
+      return renderList(items, (item) => renderInlineText(String(item?.residence_info || '').trim()));
     case 'sources':
       return renderList(items, (item) => renderSimpleMarkdownLink(item?.source));
     case 'media':
@@ -247,7 +285,7 @@ function renderField(key, value, dataset) {
     return renderArrayField(key, value, dataset);
   }
 
-  return `<div>${escapeHtml(value)}</div>`;
+  return `<div>${renderInlineText(value)}</div>`;
 }
 
 export function renderPersonDetails(personId, dataset, options = {}) {
