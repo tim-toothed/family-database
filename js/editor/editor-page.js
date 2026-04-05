@@ -10,6 +10,7 @@ import {
   removeDraftArrayItem,
   renderEditablePersonDetails,
   setAliveState,
+  setDivorcedState,
   syncNameChangeDateField,
   updateDraftValue,
   validateEditorPersonDraft,
@@ -414,6 +415,15 @@ function bindEditorEvents() {
     });
   });
 
+  editorBody.querySelectorAll('[data-action="toggle-divorced"]').forEach((checkbox) => {
+    checkbox.addEventListener('change', () => {
+      setDivorcedState(draft, checkbox.dataset.divorcePath, checkbox.checked);
+      renderEditor();
+      syncUnsavedChangesState();
+      setBannerMessage('');
+    });
+  });
+
   editorBody.querySelectorAll('[data-action="add-other-info-entry"]').forEach((button) => {
     button.addEventListener('click', () => {
       addOtherInfoEntry(draft, button.dataset.otherInfoPath);
@@ -550,8 +560,9 @@ async function saveCurrentPerson() {
   syncSaveButtonState();
 
   try {
+    let saveResult;
     if (isCreatingNew) {
-      await createEditablePerson(nextPersonId, validation.normalized);
+      saveResult = await createEditablePerson(nextPersonId, validation.normalized);
       personId = nextPersonId;
       isCreatingNew = false;
       const nextUrl = new URL(window.location.href);
@@ -559,7 +570,7 @@ async function saveCurrentPerson() {
       nextUrl.searchParams.delete('new');
       window.history.replaceState({}, '', nextUrl);
     } else {
-      await saveEditablePerson(personId, validation.normalized);
+      saveResult = await saveEditablePerson(personId, validation.normalized);
     }
 
     draft = hydrateDraftForEditor(validation.normalized, schema, dataset.indexById);
@@ -572,10 +583,19 @@ async function saveCurrentPerson() {
     populatePersonOptions();
     renderEditor();
     syncPersonJumpInputValue();
+    const synchronizedIds = Array.isArray(saveResult?.synchronizedIds) ? saveResult.synchronizedIds : [];
+    const skippedIds = Array.isArray(saveResult?.skippedIds) ? saveResult.skippedIds : [];
+    const baseMessage = wasCreatingNew
+      ? 'Карточка создана в Supabase.'
+      : 'Изменения сохранены в Supabase.';
+    const syncMessage = synchronizedIds.length
+      ? ` Синхронизированы карточки: ${synchronizedIds.join(', ')}.`
+      : '';
+    const skippedMessage = skippedIds.length
+      ? ` Не удалось обновить карточки: ${skippedIds.join(', ')}.`
+      : '';
     setBannerMessage(
-      wasCreatingNew
-        ? 'Карточка создана в Supabase.'
-        : 'Изменения сохранены в Supabase.',
+      `${baseMessage}${syncMessage}${skippedMessage}`,
       'valid'
     );
   } catch (error) {

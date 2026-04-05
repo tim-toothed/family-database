@@ -30,6 +30,7 @@ const NESTED_FIELD_LABELS = {
   source: 'Источник',
   description: 'Описание',
   link: 'Ссылка',
+  other: 'Примечание',
   military_service: 'Военная служба',
   war_participation: 'Участие в войнах',
   awards: 'Награды',
@@ -321,6 +322,67 @@ function renderDateObjectEditor(schemaNode, value, path, context) {
   `;
 }
 
+function renderLabeledDateEditor(label, schemaNode, value, path, context) {
+  return `
+    <div class="editor-field">
+      <span class="editor-label">${escapeHtml(label)}</span>
+      ${renderDateObjectEditor(schemaNode, value, path, context)}
+    </div>
+  `;
+}
+
+function renderSpouseItemEditor(schemaNode, value, path, context) {
+  const objectValue = isObject(value) ? value : {};
+  const marriageSchema = Array.isArray(schemaNode?.marriage) ? schemaNode.marriage[0] : {};
+  const divorceSchema = Array.isArray(schemaNode?.divorce) ? schemaNode.divorce[0] : {};
+  const marriageValue = Array.isArray(objectValue.marriage) && isObject(objectValue.marriage[0]) ? objectValue.marriage[0] : {};
+  const divorceItems = Array.isArray(objectValue.divorce) ? objectValue.divorce : [];
+  const divorceValue = isObject(divorceItems[0]) ? divorceItems[0] : {};
+  const divorceEnabled = divorceItems.length > 0;
+  const divorcePath = [...path, 'divorce'];
+
+  return `
+    <div class="editor-grid editor-spouse-item">
+      ${renderScalarEditor([...path, 'person_id'], 'person_id', objectValue.person_id, schemaNode?.person_id, context)}
+      ${renderLabeledDateEditor('Дата брака', marriageSchema?.date, marriageValue.date, [...path, 'marriage', 0, 'date'], context)}
+      ${renderScalarEditor([...path, 'marriage', 0, 'place'], 'place', marriageValue.place, marriageSchema?.place, context)}
+      <label class="editor-checkbox">
+        <input
+          type="checkbox"
+          data-action="toggle-divorced"
+          data-divorce-path="${escapeHtml(encodePath(divorcePath))}"
+          ${divorceEnabled ? 'checked' : ''}
+          ${context.disableInputs ? ' disabled' : ''}
+        />
+        <span>Развод</span>
+      </label>
+      ${divorceEnabled ? `
+        ${renderLabeledDateEditor('Дата развода', divorceSchema?.date, divorceValue.date, [...path, 'divorce', 0, 'date'], context)}
+        ${renderScalarEditor([...path, 'divorce', 0, 'other'], 'other', divorceValue.other, divorceSchema?.other, context)}
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderSpousesEditor(schemaNode, value, path, context) {
+  const items = Array.isArray(value) ? value : [];
+  const arrayPath = escapeHtml(encodePath(path));
+
+  return `
+    <div class="editor-array" data-array-path="${arrayPath}">
+      ${items.length
+        ? items.map((item, index) => `
+            <div class="editor-array-item">
+              <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись" title="Удалить запись">&times;</button>
+              ${renderSpouseItemEditor(schemaNode, item, [...path, index], context)}
+            </div>
+          `).join('')
+        : '<div class="editor-array-empty">Поле пока пустое.</div>'}
+      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить ещё запись</button>
+    </div>
+  `;
+}
+
 function renderObjectEditor(schemaNode, value, path, context) {
   const objectValue = isObject(value) ? value : {};
   return `
@@ -375,6 +437,9 @@ function renderArrayEditorClean(schemaNode, value, path, key, context) {
 function renderEditorNode(schemaNode, value, path, key, context) {
   if (key === 'other_info') {
     return renderOtherInfoEditor(value, path, context);
+  }
+  if (key === 'spouses' && Array.isArray(schemaNode)) {
+    return renderSpousesEditor(schemaNode[0], value, path, context);
   }
   if (Array.isArray(schemaNode)) {
     return renderArrayEditorClean(schemaNode[0], value, path, key, context);
@@ -739,12 +804,13 @@ export function renderEditablePersonDetails(personId, person, schema, descriptio
   const title = getPersonDisplayName(person, personId);
   const sections = Object.keys(schema).map((key) => {
     const isAlive = key === 'death' && getLifeEvent(person, 'death').isAlive;
-    const isSectionDisabled = key === 'id' || (key === 'death' && isAlive);
+    const isSectionCollapsed = key === 'death' && isAlive;
+    const isSectionDisabled = key === 'id';
     const sectionLabel = getFieldLabel(key);
     return `
       <section
         id="${escapeHtml(getEditorSectionAnchorId(key))}"
-        class="field-block is-editing${isSectionDisabled ? ' is-disabled' : ''}"
+        class="field-block is-editing${isSectionDisabled ? ' is-disabled' : ''}${isSectionCollapsed ? ' is-collapsed' : ''}"
         data-editor-section
         data-section-key="${escapeHtml(key)}"
         data-section-label="${escapeHtml(sectionLabel)}"
@@ -759,13 +825,15 @@ export function renderEditablePersonDetails(personId, person, schema, descriptio
           ` : ''}
         </div>
         ${descriptions[key] ? `<p class="editor-section-note">${escapeHtml(descriptions[key])}</p>` : ''}
-        <div class="field-value">
-          ${renderEditorNode(schema[key], person[key], [key], key, {
-            personOptionEntries: options.personOptionEntries,
-            enumListIdPrefix: options.enumListIdPrefix,
-            disableInputs: isSectionDisabled,
-          })}
-        </div>
+        ${isSectionCollapsed ? '' : `
+          <div class="field-value">
+            ${renderEditorNode(schema[key], person[key], [key], key, {
+              personOptionEntries: options.personOptionEntries,
+              enumListIdPrefix: options.enumListIdPrefix,
+              disableInputs: isSectionDisabled,
+            })}
+          </div>
+        `}
       </section>
     `;
   });
