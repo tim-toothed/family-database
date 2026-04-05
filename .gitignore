@@ -22,3 +22,5 @@ Thumbs.db
 # Environment variables file
 .env
 
+# File for Codex to solve UTF-8 encoding issues
+AGENTS.md
