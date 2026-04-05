@@ -3,6 +3,7 @@ import { buildFamilyGroups } from '../visualization/table-family-groups.js';
 import { getPersonDisplayName } from './person-name.js';
 import { buildPeopleTableData } from '../visualization/table-view.js';
 import { normalizeLoadedPerson } from '../person/model.js';
+import { parseYaml } from '../lib/yaml.js';
 
 async function fetchText(path) {
   const response = await fetch(path);
@@ -28,7 +29,7 @@ async function loadPersonYaml(id) {
   }
 
   const text = await response.text();
-  const data = jsyaml.load(text);
+  const data = await parseYaml(text);
   return { id, data, path };
 }
 

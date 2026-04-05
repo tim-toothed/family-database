@@ -1,6 +1,7 @@
 import { FIELD_LABELS } from '../config.js';
 import { getPersonDisplayName } from '../render/person-name.js';
 import { getLifeEvent, migratePersonSchema } from '../person/model.js';
+import { getYamlLibrary, parseYaml } from '../lib/yaml.js';
 
 const NESTED_FIELD_LABELS = {
   surname: 'Фамилия',
@@ -431,8 +432,8 @@ async function loadEditorSchemaBundle() {
         }
         return response.text();
       })
-      .then((text) => ({
-        schema: jsyaml.load(text),
+      .then(async (text) => ({
+        schema: await parseYaml(text),
         descriptions: extractTopLevelDescriptions(text),
       }));
   }
@@ -850,7 +851,7 @@ export function validateEditorPersonDraft(draft, schema, options = {}) {
 
 export function renderPersonYaml(person, schema) {
   const normalized = pruneBySchema(person, schema);
-  return `${jsyaml.dump(normalized || {}, {
+  return `${getYamlLibrary().dump(normalized || {}, {
     noRefs: true,
     lineWidth: -1,
     sortKeys: false,
