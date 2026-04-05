@@ -10,6 +10,7 @@ birth:
 death:
   date: 25.11.2000
   place: г. Усинск (похоронен в г. Лениногорск)
+  cause: Инфаркт и инсульт одновременно
 parents:
 - person_id: P078
   relation_type: мать
@@ -24,10 +25,32 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P065
+  marriage_date: 28.04.1973
 children:
 - person_id: P068
   relation_type: биологический
 - person_id: P048
   relation_type: биологический
+education:
+- education_info: Средняя школа 5 Лениногоск
+- education_info: Лениногорский нефтяной техникум
+- education_info: Уфимский нефтяной институт 1968-1973УНИ
+nationality: Татарин
+profession:
+- title: Инженен в сфере нефтяной промышленности
+job_places:
+- job: Буровой мастер УБР пос. Усинск (Парма) 09.1973- 09.1979
+- job: Главный инженер УБР3 в Парме
+- job: Главный инженер УБР1 Усинск
+- job: ' Глава производственного отдела по строительству скважин ЗАО Северная нефть 1994-2000'
+military:
+  military_service:
+  - service_info: Военная кафедра УНИ ст. лейтенант-инженер запаса
+residences:
+- residence_info: Старое Шугурово ТАССР
+- residence_info: Лениногорск ТАССР
+- residence_info: Уфа Башкирия 1968-1973 учеба в ВУЗе
+- residence_info: Парма Коми АССР
+- residence_info: г. Усинск Коми АССР
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

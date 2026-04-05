@@ -1,13 +1,13 @@
 id: P085
 birth_name:
   surname: Зиатдинова
-  first_name: Фамуза?
+  first_name: Фануза
   patronymic: Разетдиновна
 sex: ж
 birth:
-  date: ???
+  date: ''
 death:
-  date: ???
+  date: ''
 parents:
 - person_id: P106
   relation_type: мать

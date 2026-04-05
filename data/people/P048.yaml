@@ -6,8 +6,9 @@ birth_name:
 sex: м
 birth:
   date: 15.05.1975
+  place: Лениногорск, Татарская АССР
 death:
-  date: null
+  date: ''
 parents:
 - person_id: P065
   relation_type: мать
@@ -18,8 +19,8 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P046
-  marriage_date: ???
-  divorce_date: null
+  marriage_date: 14.09.2001
+  divorce_date: ''
 children:
 - person_id: P049
   relation_type: биологический
