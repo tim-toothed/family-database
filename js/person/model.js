@@ -47,7 +47,7 @@ function parseLegacyDateString(value) {
   const text = asTrimmedString(value);
   if (!text) return null;
 
-  const tripletMatch = text.match(/^([A-Za-z?0-9]{1,2})\.([A-Za-z?0-9]{1,2})\.([A-Za-z?0-9]{1,4})$/);
+  const tripletMatch = text.match(/([A-Za-z?0-9]{1,3})\.([A-Za-z?0-9]{1,3})\.([A-Za-z?0-9]{1,4})/);
   if (tripletMatch) {
     return {
       day: parseLegacyDatePart(tripletMatch[1], 2),
@@ -200,12 +200,211 @@ export function getPersonDisplayName(person, fallback = '') {
   return formatBirthName(person?.birth_name) || String(fallback ?? '').trim();
 }
 
-export function normalizeLoadedPerson(payload, fallbackId = '') {
+export function migrateDateValue(value) {
+  if (value === null) return null;
+  if (isObject(value)) {
+    const day = normalizeNumericPart(value.day);
+    const month = normalizeNumericPart(value.month);
+    const year = normalizeNumericPart(value.year);
+    if (day == null && month == null && year == null) {
+      return {};
+    }
+    return {
+      ...(day != null ? { day } : {}),
+      ...(month != null ? { month } : {}),
+      ...(year != null ? { year } : {}),
+    };
+  }
+
+  const parsed = parseLegacyDateString(value);
+  if (parsed) {
+    const next = {};
+    if (parsed.day != null) next.day = parsed.day;
+    if (parsed.month != null) next.month = parsed.month;
+    if (parsed.year != null) next.year = parsed.year;
+    return next;
+  }
+
+  return {};
+}
+
+function migrateLifeEventBlock(block) {
+  if (!isObject(block)) {
+    return block;
+  }
+
+  const migrated = { ...block };
+  if (Object.prototype.hasOwnProperty.call(migrated, 'date')) {
+    migrated.date = migrated.date === null ? null : migrateDateValue(migrated.date);
+  }
+  return migrated;
+}
+
+function migrateDateEntryBlock(block, key = 'date') {
+  if (!isObject(block)) {
+    return block;
+  }
+
+  const migrated = { ...block };
+  if (Object.prototype.hasOwnProperty.call(migrated, key)) {
+    migrated[key] = migrated[key] === null ? null : migrateDateValue(migrated[key]);
+  }
+  return migrated;
+}
+
+function migrateChildRelationBlock(block) {
+  if (!isObject(block)) {
+    return block;
+  }
+
+  const migrated = { ...block };
+  delete migrated.birth_date;
+  delete migrated.second_parent_id;
+  return migrated;
+}
+
+function migrateEventList(value, legacyDateValue, detailKey) {
+  const sourceItems = Array.isArray(value)
+    ? value
+    : isObject(value)
+      ? [value]
+      : [];
+  const migratedItems = sourceItems
+    .map((item) => {
+      const entry = asObject(item);
+      const migrated = { ...entry };
+      if (Object.prototype.hasOwnProperty.call(migrated, 'date')) {
+        migrated.date = migrated.date === null ? null : migrateDateValue(migrated.date);
+      }
+      if (!hasOwnValue(migrated[detailKey])) {
+        delete migrated[detailKey];
+      }
+      if (!hasOwnValue(migrated.place)) delete migrated.place;
+      if (!hasOwnValue(migrated.other)) delete migrated.other;
+      return migrated;
+    })
+    .filter((item) => item.date === null || hasDateValue(item.date) || hasOwnValue(item.place) || hasOwnValue(item.other));
+
+  if (migratedItems.length > 0) {
+    return migratedItems;
+  }
+
+  if (!hasOwnValue(legacyDateValue)) {
+    return [];
+  }
+
+  const migratedDate = migrateDateValue(legacyDateValue);
+  if (!hasDateValue(migratedDate)) {
+    return [];
+  }
+
+  return [{ date: migratedDate }];
+}
+
+function normalizeOtherInfoValue(value) {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (text) {
+    return {
+      other_info1: {
+        label: 'Заметка',
+        text,
+      },
+    };
+  }
+
+  if (!isObject(value)) {
+    return {};
+  }
+
+  const entries = [];
+  for (const [rawKey, rawValue] of Object.entries(value)) {
+    if (typeof rawValue === 'string') {
+      const entryText = rawValue.trim();
+      if (!entryText) continue;
+      entries.push({
+        key: rawKey,
+        label: rawKey.startsWith('other_info') ? '' : rawKey,
+        text: entryText,
+      });
+      continue;
+    }
+
+    if (!isObject(rawValue)) continue;
+    const textValue = asTrimmedString(rawValue.text || rawValue.value || rawValue.content);
+    if (!textValue) continue;
+    entries.push({
+      key: rawKey,
+      label: asTrimmedString(rawValue.label) || (rawKey.startsWith('other_info') ? '' : rawKey),
+      text: textValue,
+    });
+  }
+
+  return Object.fromEntries(entries.map((entry, index) => [
+    `other_info${index + 1}`,
+    {
+      ...(entry.label ? { label: entry.label } : {}),
+      text: entry.text,
+    },
+  ]));
+}
+
+export function migratePersonSchema(payload, fallbackId = '') {
   const object = asObject(payload);
-  return {
+  const migrated = {
     ...object,
     id: asTrimmedString(object.id || fallbackId),
   };
+
+  if (isObject(migrated.birth)) {
+    migrated.birth = migrateLifeEventBlock(migrated.birth);
+  }
+
+  if (isObject(migrated.death)) {
+    migrated.death = migrateLifeEventBlock(migrated.death);
+  }
+
+  if (Array.isArray(migrated.name_changes)) {
+    migrated.name_changes = migrated.name_changes.map((item) => migrateDateEntryBlock(item, 'date'));
+  }
+
+  if (Array.isArray(migrated.children)) {
+    migrated.children = migrated.children.map((item) => migrateChildRelationBlock(item));
+  }
+
+  if (Array.isArray(migrated.spouses)) {
+    migrated.spouses = migrated.spouses.map((item) => {
+      const spouse = asObject(item);
+      const nextSpouse = { ...spouse };
+      const marriage = migrateEventList(spouse.marriage, spouse.marriage_date, 'place');
+      const divorce = migrateEventList(spouse.divorce, spouse.divorce_date, 'other');
+
+      if (marriage.length > 0) {
+        nextSpouse.marriage = marriage;
+      } else {
+        delete nextSpouse.marriage;
+      }
+
+      if (divorce.length > 0) {
+        nextSpouse.divorce = divorce;
+      } else {
+        delete nextSpouse.divorce;
+      }
+
+      delete nextSpouse.marriage_date;
+      delete nextSpouse.divorce_date;
+      return nextSpouse;
+    });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(migrated, 'other_info')) {
+    migrated.other_info = normalizeOtherInfoValue(migrated.other_info);
+  }
+
+  return migrated;
+}
+
+export function normalizeLoadedPerson(payload, fallbackId = '') {
+  return migratePersonSchema(payload, fallbackId);
 }
 
 export function getLifeEvent(person, key) {
@@ -273,9 +472,6 @@ export function getRelationEntries(person, key) {
       raw: object,
       personId: asTrimmedString(object.person_id),
       relationType: asTrimmedString(object.relation_type),
-      secondParentId: asTrimmedString(object.second_parent_id),
-      birthDateValue: object.birth_date,
-      birthDateDisplay: formatDateValue(object.birth_date),
       name: asTrimmedString(object.name),
       reason: asTrimmedString(object.reason),
       educationInfo: asTrimmedString(object.education_info),
@@ -343,7 +539,7 @@ export function getNamedTextEntries(value, options = {}) {
           if (!text) return null;
           return {
             key,
-            label: key || `${labelPrefix} ${index + 1}`,
+            label: key && !key.startsWith('other_info') ? key : '',
             text,
           };
         }
@@ -353,7 +549,7 @@ export function getNamedTextEntries(value, options = {}) {
           if (!text) return null;
           return {
             key,
-            label: asTrimmedString(item.label) || key || `${labelPrefix} ${index + 1}`,
+            label: asTrimmedString(item.label) || (key && !key.startsWith('other_info') ? key : ''),
             text,
           };
         }

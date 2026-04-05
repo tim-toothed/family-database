@@ -12,6 +12,10 @@ import yaml
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT_DIR))
+
+from scripts.person_schema_migration import migrate_person_schema, prune_person_schema
+
 ENV_PATH = ROOT_DIR / '.env'
 PEOPLE_DIR = ROOT_DIR / 'data' / 'people'
 TABLE_NAME = 'family_yaml'
@@ -62,7 +66,7 @@ def iter_person_records() -> Iterable[dict[str, object]]:
     if not isinstance(payload, dict):
       raise RuntimeError(f'{path.name}: YAML должен содержать объект.')
 
-    payload['id'] = str(payload.get('id') or person_id).strip() or person_id
+    payload = prune_person_schema(migrate_person_schema(payload, person_id)) or {'id': person_id}
     yield {
       'id': person_id,
       'payload': payload,

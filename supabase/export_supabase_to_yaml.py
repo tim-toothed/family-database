@@ -9,6 +9,10 @@ import yaml
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT_DIR))
+
+from scripts.person_schema_migration import migrate_person_schema, prune_person_schema
+
 ENV_PATH = ROOT_DIR / '.env'
 PEOPLE_DIR = ROOT_DIR / 'data' / 'people'
 MANIFEST_PATH = PEOPLE_DIR / 'index.json'
@@ -124,7 +128,7 @@ def export_rows() -> None:
     if not isinstance(payload, dict):
       raise RuntimeError(f'Некорректный payload для {person_id}.')
 
-    payload['id'] = str(payload.get('id') or person_id).strip() or person_id
+    payload = prune_person_schema(migrate_person_schema(payload, person_id)) or {'id': person_id}
     ordered_payload = order_by_schema(payload, schema)
     target = PEOPLE_DIR / f'{person_id}.yaml'
     target.write_text(

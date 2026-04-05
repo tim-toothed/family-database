@@ -1144,6 +1144,19 @@ body.editor-page {
   gap: 12px;
 }
 
+.editor-date-row {
+  display: grid;
+  grid-template-columns: 64px 64px 84px;
+  gap: 10px;
+  align-items: start;
+  justify-content: start;
+  max-width: 232px;
+}
+
+.editor-date-row .editor-input {
+  text-align: left;
+}
+
 .editor-field {
   display: grid;
   gap: 6px;
@@ -2549,6 +2562,12 @@ body.documents-page {
 
   .family-group-meta {
     white-space: normal;
+  }
+}
+
+@media (max-width: 640px) {
+  .editor-date-row {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -1,6 +1,6 @@
 import { FIELD_LABELS } from '../config.js';
 import { getPersonDisplayName } from '../render/person-name.js';
-import { getLifeEvent } from '../person/model.js';
+import { getLifeEvent, migratePersonSchema } from '../person/model.js';
 
 const NESTED_FIELD_LABELS = {
   surname: 'Фамилия',
@@ -8,16 +8,17 @@ const NESTED_FIELD_LABELS = {
   patronymic: 'Отчество',
   name: 'Фамилия Имя Отчество',
   date: 'Дата',
+  day: 'День',
+  month: 'Месяц',
+  year: 'Год',
   date_raw: 'Дата в свободной форме',
   place: 'Место',
   reason: 'Причина',
   cause: 'Причина',
   person_id: 'Персона',
   relation_type: 'Тип связи',
-  marriage_date: 'Дата брака',
-  divorce_date: 'Дата развода',
-  birth_date: 'Дата рождения',
-  second_parent_id: 'Персона',
+  marriage: 'Брак',
+  divorce: 'Развод',
   education_info: 'Информация',
   title: 'Название',
   job: 'Место работы',
@@ -31,14 +32,13 @@ const NESTED_FIELD_LABELS = {
   military_service: 'Военная служба',
   war_participation: 'Участие в войнах',
   awards: 'Награды',
+  label: 'Название подпункта',
+  text: 'Текст',
 };
 
-const RELATION_FIELD_KEYS = new Set(['person_id', 'second_parent_id']);
+const RELATION_FIELD_KEYS = new Set(['person_id']);
 const ENUM_FIELD_KEYS = new Set(['relation_type', 'sex', 'reason']);
-const DATE_FIELD_KEYS = new Set(['date', 'marriage_date', 'divorce_date', 'birth_date']);
-const DATE_RE = /^(?:\d{2}|DD)\.(?:\d{2}|MM)\.(?:\d{4}|YYYY)$/;
-const UNKNOWN_DATE_VALUE = '???';
-const DATE_TEMPLATE_VALUE = 'DD.MM.YYYY';
+const DATE_PART_KEYS = new Set(['day', 'month', 'year']);
 let schemaBundlePromise;
 
 function escapeHtml(value) {
@@ -69,6 +69,27 @@ function isObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+function isDateSchema(schemaNode) {
+  return isObject(schemaNode)
+    && Object.keys(schemaNode).every((key) => DATE_PART_KEYS.has(key));
+}
+
+function isDatePartKey(key) {
+  return DATE_PART_KEYS.has(key);
+}
+
+function normalizeDatePartValue(key, value) {
+  const normalized = String(value ?? '').trim();
+  if (!normalized) return '';
+  const numeric = Number(normalized);
+  if (!Number.isInteger(numeric)) return normalized;
+
+  if (key === 'day' && (numeric < 1 || numeric > 31)) return normalized;
+  if (key === 'month' && (numeric < 1 || numeric > 12)) return normalized;
+  if (key === 'year' && numeric < 0) return normalized;
+  return numeric;
+}
+
 function isGenericSchemaHint(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return !normalized || normalized === 'text';
@@ -82,15 +103,6 @@ function extractSchemaOptions(schemaNode) {
     .split(',')
     .map((item) => item.trim())
     .filter(Boolean);
-}
-
-function normalizeDateValue(value) {
-  const normalized = String(value ?? '').trim();
-  if (!normalized) return normalized;
-  if (normalized === UNKNOWN_DATE_VALUE || normalized === DATE_TEMPLATE_VALUE) {
-    return '';
-  }
-  return normalized;
 }
 
 function createEmptyValue(schemaNode) {
@@ -193,7 +205,7 @@ function renderScalarEditor(path, key, value, schemaNode, context) {
   const encodedPath = escapeHtml(encodePath(path));
   const fieldValue = value === null ? '' : escapeHtml(value ?? '');
   const rawValue = value === null ? '' : String(value ?? '');
-  const multiline = ['other_info', 'character', 'appearance', 'health', 'hobbies'].includes(key);
+  const multiline = ['character', 'appearance', 'health', 'hobbies', 'text'].includes(key);
   const hint = typeof schemaNode === 'string' && !isGenericSchemaHint(schemaNode)
     ? escapeHtml(schemaNode.trim())
     : '';
@@ -208,25 +220,14 @@ function renderScalarEditor(path, key, value, schemaNode, context) {
     : ENUM_FIELD_KEYS.has(key)
       ? ' placeholder="Выберите из списка"'
       : '';
-
-  if (key === 'divorce_date') {
-    const hasDivorceDateField = value !== undefined;
-    return `
-      <div class="editor-divorce-field">
-        <label class="editor-checkbox">
-          <input type="checkbox" data-action="toggle-divorced" data-divorce-path="${encodedPath}" ${hasDivorceDateField ? 'checked' : ''}${disabled} />
-          <span>Разведены</span>
-        </label>
-        ${hasDivorceDateField ? `
-          <label class="editor-field">
-            <span class="editor-label">${escapeHtml(label)}</span>
-            <input class="editor-input" data-path="${encodedPath}" type="text" value="${fieldValue}"${disabled} />
-            ${hint ? `<span class="editor-hint">${hint}</span>` : ''}
-          </label>
-        ` : ''}
-      </div>
-    `;
-  }
+  const isNumberField = isDatePartKey(key);
+  const numberAttributes = key === 'day'
+    ? ' min="1" max="31" step="1" inputmode="numeric"'
+    : key === 'month'
+      ? ' min="1" max="12" step="1" inputmode="numeric"'
+      : key === 'year'
+        ? ' min="0" step="1" inputmode="numeric"'
+        : '';
 
   if (isSelectField) {
     const selectOptions = RELATION_FIELD_KEYS.has(key)
@@ -250,7 +251,7 @@ function renderScalarEditor(path, key, value, schemaNode, context) {
 
   const textControl = multiline
     ? `<textarea class="editor-input editor-input-textarea editor-link-mask-target" data-path="${encodedPath}" rows="4"${disabled}${placeholder}>${fieldValue}</textarea>`
-    : `<input class="editor-input editor-link-mask-target" data-path="${encodedPath}" type="text" value="${fieldValue}"${disabled}${placeholder} />`;
+    : `<input class="editor-input editor-link-mask-target" data-path="${encodedPath}" type="${isNumberField ? 'number' : 'text'}" value="${fieldValue}"${disabled}${placeholder}${isNumberField ? numberAttributes : ''} />`;
 
   return `
     <label class="editor-field">
@@ -261,6 +262,61 @@ function renderScalarEditor(path, key, value, schemaNode, context) {
       </div>
       ${hint ? `<span class="editor-hint">${hint}</span>` : ''}
     </label>
+  `;
+}
+
+function renderOtherInfoEditor(value, path, context) {
+  const objectValue = isObject(value) ? value : {};
+  const entries = Object.entries(objectValue);
+  const containerPath = escapeHtml(encodePath(path));
+  const disabled = context.disableInputs ? ' disabled' : '';
+
+  return `
+    <div class="editor-array editor-other-info" data-other-info-path="${containerPath}">
+      ${entries.length
+        ? entries.map(([entryKey, entryValue], index) => {
+          const normalized = isObject(entryValue)
+            ? entryValue
+            : { label: '', text: String(entryValue ?? '') };
+          const basePath = [...path, entryKey];
+          return `
+            <div class="editor-array-item editor-other-info-item">
+              <button
+                class="editor-array-remove"
+                type="button"
+                data-action="remove-other-info-entry"
+                data-other-info-path="${containerPath}"
+                data-other-info-key="${escapeHtml(entryKey)}"
+                aria-label="Удалить подпункт"
+                title="Удалить подпункт"
+                ${disabled}
+              >&times;</button>
+              <div class="editor-grid">
+                ${renderScalarEditor([...basePath, 'label'], 'label', normalized.label, '', context)}
+                ${renderScalarEditor([...basePath, 'text'], 'text', normalized.text, '', context)}
+              </div>
+            </div>
+          `;
+        }).join('')
+        : '<div class="editor-array-empty">Раздел пока пустой.</div>'}
+      <button class="editor-array-action" type="button" data-action="add-other-info-entry" data-other-info-path="${containerPath}"${disabled}>Добавить подпункт</button>
+    </div>
+  `;
+}
+
+function renderDateObjectEditor(schemaNode, value, path, context) {
+  const objectValue = isObject(value) ? value : {};
+
+  return `
+    <div class="editor-date-row">
+      ${['day', 'month', 'year'].map((partKey) => renderScalarEditor(
+        [...path, partKey],
+        partKey,
+        objectValue[partKey],
+        schemaNode?.[partKey],
+        context,
+      )).join('')}
+    </div>
   `;
 }
 
@@ -316,8 +372,14 @@ function renderArrayEditorClean(schemaNode, value, path, key, context) {
 }
 
 function renderEditorNode(schemaNode, value, path, key, context) {
+  if (key === 'other_info') {
+    return renderOtherInfoEditor(value, path, context);
+  }
   if (Array.isArray(schemaNode)) {
     return renderArrayEditorClean(schemaNode[0], value, path, key, context);
+  }
+  if (isDateSchema(schemaNode)) {
+    return renderDateObjectEditor(schemaNode, value, path, context);
   }
   if (isObject(schemaNode)) {
     return renderObjectEditor(schemaNode, value, path, context);
@@ -380,6 +442,19 @@ async function loadEditorSchemaBundle() {
 function normalizeDraftValue(value, schemaNode, path, options) {
   const key = path[path.length - 1];
 
+  if (isDateSchema(schemaNode)) {
+    if (value === null) return null;
+    const objectValue = isObject(value) ? value : {};
+    const result = {};
+    for (const partKey of ['day', 'month', 'year']) {
+      const normalizedPart = normalizeDatePartValue(partKey, objectValue[partKey]);
+      if (normalizedPart !== '') {
+        result[partKey] = normalizedPart;
+      }
+    }
+    return result;
+  }
+
   if (Array.isArray(value)) {
     const itemSchema = Array.isArray(schemaNode) ? schemaNode[0] : undefined;
     return value
@@ -403,8 +478,8 @@ function normalizeDraftValue(value, schemaNode, path, options) {
     return resolved === '' ? '' : resolved;
   }
 
-  if (DATE_FIELD_KEYS.has(key)) {
-    return normalizeDateValue(value);
+  if (isDatePartKey(key)) {
+    return normalizeDatePartValue(key, value);
   }
 
   return value;
@@ -416,6 +491,32 @@ export function normalizePersonDraft(draft, schema, options = {}) {
 
 function validateDraftNode(value, schemaNode, path, errors, options) {
   const key = path[path.length - 1];
+
+  if (isDateSchema(schemaNode)) {
+    if (value === null) {
+      return;
+    }
+
+    if (!isObject(value)) {
+      errors.push(`Поле "${getFieldLabel(key)}" должно содержать подполя day, month и year.`);
+      return;
+    }
+
+    const day = value.day;
+    const month = value.month;
+    const year = value.year;
+
+    if (day !== undefined && (!Number.isInteger(day) || day < 1 || day > 31)) {
+      errors.push('Поле "День" должно быть числом от 1 до 31.');
+    }
+    if (month !== undefined && (!Number.isInteger(month) || month < 1 || month > 12)) {
+      errors.push('Поле "Месяц" должно быть числом от 1 до 12.');
+    }
+    if (year !== undefined && (!Number.isInteger(year) || year < 0)) {
+      errors.push('Поле "Год" должно быть неотрицательным целым числом.');
+    }
+    return;
+  }
 
   if (RELATION_FIELD_KEYS.has(key)) {
     const raw = String(value || '').trim();
@@ -429,13 +530,6 @@ function validateDraftNode(value, schemaNode, path, errors, options) {
     const optionsList = extractSchemaOptions(schemaNode);
     if (raw && optionsList.length && !optionsList.includes(raw)) {
       errors.push(`Поле "${getFieldLabel(key)}" должно содержать одно из предложенных значений.`);
-    }
-  }
-
-  if (DATE_FIELD_KEYS.has(key) && value !== null) {
-    const raw = normalizeDateValue(value);
-    if (raw && !DATE_RE.test(raw)) {
-      errors.push(`Поле "${getFieldLabel(key)}" должно быть в формате DD.MM.YYYY или быть пустым.`);
     }
   }
 
@@ -453,6 +547,22 @@ function validateDraftNode(value, schemaNode, path, errors, options) {
 }
 
 function pruneBySchema(value, schemaNode, path = []) {
+  if (isDateSchema(schemaNode)) {
+    if (value === null) {
+      if (path.join('.') === 'death.date') return null;
+      return undefined;
+    }
+
+    const objectValue = isObject(value) ? value : {};
+    const ordered = {};
+    for (const partKey of ['day', 'month', 'year']) {
+      if (Number.isInteger(objectValue[partKey])) {
+        ordered[partKey] = objectValue[partKey];
+      }
+    }
+    return Object.keys(ordered).length ? ordered : undefined;
+  }
+
   if (Array.isArray(value)) {
     const itemSchema = Array.isArray(schemaNode) ? schemaNode[0] : undefined;
     const items = value
@@ -498,7 +608,7 @@ export function clonePersonDraft(person) {
 }
 
 export function hydrateDraftForEditor(person, schema, peopleById) {
-  return hydrateDraftValue(clonePersonDraft(person), schema, [], peopleById);
+  return hydrateDraftValue(migratePersonSchema(clonePersonDraft(person)), schema, [], peopleById);
 }
 
 export function createDraftFromSchema(schema) {
@@ -538,10 +648,39 @@ export function addDraftArrayItem(draft, schema, arrayPathString) {
   if (!Array.isArray(container[leaf])) container[leaf] = [];
   const itemSchema = getSchemaNode(schema, path);
   const nextItem = createEmptyValue(Array.isArray(itemSchema) ? itemSchema[0] : itemSchema);
-  if (leaf === 'spouses' && isObject(nextItem) && 'divorce_date' in nextItem) {
-    delete nextItem.divorce_date;
-  }
   container[leaf].push(nextItem);
+}
+
+export function addOtherInfoEntry(draft, pathString) {
+  const path = parsePath(pathString);
+  if (!path.length) return;
+
+  const container = ensureContainer(draft, path);
+  const leaf = path[path.length - 1];
+  if (!isObject(container[leaf])) {
+    container[leaf] = {};
+  }
+
+  const objectValue = container[leaf];
+  const usedIndexes = Object.keys(objectValue)
+    .map((key) => key.match(/^other_info(\d+)$/i))
+    .filter(Boolean)
+    .map((match) => Number(match[1]));
+  const nextIndex = usedIndexes.length ? Math.max(...usedIndexes) + 1 : 1;
+  objectValue[`other_info${nextIndex}`] = {
+    label: '',
+    text: '',
+  };
+}
+
+export function removeOtherInfoEntry(draft, pathString, entryKey) {
+  const path = parsePath(pathString);
+  if (!path.length) return;
+
+  const container = ensureContainer(draft, path);
+  const leaf = path[path.length - 1];
+  if (!isObject(container[leaf])) return;
+  delete container[leaf][entryKey];
 }
 
 export function removeDraftArrayItem(draft, arrayPathString, index) {
@@ -554,7 +693,7 @@ export function removeDraftArrayItem(draft, arrayPathString, index) {
 
 export function setAliveState(draft, isAlive) {
   if (!isObject(draft.death)) draft.death = {};
-  draft.death.date = isAlive ? null : '';
+  draft.death.date = isAlive ? null : {};
 }
 
 export function setDivorcedState(draft, pathString, isDivorced) {
@@ -566,7 +705,7 @@ export function setDivorcedState(draft, pathString, isDivorced) {
 
   if (isDivorced) {
     if (container[leaf] === undefined || container[leaf] === null) {
-      container[leaf] = '';
+      container[leaf] = [{}];
     }
     return;
   }
@@ -585,7 +724,7 @@ export function syncNameChangeDateField(draft, reasonPathString, reasonValue) {
   const normalizedReason = String(reasonValue || '').trim().toLowerCase();
   if (normalizedReason === 'смена имени') {
     if (container.date === undefined || container.date === null) {
-      container.date = '';
+      container.date = {};
     }
     return;
   }
@@ -598,7 +737,7 @@ export function renderEditablePersonDetails(personId, person, schema, descriptio
 
   const title = getPersonDisplayName(person, personId);
   const sections = Object.keys(schema).map((key) => {
-    const isAlive = key === 'death' && person.death?.date === null;
+    const isAlive = key === 'death' && getLifeEvent(person, 'death').isAlive;
     const isSectionDisabled = key === 'id' || (key === 'death' && isAlive);
     const sectionLabel = getFieldLabel(key);
     return `
@@ -650,13 +789,6 @@ export function validatePersonDraft(draft, schema, options = {}) {
 
   const sexValue = String(normalized?.sex || '').trim();
   if (!sexValue) errors.push('Поле "Пол" обязательно для заполнения.');
-
-  const birthDate = normalizeDateValue(normalized?.birth?.date);
-  if (!birthDate) {
-    errors.push('Поле "Дата" в блоке "Рождение" обязательно для заполнения.');
-  } else if (birthDate !== UNKNOWN_DATE_VALUE && !DATE_RE.test(birthDate)) {
-    errors.push('Дата рождения должна быть в формате DD.MM.YYYY или ???.');
-  }
 
   validateDraftNode(normalized, schema, [], errors, options);
 

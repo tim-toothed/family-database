@@ -1,14 +1,15 @@
 import {
+  addOtherInfoEntry,
   addDraftArrayItem,
   buildPersonOptionEntries,
   createDraftFromSchema,
   hydrateDraftForEditor,
   loadEditorDescriptions,
   loadEditorSchema,
+  removeOtherInfoEntry,
   removeDraftArrayItem,
   renderEditablePersonDetails,
   setAliveState,
-  setDivorcedState,
   syncNameChangeDateField,
   updateDraftValue,
   validateEditorPersonDraft,
@@ -413,9 +414,18 @@ function bindEditorEvents() {
     });
   });
 
-  editorBody.querySelectorAll('[data-action="toggle-divorced"]').forEach((checkbox) => {
-    checkbox.addEventListener('change', () => {
-      setDivorcedState(draft, checkbox.dataset.divorcePath, checkbox.checked);
+  editorBody.querySelectorAll('[data-action="add-other-info-entry"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      addOtherInfoEntry(draft, button.dataset.otherInfoPath);
+      renderEditor();
+      syncUnsavedChangesState();
+      setBannerMessage('');
+    });
+  });
+
+  editorBody.querySelectorAll('[data-action="remove-other-info-entry"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      removeOtherInfoEntry(draft, button.dataset.otherInfoPath, button.dataset.otherInfoKey);
       renderEditor();
       syncUnsavedChangesState();
       setBannerMessage('');
