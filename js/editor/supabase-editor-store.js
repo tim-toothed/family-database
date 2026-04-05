@@ -1,5 +1,6 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_CONFIG } from '../config.js';
+import { normalizeLoadedPerson } from '../person/model.js';
 
 const { url, publishableKey, schema, tables } = SUPABASE_CONFIG;
 
@@ -20,10 +21,7 @@ function normalizePersonPayload(personId, payload) {
     throw new Error(`Некорректный payload для ${personId}.`);
   }
 
-  return {
-    ...payload,
-    id: String(payload.id || personId || '').trim(),
-  };
+  return normalizeLoadedPerson(payload, personId);
 }
 
 export async function loadPeopleIndex() {

@@ -1,5 +1,6 @@
 import { getDatasetPersonName } from '../render/person-name.js';
 import { sortFamilyGroups } from './table-family-groups.js';
+import { getBirthNameParts, getRelationEntries } from '../person/model.js';
 
 const PERSON_ID_NAME_RE = /^P\d{3}$/i;
 
@@ -76,7 +77,7 @@ function buildFamilyIds(people) {
   const sortedIds = Array.from(people.keys()).sort();
 
   for (const personId of sortedIds) {
-    const birthName = people.get(personId)?.birth_name || {};
+    const birthName = getBirthNameParts(people.get(personId));
     const surname = birthName.surname || '';
     familyKeyByPerson.set(personId, canonicalFamilyKey(personId, surname, warnings));
   }
@@ -111,26 +112,26 @@ function buildRelationshipGraph(people) {
   const missingRefs = new Set();
 
   for (const [personId, data] of people.entries()) {
-    for (const parent of data.parents || []) {
-      const other = parent?.person_id;
+    for (const parent of getRelationEntries(data, 'parents')) {
+      const other = parent.personId;
       addHardEdge(hardEdgesByKey, people, missingRefs, personId, other, -1, 'parent');
       addHardEdge(hardEdgesByKey, people, missingRefs, other, personId, 1, 'child');
     }
 
-    for (const child of data.children || []) {
-      const other = child?.person_id;
+    for (const child of getRelationEntries(data, 'children')) {
+      const other = child.personId;
       addHardEdge(hardEdgesByKey, people, missingRefs, personId, other, 1, 'child');
       addHardEdge(hardEdgesByKey, people, missingRefs, other, personId, -1, 'parent');
     }
 
-    for (const spouse of data.spouses || []) {
-      const other = spouse?.person_id;
+    for (const spouse of getRelationEntries(data, 'spouses')) {
+      const other = spouse.personId;
       addHardEdge(hardEdgesByKey, people, missingRefs, personId, other, 0, 'spouse');
       addHardEdge(hardEdgesByKey, people, missingRefs, other, personId, 0, 'spouse');
     }
 
-    for (const sibling of data.siblings || []) {
-      const other = sibling?.person_id;
+    for (const sibling of getRelationEntries(data, 'siblings')) {
+      const other = sibling.personId;
       if (!other) continue;
       if (!people.has(other)) {
         missingRefs.add(other);
@@ -432,7 +433,7 @@ export function buildPeopleTableData(dataset, options = {}) {
 
   const rows = Array.from(people.keys()).map((personId) => {
     const person = people.get(personId) || {};
-    const birthName = person.birth_name || {};
+    const birthName = getBirthNameParts(person);
     const fullName = getDatasetPersonName(dataset, personId, personId);
 
     return {
@@ -442,7 +443,7 @@ export function buildPeopleTableData(dataset, options = {}) {
       fullName,
       hasUnknownSurname: String(birthName.surname || '').trim().startsWith('???'),
       hasIdFallbackName: PERSON_ID_NAME_RE.test(String(fullName).trim()),
-      firstName: String(birthName.first_name || ''),
+      firstName: String(birthName.firstName || ''),
       patronymic: String(birthName.patronymic || ''),
     };
   });

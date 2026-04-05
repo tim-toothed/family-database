@@ -1,6 +1,7 @@
 import { buildFamilyGroups } from './table-family-groups.js';
 import { buildPeopleTableData } from './table-view.js';
 import { buildFamilyColorTheme, pickBranchPersonId } from './family-colors.js';
+import { getBirthNameParts, getPersonSex, getRelationEntries } from '../person/model.js';
 import {
   BaseD3Network,
   comparePeopleIds,
@@ -78,7 +79,7 @@ function uniqueExistingRelationIds(items, people) {
   const ids = [];
 
   for (const item of items || []) {
-    const personId = item?.person_id;
+    const personId = item?.personId ?? item?.person_id;
     if (!personId || personId === '???' || seen.has(personId) || !people.has(personId)) {
       continue;
     }
@@ -97,8 +98,8 @@ function orderPartnerIds(dataset, personIds) {
   }
 
   return uniqueIds.slice().sort((leftId, rightId) => {
-    const leftSex = getSexLabel(dataset.people.get(leftId)?.sex);
-    const rightSex = getSexLabel(dataset.people.get(rightId)?.sex);
+    const leftSex = getPersonSex(dataset.people.get(leftId));
+    const rightSex = getPersonSex(dataset.people.get(rightId));
 
     if (leftSex === 'ж' && rightSex === 'м') return -1;
     if (leftSex === 'м' && rightSex === 'ж') return 1;
@@ -141,9 +142,9 @@ function fallbackFamilyTitle(dataset, parentIds, personId = null) {
 
 function compactPersonTitle(dataset, personId) {
   const person = dataset.people.get(personId);
-  const birthName = person?.birth_name || {};
+  const birthName = getBirthNameParts(person);
   const surname = String(birthName.surname || '').trim();
-  const firstName = String(birthName.first_name || '').trim();
+  const firstName = String(birthName.firstName || '').trim();
   const patronymic = String(birthName.patronymic || '').trim();
 
   if (!surname || (!firstName && !patronymic)) {
@@ -302,7 +303,7 @@ function buildSpousePairs(dataset) {
   const seen = new Set();
 
   for (const [personId, person] of dataset.people.entries()) {
-    const spouseIds = uniqueExistingRelationIds(person?.spouses, dataset.people)
+    const spouseIds = uniqueExistingRelationIds(getRelationEntries(person, 'spouses'), dataset.people)
       .sort((leftId, rightId) => comparePeopleIds(dataset, leftId, rightId));
 
     for (const spouseId of spouseIds) {
@@ -324,7 +325,7 @@ function buildChildFamilyUnits(dataset, tableData, metaLookup) {
   const unitsByKey = new Map();
 
   for (const [childId, person] of dataset.people.entries()) {
-    const parentIds = uniqueExistingRelationIds(person?.parents, dataset.people)
+    const parentIds = uniqueExistingRelationIds(getRelationEntries(person, 'parents'), dataset.people)
       .sort((leftId, rightId) => comparePeopleIds(dataset, leftId, rightId))
       .slice(0, 2);
 

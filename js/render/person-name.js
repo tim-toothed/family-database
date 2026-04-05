@@ -1,25 +1,9 @@
-export function formatBirthName(birthName) {
-  if (typeof birthName === 'string') {
-    return birthName.trim();
-  }
+import {
+  formatBirthName,
+  getPersonDisplayName,
+} from '../person/model.js';
 
-  if (!birthName || typeof birthName !== 'object') {
-    return '';
-  }
-
-  return [
-    birthName.surname,
-    birthName.first_name,
-    birthName.patronymic,
-  ]
-    .map((part) => String(part ?? '').trim())
-    .filter(Boolean)
-    .join(' ');
-}
-
-export function getPersonDisplayName(person, fallback = '') {
-  return formatBirthName(person?.birth_name) || String(fallback ?? '').trim();
-}
+export { formatBirthName, getPersonDisplayName };
 
 export function getDatasetPersonName(dataset, personId, fallback = null) {
   if (!personId) return String(fallback ?? '');

@@ -2,6 +2,7 @@ import { CONFIG } from '../config.js';
 import { buildFamilyGroups } from '../visualization/table-family-groups.js';
 import { getPersonDisplayName } from './person-name.js';
 import { buildPeopleTableData } from '../visualization/table-view.js';
+import { normalizeLoadedPerson } from '../person/model.js';
 
 async function fetchText(path) {
   const response = await fetch(path);
@@ -100,10 +101,7 @@ export async function loadDataset() {
   const results = await Promise.all(ids.map((id) => loadPersonYaml(id)));
   for (const result of results) {
     if (result?.data) {
-      const person = {
-        ...result.data,
-        id: result.data.id || result.id,
-      };
+      const person = normalizeLoadedPerson(result.data, result.id);
 
       people.set(result.id, person);
       availableIds.add(result.id);

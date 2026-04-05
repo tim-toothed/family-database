@@ -1,4 +1,11 @@
 import { getDatasetPersonName } from '../render/person-name.js';
+import {
+  getBirthYear,
+  getDateYear,
+  getLifeYears as getPersonLifeYears,
+  getPersonSex,
+  getRelationEntries,
+} from '../person/model.js';
 
 export const EDGE_COLORS = {
   parent: '#94a3b8',
@@ -44,7 +51,7 @@ export function normalizeText(value) {
 }
 
 export function getSexLabel(sex) {
-  return normalizeText(sex);
+  return normalizeText(sex?.sex ?? sex);
 }
 
 export function isPlaceholderId(personId) {
@@ -57,29 +64,12 @@ export function personName(dataset, personId) {
 }
 
 export function extractYear(value) {
-  if (value == null) return null;
-
-  const text = String(value).trim();
-  if (!text) return null;
-
-  const match = text.match(/(\d{4})/);
-  return match ? match[1] : null;
+  const year = getDateYear(value);
+  return year == null ? null : String(year);
 }
 
 export function getLifeYears(person) {
-  if (!person) return '';
-
-  const birthYear = extractYear(person?.birth?.date);
-  const deathDate = person?.death?.date;
-
-  if (deathDate === null) {
-    return birthYear ?? '';
-  }
-
-  const deathYear = extractYear(deathDate);
-  if (!birthYear && !deathYear) return '';
-  if (birthYear && deathYear) return `${birthYear}-${deathYear}`;
-  return birthYear || deathYear || '';
+  return getPersonLifeYears(person);
 }
 
 export function wrapText(value, maxLineLength = NODE.lineLength, maxLines = 4) {
@@ -120,8 +110,7 @@ export function computeFontSize(label) {
 }
 
 export function birthYear(person) {
-  const match = String(person?.birth?.date || '').match(/(\d{4})$/);
-  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER;
+  return getBirthYear(person) ?? Number.MAX_SAFE_INTEGER;
 }
 
 export function comparePeopleIds(dataset, leftPersonId, rightPersonId) {
@@ -137,11 +126,11 @@ export function comparePeopleIds(dataset, leftPersonId, rightPersonId) {
 }
 
 export function parentRank(dataset, parentEntry) {
-  const relation = normalizeText(parentEntry?.relation_type);
+  const relation = normalizeText(parentEntry?.relationType ?? parentEntry?.relation_type);
   if (relation.includes('мать')) return 0;
   if (relation.includes('отец')) return 1;
 
-  const sex = getSexLabel(dataset.people.get(parentEntry?.person_id)?.sex);
+  const sex = getPersonSex(dataset.people.get(parentEntry?.personId ?? parentEntry?.person_id));
   if (sex === 'ж') return 0;
   if (sex === 'м') return 1;
   return 2;
@@ -150,7 +139,7 @@ export function parentRank(dataset, parentEntry) {
 export function compareParents(dataset, left, right) {
   const rankDiff = parentRank(dataset, left) - parentRank(dataset, right);
   if (rankDiff !== 0) return rankDiff;
-  return comparePeopleIds(dataset, left.person_id, right.person_id);
+  return comparePeopleIds(dataset, left.personId ?? left.person_id, right.personId ?? right.person_id);
 }
 
 export function uniqueByPersonId(list) {
@@ -158,12 +147,19 @@ export function uniqueByPersonId(list) {
   const result = [];
 
   for (const item of list || []) {
-    if (!item?.person_id || item.person_id === '???' || seen.has(item.person_id)) {
+    const personId = item?.personId ?? item?.person_id;
+    if (!personId || personId === '???' || seen.has(personId)) {
       continue;
     }
 
-    seen.add(item.person_id);
-    result.push(item);
+    seen.add(personId);
+    result.push({
+      ...item,
+      personId,
+      person_id: personId,
+      relationType: item?.relationType ?? item?.relation_type,
+      relation_type: item?.relationType ?? item?.relation_type,
+    });
   }
 
   return result;
@@ -174,7 +170,7 @@ export function makePlaceholderParent(personId, generation, slot) {
 }
 
 export function getParentPair(dataset, personId, generation) {
-  const knownParents = uniqueByPersonId(dataset.people.get(personId)?.parents || [])
+  const knownParents = uniqueByPersonId(getRelationEntries(dataset.people.get(personId), 'parents'))
     .sort((left, right) => compareParents(dataset, left, right))
     .slice(0, 2);
 
@@ -182,18 +178,18 @@ export function getParentPair(dataset, personId, generation) {
   if (knownParents.length === 2) return knownParents;
 
   const [knownParent] = knownParents;
-  const relation = normalizeText(knownParent?.relation_type);
-  const sex = getSexLabel(dataset.people.get(knownParent.person_id)?.sex);
+  const relation = normalizeText(knownParent?.relationType);
+  const sex = getPersonSex(dataset.people.get(knownParent.personId));
 
   if (relation.includes('отец') || sex === 'м') {
-    return [makePlaceholderParent(personId, generation + 1, 'mother'), knownParent];
+    return [makePlaceholderParent(personId, generation + 1, 'mother'), { ...knownParent, person_id: knownParent.personId }];
   }
 
   if (relation.includes('мать') || sex === 'ж') {
-    return [knownParent, makePlaceholderParent(personId, generation + 1, 'father')];
+    return [{ ...knownParent, person_id: knownParent.personId }, makePlaceholderParent(personId, generation + 1, 'father')];
   }
 
-  return [knownParent, makePlaceholderParent(personId, generation + 1, 'parent')];
+  return [{ ...knownParent, person_id: knownParent.personId }, makePlaceholderParent(personId, generation + 1, 'parent')];
 }
 
 export function makePersonGraphNode(dataset, personId, x, y) {
@@ -201,7 +197,7 @@ export function makePersonGraphNode(dataset, personId, x, y) {
   const name = personName(dataset, personId);
   const person = isPlaceholder ? null : dataset.people.get(personId);
   const subtitle = isPlaceholder ? '' : getLifeYears(person);
-  const sex = getSexLabel(person?.sex);
+  const sex = getPersonSex(person);
 
   const color = isPlaceholder
     ? { background: '#f8fafc', border: EDGE_COLORS.placeholder }

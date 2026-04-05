@@ -1,5 +1,11 @@
 import { getDatasetPersonName } from '../render/person-name.js';
 import { buildFamilyColorTheme } from './family-colors.js';
+import {
+  getBirthNameParts,
+  getBirthYear,
+  getPersonSex,
+  getRelationEntries,
+} from '../person/model.js';
 
 const PERSON_ID_NAME_RE = /^P\d{3}$/i;
 
@@ -8,13 +14,7 @@ function normalizeText(value) {
 }
 
 function getSexLabel(person) {
-  return normalizeText(person?.sex);
-}
-
-function extractYear(value) {
-  if (value == null) return null;
-  const match = String(value).match(/(\d{4})/);
-  return match ? Number(match[1]) : null;
+  return getPersonSex(person);
 }
 
 function uniqueRelationIds(items, people) {
@@ -22,7 +22,7 @@ function uniqueRelationIds(items, people) {
   const ids = [];
 
   for (const item of items || []) {
-    const personId = item?.person_id;
+    const personId = item?.personId ?? item?.person_id;
     if (!personId || personId === '???' || seen.has(personId) || !people.has(personId)) {
       continue;
     }
@@ -34,15 +34,15 @@ function uniqueRelationIds(items, people) {
 }
 
 function getChildIds(person, people) {
-  return uniqueRelationIds(person?.children, people);
+  return uniqueRelationIds(getRelationEntries(person, 'children'), people);
 }
 
 function getParentIds(person, people) {
-  return uniqueRelationIds(person?.parents, people);
+  return uniqueRelationIds(getRelationEntries(person, 'parents'), people);
 }
 
 function getSpouseIds(person, people) {
-  return uniqueRelationIds(person?.spouses, people);
+  return uniqueRelationIds(getRelationEntries(person, 'spouses'), people);
 }
 
 function compareStringsAsc(left, right) {
@@ -50,7 +50,7 @@ function compareStringsAsc(left, right) {
 }
 
 function getPersonNameTailSortBucket(personId, person, dataset) {
-  const birthName = person?.birth_name || {};
+  const birthName = getBirthNameParts(person);
   const displayName = getDatasetPersonName(dataset, personId, personId);
 
   if (PERSON_ID_NAME_RE.test(String(displayName).trim())) return 2;
@@ -61,8 +61,8 @@ function getPersonNameTailSortBucket(personId, person, dataset) {
 function comparePeopleNamesAsc(leftId, rightId, dataset, tableData) {
   const left = dataset.people.get(leftId) || {};
   const right = dataset.people.get(rightId) || {};
-  const leftBirthName = left.birth_name || {};
-  const rightBirthName = right.birth_name || {};
+  const leftBirthName = getBirthNameParts(left);
+  const rightBirthName = getBirthNameParts(right);
   const leftSortBucket = getPersonNameTailSortBucket(leftId, left, dataset);
   const rightSortBucket = getPersonNameTailSortBucket(rightId, right, dataset);
 
@@ -74,7 +74,7 @@ function comparePeopleNamesAsc(leftId, rightId, dataset, tableData) {
   const rightFamilyId = tableData.familyIdByPerson.get(rightId) ?? Number.MAX_SAFE_INTEGER;
   if (leftFamilyId !== rightFamilyId) return leftFamilyId - rightFamilyId;
 
-  const firstNameCompare = compareStringsAsc(leftBirthName.first_name, rightBirthName.first_name);
+  const firstNameCompare = compareStringsAsc(leftBirthName.firstName, rightBirthName.firstName);
   if (firstNameCompare !== 0) return firstNameCompare;
 
   const patronymicCompare = compareStringsAsc(leftBirthName.patronymic, rightBirthName.patronymic);
@@ -90,8 +90,8 @@ function comparePeopleNamesAsc(leftId, rightId, dataset, tableData) {
 }
 
 function compareChildIds(leftId, rightId, dataset, tableData) {
-  const leftYear = extractYear(dataset.people.get(leftId)?.birth?.date);
-  const rightYear = extractYear(dataset.people.get(rightId)?.birth?.date);
+  const leftYear = getBirthYear(dataset.people.get(leftId));
+  const rightYear = getBirthYear(dataset.people.get(rightId));
 
   if (leftYear == null && rightYear != null) return 1;
   if (leftYear != null && rightYear == null) return -1;
@@ -147,9 +147,9 @@ function orderParentIds(dataset, leftId, rightId, childIds) {
   if (leftSex === 'ж' && rightSex !== 'ж') return [rightId, leftId];
   if (rightSex === 'ж' && leftSex !== 'ж') return [leftId, rightId];
 
-  const childParentHints = childIds.flatMap((childId) => dataset.people.get(childId)?.parents || []);
-  const leftScore = childParentHints.filter((item) => item?.person_id === leftId && normalizeText(item?.relation_type).includes('отец')).length;
-  const rightScore = childParentHints.filter((item) => item?.person_id === rightId && normalizeText(item?.relation_type).includes('отец')).length;
+  const childParentHints = childIds.flatMap((childId) => getRelationEntries(dataset.people.get(childId), 'parents'));
+  const leftScore = childParentHints.filter((item) => item.personId === leftId && normalizeText(item.relationType).includes('отец')).length;
+  const rightScore = childParentHints.filter((item) => item.personId === rightId && normalizeText(item.relationType).includes('отец')).length;
   if (leftScore !== rightScore) return leftScore > rightScore ? [leftId, rightId] : [rightId, leftId];
 
   return compareStringsAsc(leftId, rightId) <= 0 ? [leftId, rightId] : [rightId, leftId];
@@ -209,7 +209,7 @@ function buildFamilyTitle(dataset, ownerId) {
   }
 
   const person = dataset.people.get(ownerId);
-  const birthName = person?.birth_name || {};
+  const birthName = getBirthNameParts(person);
   const sex = getSexLabel(person);
   const originalName = getDatasetPersonName(dataset, ownerId, ownerId);
 
@@ -218,7 +218,7 @@ function buildFamilyTitle(dataset, ownerId) {
   }
 
   const surname = appendMaleGenitive(birthName.surname);
-  const firstName = inflectMaleFirstName(birthName.first_name);
+  const firstName = inflectMaleFirstName(birthName.firstName);
   const patronymic = inflectPatronymic(birthName.patronymic);
   const inflected = [surname, firstName, patronymic].filter(Boolean).join(' ').trim();
 
@@ -398,7 +398,7 @@ function buildFamilyGroup(pairIds, childIds, dataset, tableData) {
     .map((personId) => tableData.generationByPerson.get(personId))
     .filter((value) => value != null);
   const oldestChildYear = childIds
-    .map((childId) => extractYear(dataset.people.get(childId)?.birth?.date))
+    .map((childId) => getBirthYear(dataset.people.get(childId)))
     .filter((value) => value != null)
     .sort((a, b) => a - b)[0] ?? null;
 

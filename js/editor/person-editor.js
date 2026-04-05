@@ -1,5 +1,6 @@
 import { FIELD_LABELS } from '../config.js';
 import { getPersonDisplayName } from '../render/person-name.js';
+import { getLifeEvent } from '../person/model.js';
 
 const NESTED_FIELD_LABELS = {
   surname: 'Фамилия',
@@ -326,9 +327,11 @@ function renderEditorNode(schemaNode, value, path, key, context) {
 
 function buildSubtitle(personId, person) {
   const subtitleParts = [personId];
-  if (person.birth?.date) subtitleParts.push(`рожд. ${person.birth.date}`);
-  if (person.death?.date) subtitleParts.push(`ум. ${person.death.date}`);
-  if (person.death?.date === null) subtitleParts.push('жив(-а)');
+  const birth = getLifeEvent(person, 'birth');
+  const death = getLifeEvent(person, 'death');
+  if (birth.dateDisplay) subtitleParts.push(`рожд. ${birth.dateDisplay}`);
+  if (death.dateDisplay) subtitleParts.push(`ум. ${death.dateDisplay}`);
+  if (death.isAlive) subtitleParts.push('жив(-а)');
   return subtitleParts.join(' • ');
 }
 
