@@ -107,6 +107,33 @@ function buildParentRelationTypeFromChild(childRelationType, personSex) {
   return isMale ? 'отец' : 'мать';
 }
 
+function canonicalSiblingRelationType(relationType) {
+  const normalized = normalizeText(relationType);
+  if (!normalized) return '';
+  if (normalized === 'биологический') return 'биологический';
+  if (normalized === 'приемный') return 'приемный';
+  if (normalized === 'сводный по отцу') return 'сводный по отцу';
+  if (normalized === 'сводный по матери') return 'сводный по матери';
+  return String(relationType || '').trim();
+}
+
+function inferSiblingRelationType(leftRelationType, rightRelationType) {
+  const left = canonicalSiblingRelationType(leftRelationType);
+  const right = canonicalSiblingRelationType(rightRelationType);
+
+  if (!left) return right;
+  if (!right) return left;
+  if (left === right) return left;
+
+  const pair = new Set([left, right]);
+  if (pair.has('биологический') && pair.has('сводный по отцу')) return 'сводный по отцу';
+  if (pair.has('биологический') && pair.has('сводный по матери')) return 'сводный по матери';
+  if (pair.has('биологический') && pair.has('приемный')) return 'приемный';
+  if (pair.has('приемный')) return 'приемный';
+
+  return '';
+}
+
 function buildArrayEntry(personId, relationType = '') {
   const normalizedId = String(personId || '').trim();
   const normalizedRelationType = String(relationType || '').trim();
@@ -282,20 +309,41 @@ async function persistPersonWithReciprocalLinks(personId, payload, options = {})
     ...getRelationIds(previous, 'siblings'),
     ...getRelationIds(normalized, 'siblings'),
   ]);
-  const desiredSiblingEntriesById = new Map(
+  const desiredSiblingRelationById = new Map(
     (Array.isArray(normalized.siblings) ? normalized.siblings : [])
       .map((item) => {
         const targetId = String(item?.person_id || '').trim();
-        const entry = buildArrayEntry(personId, item?.relation_type);
-        return targetId && entry ? [targetId, entry] : null;
+        const relationType = canonicalSiblingRelationType(item?.relation_type);
+        return targetId ? [targetId, relationType] : null;
       })
       .filter(Boolean)
   );
+  const currentSiblingIds = Array.from(desiredSiblingRelationById.keys());
 
   for (const siblingId of allSiblingIds) {
-    applyRelatedUpdate(siblingId, (targetPerson) => (
-      setReciprocalEntry(targetPerson, 'siblings', personId, desiredSiblingEntriesById.get(siblingId) || null)
-    ));
+    applyRelatedUpdate(siblingId, (targetPerson) => {
+      let changed = false;
+      const directEntry = desiredSiblingRelationById.has(siblingId)
+        ? buildArrayEntry(personId, desiredSiblingRelationById.get(siblingId))
+        : null;
+      changed = setReciprocalEntry(targetPerson, 'siblings', personId, directEntry) || changed;
+
+      if (!desiredSiblingRelationById.has(siblingId)) {
+        return changed;
+      }
+
+      for (const otherSiblingId of currentSiblingIds) {
+        if (otherSiblingId === siblingId) continue;
+        const inferredRelationType = inferSiblingRelationType(
+          desiredSiblingRelationById.get(siblingId),
+          desiredSiblingRelationById.get(otherSiblingId),
+        );
+        const siblingEntry = buildArrayEntry(otherSiblingId, inferredRelationType);
+        changed = setReciprocalEntry(targetPerson, 'siblings', otherSiblingId, siblingEntry) || changed;
+      }
+
+      return changed;
+    });
   }
 
   const allSpouseIds = new Set([
