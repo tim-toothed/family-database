@@ -4,6 +4,11 @@ birth_name:
   first_name: Прасковья
   patronymic: Кирилловна
 sex: ж
+parents:
+- person_id: P050
+  relation_type: мать
+- person_id: P051
+  relation_type: отец
 siblings:
 - person_id: P062
   relation_type: биологический

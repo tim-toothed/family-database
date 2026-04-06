@@ -13,6 +13,13 @@ parents:
   relation_type: отец
 - person_id: P062
   relation_type: мать
+siblings:
+- person_id: P063
+  relation_type: биологический
+- person_id: P102
+  relation_type: приемный
+education:
+- education_info: Инженерно-военное училище
 profession:
 - title: Военный, сапёр
 military:

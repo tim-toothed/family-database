@@ -43,11 +43,18 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P063
+  marriage:
+  - date:
+      day: 7
+      month: 12
+      year: 1946
+    place: СССР, Украинская ССР, Запорожская область, пос. Гайчур
 children:
 - person_id: P065
   relation_type: биологический
 - person_id: P066
   relation_type: биологический
+nationality: Украинец
 profession:
 - title: Офицер-танкист
 job_places:
