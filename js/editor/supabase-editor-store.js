@@ -41,6 +41,7 @@ function getRelationIds(person, key) {
 function collectLinkedPersonIds(person) {
   return [
     ...getRelationIds(person, 'parents'),
+    ...getRelationIds(person, 'siblings'),
     ...getRelationIds(person, 'children'),
     ...getRelationIds(person, 'spouses'),
   ];
@@ -274,6 +275,26 @@ async function persistPersonWithReciprocalLinks(personId, payload, options = {})
   for (const childId of allChildIds) {
     applyRelatedUpdate(childId, (targetPerson) => (
       setReciprocalEntry(targetPerson, 'parents', personId, desiredParentEntriesByChildId.get(childId) || null)
+    ));
+  }
+
+  const allSiblingIds = new Set([
+    ...getRelationIds(previous, 'siblings'),
+    ...getRelationIds(normalized, 'siblings'),
+  ]);
+  const desiredSiblingEntriesById = new Map(
+    (Array.isArray(normalized.siblings) ? normalized.siblings : [])
+      .map((item) => {
+        const targetId = String(item?.person_id || '').trim();
+        const entry = buildArrayEntry(personId, item?.relation_type);
+        return targetId && entry ? [targetId, entry] : null;
+      })
+      .filter(Boolean)
+  );
+
+  for (const siblingId of allSiblingIds) {
+    applyRelatedUpdate(siblingId, (targetPerson) => (
+      setReciprocalEntry(targetPerson, 'siblings', personId, desiredSiblingEntriesById.get(siblingId) || null)
     ));
   }
 

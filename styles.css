@@ -1259,7 +1259,6 @@ body.editor-page {
 
 .editor-section-nav.is-visible {
   opacity: 1;
-  pointer-events: auto;
   transform: translate3d(0, 0, 0);
 }
 
@@ -1272,6 +1271,7 @@ body.editor-page {
   min-width: 220px;
   max-width: min(280px, calc(100vw - 32px));
   display: grid;
+  pointer-events: auto;
   gap: 2px;
   justify-items: start;
   padding: 12px 14px;
@@ -1384,6 +1384,7 @@ body.editor-page {
   position: absolute;
   inset: 1px;
   z-index: 2;
+  pointer-events: none;
   overflow: hidden;
   padding: 10px 12px;
   border-radius: 11px;
@@ -1394,6 +1395,10 @@ body.editor-page {
   white-space: nowrap;
   text-overflow: ellipsis;
   cursor: text;
+}
+
+.editor-link-mask-shell.is-masked .editor-link-mask-overlay {
+  pointer-events: auto;
 }
 
 .editor-link-mask-overlay.is-textarea {

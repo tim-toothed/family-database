@@ -72,8 +72,9 @@ function isObject(value) {
 }
 
 function isDateSchema(schemaNode) {
-  return isObject(schemaNode)
-    && Object.keys(schemaNode).every((key) => DATE_PART_KEYS.has(key));
+  if (!isObject(schemaNode)) return false;
+  const keys = Object.keys(schemaNode);
+  return keys.length > 0 && keys.every((key) => DATE_PART_KEYS.has(key));
 }
 
 function isDatePartKey(key) {
@@ -552,7 +553,7 @@ function normalizeDraftValue(value, schemaNode, path, options) {
 }
 
 export function normalizePersonDraft(draft, schema, options = {}) {
-  return normalizeDraftValue(draft, schema, [], options);
+  return pruneBySchema(normalizeDraftValue(draft, schema, [], options), schema) || {};
 }
 
 function validateDraftNode(value, schemaNode, path, errors, options) {
@@ -847,7 +848,8 @@ export function renderEditablePersonDetails(personId, person, schema, descriptio
 
 export function validatePersonDraft(draft, schema, options = {}) {
   const errors = [];
-  const normalized = normalizeDraftValue(draft, schema, [], options);
+  const normalizedDraft = normalizeDraftValue(draft, schema, [], options);
+  const normalized = pruneBySchema(normalizedDraft, schema) || {};
 
   const idValue = String(normalized?.id || '').trim();
   if (!idValue) errors.push('Поле "ID" обязательно для заполнения.');
@@ -859,7 +861,7 @@ export function validatePersonDraft(draft, schema, options = {}) {
   const sexValue = String(normalized?.sex || '').trim();
   if (!sexValue) errors.push('Поле "Пол" обязательно для заполнения.');
 
-  validateDraftNode(normalized, schema, [], errors, options);
+  validateDraftNode(normalizedDraft, schema, [], errors, options);
 
   return {
     valid: errors.length === 0,
@@ -899,7 +901,8 @@ function hasMeaningfulContentExcludingIdForEditor(value) {
 
 export function validateEditorPersonDraft(draft, schema, options = {}) {
   const errors = [];
-  const normalized = normalizeDraftValue(draft, schema, [], options);
+  const normalizedDraft = normalizeDraftValue(draft, schema, [], options);
+  const normalized = pruneBySchema(normalizedDraft, schema) || {};
 
   const idValue = String(normalized?.id || '').trim();
   if (!idValue) errors.push('Поле "ID" обязательно для заполнения.');
@@ -908,7 +911,7 @@ export function validateEditorPersonDraft(draft, schema, options = {}) {
     errors.push('Для новой карточки нужно заполнить хотя бы одно поле помимо ID.');
   }
 
-  validateDraftNode(normalized, schema, [], errors, options);
+  validateDraftNode(normalizedDraft, schema, [], errors, options);
 
   return {
     valid: errors.length === 0,
