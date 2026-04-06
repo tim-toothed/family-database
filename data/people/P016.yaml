@@ -49,9 +49,9 @@ spouses:
   - date:
       year: 1977
 children:
-- person_id: P046
-  relation_type: биологический
 - person_id: P047
+  relation_type: биологический
+- person_id: P046
   relation_type: биологический
 education:
 - education_info: 1947-1958. Школа №203 им. Грибоедова (ул. Кирочная, д.8). В 10 классе в феврале ушел из школы.

@@ -1,4 +1,11 @@
 id: P097
+birth_name:
+  surname: Шаравара
+  first_name: Александра
+  patronymic: Леонтьевна
+sex: ж
+death:
+  date_raw: (86 лет) [[doc:notes-svetlana-2004-2006|5230|5244]]
 parents:
 - person_id: P060
   relation_type: мать

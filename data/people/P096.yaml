@@ -1,4 +1,11 @@
 id: P096
+birth_name:
+  surname: Шаравара
+  first_name: Галина
+  patronymic: Леонтьевна
+sex: ж
+death:
+  date_raw: (83 года) [[doc:notes-svetlana-2004-2006|5214|5228]]
 parents:
 - person_id: P060
   relation_type: мать

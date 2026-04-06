@@ -27,8 +27,6 @@ children:
   relation_type: биологический
 - person_id: P093
   relation_type: биологический
-- person_id: P094
-  relation_type: биологический
 - person_id: P095
   relation_type: биологический
 - person_id: P096
@@ -39,5 +37,15 @@ children:
   relation_type: биологический
 - person_id: P099
   relation_type: биологический
+- person_id: P094
+  relation_type: биологический
+profession:
+- title: Горничная
+job_places:
+- job: Горничная в поповской семье
+other_info:
+  other_info1:
+    label: Внучка Светлана Павловна
+    text: Учила Шароварову Светлану Павловну читать и запоминать стихи.
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

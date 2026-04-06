@@ -1,0 +1,13 @@
+id: P110
+birth_name:
+  surname: Юнаш
+  first_name: Марфа
+  patronymic: Кирилловна
+sex: ж
+siblings:
+- person_id: P062
+  relation_type: биологический
+- person_id: P111
+  relation_type: биологический
+- person_id: P112
+  relation_type: биологический

@@ -1,8 +1,6 @@
 id: P050
 birth_name:
-  surname: ???
   first_name: Дарья
-  patronymic: ???
 name_changes:
 - name: Юнаш Дарья ???
   reason: брак
@@ -13,11 +11,12 @@ children:
 - person_id: P062
   relation_type: биологический
 class_title: Свободная крестьянка, кулак
+nationality: Украинка (потомок запорожских казаков) [[doc:notes-svetlana-2004-2006|4258|4296]]
 profession:
-- title: '"были крепкими хозяевами кулаками" (ШСП, стр. 7)'
+- title: Помещица [[doc:notes-svetlana-2004-2006|4201|4378]]
 job_places:
-- job: '"занимались сельским хозяйством" (ШСП, стр. 7)'
+- job: Управление крестьянами, сельское хозяйство [[doc:notes-svetlana-2004-2006|4201|4378]]
 residences:
-- residence_info: '"жили в слободах" (ШСП, стр. 7)'
+- residence_info: Слободы на территории будущей Украинской ССР [[doc:notes-svetlana-2004-2006|4328|4343]]
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

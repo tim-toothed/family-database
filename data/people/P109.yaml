@@ -1,0 +1,12 @@
+id: P109
+birth_name:
+  first_name: 'Мария '
+  patronymic: Александровна
+name_changes:
+- name: Нечитайло Мария Александровна
+  reason: брак
+sex: ж
+spouses:
+- person_id: P088
+residences:
+- residence_info: г. Москва

@@ -12,5 +12,7 @@ parents:
 siblings:
 - person_id: P060
   relation_type: биологический
+education:
+- education_info: Безграмотная
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

@@ -22,8 +22,12 @@ parents:
 siblings:
 - person_id: P047
   relation_type: биологический
-children:
-- person_id: P049
-  relation_type: биологический
+spouses:
+- person_id: P048
+  marriage:
+  - date:
+      day: 14
+      month: 9
+      year: 2001
 sources:
 - source: Семейные заметки, стр. 1, 16-17, 18-20 (записи Евгении Викторовны Шарифуллиной)

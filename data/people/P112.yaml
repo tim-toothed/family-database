@@ -1,0 +1,16 @@
+id: P112
+birth_name:
+  surname: Юнаш
+  first_name: Григорий
+  patronymic: Кириллович
+sex: м
+siblings:
+- person_id: P062
+  relation_type: биологический
+- person_id: P110
+  relation_type: биологический
+- person_id: P111
+  relation_type: биологический
+profession:
+- title: Фельдшер
+hobbies: Умел хорошо шить одежду [[doc:notes-svetlana-2004-2006|6484|6507]]

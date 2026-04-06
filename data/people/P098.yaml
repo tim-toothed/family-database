@@ -1,4 +1,15 @@
 id: P098
+birth_name:
+  surname: Шаравара
+  first_name: Прасковья
+  patronymic: Леонтьевна
+sex: ж
+birth:
+  date:
+    year: 1918
+death:
+  date:
+    year: 2010
 parents:
 - person_id: P060
   relation_type: мать

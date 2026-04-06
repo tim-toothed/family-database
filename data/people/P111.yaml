@@ -1,0 +1,13 @@
+id: P111
+birth_name:
+  surname: Юнаш
+  first_name: Прасковья
+  patronymic: Кирилловна
+sex: ж
+siblings:
+- person_id: P062
+  relation_type: биологический
+- person_id: P110
+  relation_type: биологический
+- person_id: P112
+  relation_type: биологический

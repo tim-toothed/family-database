@@ -1,8 +1,11 @@
 id: P061
 birth_name:
   surname: Нечитайло
-  first_name: Ефим (Юхым)
+  first_name: Юхым (Ефим)
   patronymic: Евсеевич
+name_changes:
+- name: Нечитайло Ефим Евсеевич
+  reason: смена имени
 sex: м
 birth:
   date:
@@ -39,9 +42,20 @@ children:
   relation_type: приемный
 - person_id: P108
   relation_type: биологический
+education:
+- education_info: Церковно-приходская школа
+- education_info: Специальные курсы (для работы главным тех руководителем на элеваторе) [[doc:notes-svetlana-2004-2006|6119|6136]]
+religion: Православный христианин
+nationality: Украинец (потомок запорожских казаков) [[doc:notes-svetlana-2004-2006|4258|4296]]
+profession:
+- title: Технический руководитель
+job_places:
+- job: Элеватор заготовки зерна "Заготзерно". Главный технический руководитель
+hobbies: 'Любил застолья, петь. Запевал после возлияния «Занедужав я в дорозе» [[doc:notes-svetlana-2004-2006|5781|5909]] '
+appearance: Рост 1,90 м [[doc:notes-svetlana-2004-2006|6774|6780]]
 other_info:
   other_info1:
-    label: Заметка
-    text: Юхым - украинская вариация имени Ефим
+    label: Смена имени
+    text: Его настоящее имя при рождении Юхым (по-украински). В царской России имя перевели на русский как Ефим. [[doc:notes-svetlana-2004-2006|299701|299721]]
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

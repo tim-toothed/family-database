@@ -29,12 +29,11 @@ spouses:
 - person_id: P016
   marriage:
   - date:
-      month: 1
       year: 1977
 children:
-- person_id: P046
-  relation_type: биологический
 - person_id: P047
+  relation_type: биологический
+- person_id: P046
   relation_type: биологический
 education:
 - education_info: Высшее ___(?) ___(?), хотела на факультет кибернетики, но прошла на (???)

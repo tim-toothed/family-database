@@ -1,4 +1,12 @@
 id: P088
+birth_name:
+  surname: Нечитайло
+  first_name: Антон
+  patronymic: Евсеевич
+sex: м
+death:
+  date_raw: 1939 или 1940
+  cause: Погиб в Советско-Финской войне
 parents:
 - person_id: P052
   relation_type: мать
@@ -15,9 +23,14 @@ siblings:
   relation_type: биологический
 - person_id: P092
   relation_type: биологический
-other_info:
-  other_info1:
-    label: Заметка
-    text: (ребенок Евдокии и Нечитайло Евсея Саввича)
+spouses:
+- person_id: P109
+profession:
+- title: Военный
+military:
+  war_participation:
+  - war: 1939-1940. Советско-Финская Война. Погиб.
+residences:
+- residence_info: г. Москва
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

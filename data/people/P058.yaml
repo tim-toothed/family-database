@@ -1,8 +1,11 @@
 id: P058
 birth_name:
   surname: Шаравара
-  first_name: Леонтий
-  patronymic: Давидович
+  first_name: Лэвко (Леонтий)
+  patronymic: Давыдович
+name_changes:
+- name: Шаравара Леонтий Давидович
+  reason: смена имени
 sex: м
 birth:
   date:
@@ -39,5 +42,22 @@ children:
   relation_type: биологический
 - person_id: P099
   relation_type: биологический
+education:
+- education_info: Церковно-приходская школа
+class_title: Свободный крестьянин, кулак
+religion: Православный христианин
+nationality: Украинец
+profession:
+- title: Помещик [[doc:notes-svetlana-2004-2006|5540|5611]]
+job_places:
+- job: Управление крестьянами, сельское хозяйство
+hobbies: 'Пел в церковном хоре. Любимая народная песня "Закувала та сива зозуля". Любили застолья. '
+other_info:
+  other_info1:
+    label: Изменение имени
+    text: Его настоящее имя при рождении Лэвко Давыдович (по-украински). В царской России имя перевели на русский - отсюда Леонтий Давидович. [[doc:notes-svetlana-2004-2006|299589|299654]]
+  other_info2:
+    label: Раскулачивание
+    text: Раскулачивания избежал при коллективизации только из-за большой семьи [[doc:notes-svetlana-2004-2006|5540|5611]]
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

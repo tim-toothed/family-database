@@ -1,4 +1,11 @@
 id: P099
+birth_name:
+  surname: Шаравара
+  first_name: Раиса
+  patronymic: Леонтьевна
+sex: ж
+death:
+  date_raw: (78 лет) [[doc:notes-svetlana-2004-2006|5390|5411]]
 parents:
 - person_id: P060
   relation_type: мать

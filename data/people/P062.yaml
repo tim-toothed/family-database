@@ -1,8 +1,11 @@
 id: P062
 birth_name:
   surname: Юнаш
-  first_name: Ксения (Оксана)
+  first_name: Оксана (Ксения)
   patronymic: Кирилловна
+name_changes:
+- name: Юнаш Ксения Кирилловна
+  reason: смена имени
 sex: ж
 birth:
   date:
@@ -19,6 +22,13 @@ parents:
   relation_type: мать
 - person_id: P051
   relation_type: отец
+siblings:
+- person_id: P110
+  relation_type: биологический
+- person_id: P111
+  relation_type: биологический
+- person_id: P112
+  relation_type: биологический
 spouses:
 - person_id: P061
 children:
@@ -28,5 +38,12 @@ children:
   relation_type: приемный
 - person_id: P108
   relation_type: биологический
+other_info:
+  other_info1:
+    label: Смена имени
+    text: Её настоящее имя при рождении Оксана (по-украински). В царской России имя перевели на русский как Ксения. [[doc:notes-svetlana-2004-2006|299669|299699]]
+  other_info2:
+    label: Внучка Светлана Павловна
+    text: Летом солила арбузы для своей внучки, Шароваровой Светланы Павловны - свежие она не ела. [[doc:notes-svetlana-2004-2006|6989|7063]]
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

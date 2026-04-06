@@ -1,10 +1,8 @@
 id: P052
 birth_name:
-  surname: ???
   first_name: Евдокия
-  patronymic: ???
 name_changes:
-- name: Нечитайло Евдокия ???
+- name: Нечитайло Евдокия
   reason: брак
 sex: ж
 spouses:
@@ -23,15 +21,12 @@ children:
 - person_id: P092
   relation_type: биологический
 class_title: Свободная крестьянка, кулак
+nationality: Украинка (потомок запорожских казаков) [[doc:notes-svetlana-2004-2006|4258|4296]]
 profession:
-- title: '"были крепкими хозяевами кулаками" (ШСП, стр. 7)'
+- title: Помещица
 job_places:
-- job: '"занимались сельским хозяйством" (ШСП, стр. 7)'
+- job: Управление крестьянами, сельское хозяйство [[doc:notes-svetlana-2004-2006|4201|4378]]
 residences:
-- residence_info: '"жили в слободах" (ШСП, стр. 7)'
-other_info:
-  other_info1:
-    label: Заметка
-    text: '"Нечитайло имели прозвище Клочки. Земельные наделы были кусками, клоками." (ШСП, стр. 7)'
+- residence_info: Слободы на территории будущей Украинской ССР [[doc:notes-svetlana-2004-2006|4328|4343]]
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'
