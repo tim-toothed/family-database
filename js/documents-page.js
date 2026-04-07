@@ -1,7 +1,7 @@
 import { buildDocumentSnippet } from './document-links.js';
 
-const MANIFEST_PATH = './data/misc/index.json';
-const DEFAULT_ENTITIES_BASE_PATH = './data/misc/entities_experimental';
+const MANIFEST_PATH = './data/text_processing/index.json';
+const DEFAULT_ENTITIES_BASE_PATH = './data/text_processing/entities';
 const LINKABLE_TEXT_SKIP_SELECTOR = 'script, style';
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
 const ENTITY_BLOCK_SELECTOR = 'h1, h2, h3, h4, h5, h6, p, li, td, th, blockquote';
@@ -460,6 +460,65 @@ function resolveRequestedSelectionOffsets(root, selectionTarget) {
   };
 }
 
+function wrapTextRangePortion(textNode, startOffset, endOffset, className, title) {
+  if (!textNode || startOffset >= endOffset) return null;
+
+  const range = document.createRange();
+  range.setStart(textNode, startOffset);
+  range.setEnd(textNode, endOffset);
+
+  const wrapper = document.createElement('mark');
+  wrapper.className = className;
+  if (title) wrapper.title = title;
+
+  range.surroundContents(wrapper);
+  return wrapper;
+}
+
+function markTextRangeByOffsets(root, startOffset, endOffset, options = {}) {
+  const portions = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node.nodeValue) return NodeFilter.FILTER_REJECT;
+      if (options.skipSelector && node.parentElement?.closest(options.skipSelector)) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  let traversed = 0;
+  while (walker.nextNode()) {
+    const node = walker.currentNode;
+    const nextTraversed = traversed + node.nodeValue.length;
+
+    if (nextTraversed <= startOffset) {
+      traversed = nextTraversed;
+      continue;
+    }
+
+    if (traversed >= endOffset) break;
+
+    const localStart = Math.max(0, startOffset - traversed);
+    const localEnd = Math.min(node.nodeValue.length, endOffset - traversed);
+    portions.push({ node, localStart, localEnd });
+
+    traversed = nextTraversed;
+  }
+
+  return portions
+    .reverse()
+    .map((portion) => wrapTextRangePortion(
+      portion.node,
+      portion.localStart,
+      portion.localEnd,
+      options.className,
+      options.title,
+    ))
+    .filter(Boolean)
+    .reverse();
+}
+
 function applyRequestedSelection(root) {
   const selectionTarget = readRequestedTextSelection();
   if (!selectionTarget || selectionTarget.documentId !== state.currentDocumentId) {
@@ -471,24 +530,18 @@ function applyRequestedSelection(root) {
     return false;
   }
 
-  const start = findTextPositionWithin(root, resolved.start, { skipSelector: LINKABLE_TEXT_SKIP_SELECTOR });
-  const end = findTextPositionWithin(root, resolved.end, { skipSelector: LINKABLE_TEXT_SKIP_SELECTOR });
-  if (!start || !end || (start.node === end.node && start.offset === end.offset)) {
+  if (resolved.end <= resolved.start) {
     return false;
   }
 
-  const range = document.createRange();
-  range.setStart(start.node, start.offset);
-  range.setEnd(end.node, end.offset);
+  const wrappers = markTextRangeByOffsets(root, resolved.start, resolved.end, {
+    className: 'document-shared-selection',
+    title: 'Ссылка на фрагмент документа',
+    skipSelector: LINKABLE_TEXT_SKIP_SELECTOR,
+  });
+  if (!wrappers.length) return false;
 
-  const wrapper = document.createElement('mark');
-  wrapper.className = 'document-shared-selection';
-  wrapper.title = 'Ссылка на фрагмент документа';
-
-  const extracted = range.extractContents();
-  wrapper.append(extracted);
-  range.insertNode(wrapper);
-  wrapper.scrollIntoView({ behavior: 'auto', block: 'center' });
+  wrappers[0].scrollIntoView({ behavior: 'auto', block: 'center' });
   return true;
 }
 

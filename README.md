@@ -200,10 +200,10 @@ python data\people\build_manifest.py
 
 ```powershell
 python -m pip install -r requirements-text-entities.txt
-python scripts\build_text_document_entities.py
+python scripts\build_text_entities.py
 ```
 
-Скрипт читает `data/sources/text_documents/index.json`, извлекает блоки текста из `markdown` и `docx`, ищет имена через `Natasha`, добавляет родственные упоминания по словарным правилам и сохраняет результат в `data/sources/text_documents/entities/`.
+Скрипт читает `data/text_processing/index.json`, извлекает блоки текста из `markdown` и `docx`, ищет имена и родственные упоминания, затем сохраняет результат в `data/text_processing/entities/`.
 
 После этого `documents.html` подхватывает готовые JSON-файлы и показывает авто-подсветку entity поверх текста.
 

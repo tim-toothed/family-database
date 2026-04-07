@@ -4,13 +4,13 @@
       "document_id": "notes-evgenia-2025",
       "entity_count": 459,
       "block_count": 405,
-      "path": "data/misc/entities/notes-evgenia-2025.json"
+      "path": "data/text_processing/entities_legacy/notes-evgenia-2025.json"
     },
     {
       "document_id": "notes-svetlana-2004-2006",
       "entity_count": 2586,
       "block_count": 1838,
-      "path": "data/misc/entities/notes-svetlana-2004-2006.json"
+      "path": "data/text_processing/entities_legacy/notes-svetlana-2004-2006.json"
     }
   ]
 }

@@ -3,12 +3,12 @@
     {
       "document_id": "notes-evgenia-2025",
       "mention_count": 650,
-      "path": "data/misc/entities_experimental/notes-evgenia-2025.json"
+      "path": "data/text_processing/entities/notes-evgenia-2025.json"
     },
     {
       "document_id": "notes-svetlana-2004-2006",
       "mention_count": 3385,
-      "path": "data/misc/entities_experimental/notes-svetlana-2004-2006.json"
+      "path": "data/text_processing/entities/notes-svetlana-2004-2006.json"
     }
   ]
 }
