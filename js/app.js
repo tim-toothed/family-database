@@ -89,7 +89,7 @@ function refreshNetworkLayout() {
 }
 
 function updateModeHint() {
-  if (currentView !== 'graph') {
+  if (currentView !== 'graph' || currentGraphVisualization === 'panorama') {
     modeHint.hidden = true;
     return;
   }
