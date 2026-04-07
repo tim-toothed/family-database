@@ -1,2 +1,25 @@
 id: P103
+birth_name:
+  surname: Шаравара
+  first_name: ???
+  patronymic: Леонтьевич
 sex: м
+death:
+  date_raw: после года жизни
+  place: пос. Терноватое, ст. Гайчур, Новониколаевский район, Запорожская область (место захоронения)
+parents:
+- person_id: P105
+  relation_type: мать
+- person_id: P058
+  relation_type: отец
+siblings:
+- person_id: P059
+  relation_type: биологический
+nationality: Украинец
+residences:
+- residence_info: Территория нынешних Запорожской и Днепропетровской областей
+other_info:
+- label: Родство
+  text: Первый неназванный сын первой жены Шаравара Лэвко (Леонтия) Давыдовича. Умер после года жизни.
+sources:
+- source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

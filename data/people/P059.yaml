@@ -4,12 +4,16 @@ birth_name:
   first_name: Григорий
   patronymic: Леонтьевич
 sex: м
+death:
+  place: пос. Терноватое, ст. Гайчур, Новониколаевский район, Запорожская область (место захоронения)
 parents:
 - person_id: P105
   relation_type: мать
 - person_id: P058
   relation_type: отец
 siblings:
+- person_id: P103
+  relation_type: биологический
 - person_id: P064
   relation_type: сводный по отцу
 - person_id: P093
@@ -26,5 +30,11 @@ siblings:
   relation_type: сводный по отцу
 - person_id: P099
   relation_type: сводный по отцу
+residences:
+- residence_info: Территория нынешних Запорожской и Днепропетровской областей
+nationality: Украинец
+other_info:
+- label: Родство
+  text: Второй сын первой жены Шаравара Лэвко (Леонтия) Давыдовича. Мать скончалась при его родах.
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

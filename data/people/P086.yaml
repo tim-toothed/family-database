@@ -8,8 +8,7 @@ children:
 - person_id: P084
   relation_type: биологический
 other_info:
-  other_info1:
-    label: Заметка
-    text: (мать Фахири, супруга Разетдина)
+- label: Заметка
+  text: (мать Фахири, супруга Разетдина)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

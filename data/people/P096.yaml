@@ -6,12 +6,15 @@ birth_name:
 sex: ж
 death:
   date_raw: (83 года) [[doc:notes-svetlana-2004-2006|5214|5228]]
+  place: пос. Терноватое, ст. Гайчур, Новониколаевский район, Запорожская область (место захоронения)
 parents:
 - person_id: P060
   relation_type: мать
 - person_id: P058
   relation_type: отец
 siblings:
+- person_id: P103
+  relation_type: сводный по отцу
 - person_id: P059
   relation_type: сводный по отцу
 - person_id: P064
@@ -28,9 +31,11 @@ siblings:
   relation_type: биологический
 - person_id: P099
   relation_type: биологический
+residences:
+- residence_info: Территория нынешних Запорожской и Днепропетровской областей
+nationality: Украинка
 other_info:
-  other_info1:
-    label: Заметка
-    text: (ребенок Ракич Дарьи Емельяновной и Шаровара Леонтия Давидовича)
+- label: Родство
+  text: Ребенок Ракович Дарьи Емельяновны и Шаравара Леонтия Давидовича.
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

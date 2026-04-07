@@ -36,6 +36,7 @@ spouses:
       day: 28
       month: 4
       year: 1973
+    place: СССР, РСФСР, Башкирская АССР, г. Уфа
 children:
 - person_id: P068
   relation_type: биологический

@@ -4,14 +4,19 @@ birth_name:
 sex: м
 spouses:
 - person_id: P066
+  marriage:
+  - date:
+      day: 28
+      month: 7
+      year: 1973
+    place: СССР, Украинская ССР, г. Житомир
 children:
 - person_id: P100
   relation_type: приемный
 - person_id: P101
   relation_type: приемный
 other_info:
-  other_info1:
-    label: Заметка
-    text: (супруг Шароваровой Ларисы Павловны)
+- label: Заметка
+  text: (супруг Шароваровой Ларисы Павловны)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'

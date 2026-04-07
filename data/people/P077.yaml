@@ -19,8 +19,7 @@ siblings:
 - person_id: P076
   relation_type: сводный по отцу
 other_info:
-  other_info1:
-    label: Заметка
-    text: (3-й младший брат Рахимджана)
+- label: Заметка
+  text: (3-й младший брат Рахимджана)
 sources:
 - source: '[Записи Шарифуллиной Светланы Павловны](data/sources/Сканы - Записи Шарифуллиной Светланы Павловной/notes_book_332_Evgenia.jpg)'
