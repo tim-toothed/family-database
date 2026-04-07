@@ -15,8 +15,9 @@ death:
     day: 25
     month: 11
     year: 2000
-  place: г. Усинск (похоронен в г. Лениногорск)
+  place: г. Усинск
   cause: Инфаркт и инсульт одновременно
+  burial_place: г. Лениногорск
 parents:
 - person_id: P078
   relation_type: мать

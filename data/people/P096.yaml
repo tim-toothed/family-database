@@ -6,7 +6,7 @@ birth_name:
 sex: ж
 death:
   date_raw: (83 года) [[doc:notes-svetlana-2004-2006|5214|5228]]
-  place: пос. Терноватое, ст. Гайчур, Новониколаевский район, Запорожская область (место захоронения)
+  burial_place: пос. Терноватое, ст. Гайчур, Новониколаевский район, Запорожская область
 parents:
 - person_id: P060
   relation_type: мать
@@ -31,9 +31,9 @@ siblings:
   relation_type: биологический
 - person_id: P099
   relation_type: биологический
+nationality: Украинка
 residences:
 - residence_info: Территория нынешних Запорожской и Днепропетровской областей
-nationality: Украинка
 other_info:
 - label: Родство
   text: Ребенок Ракович Дарьи Емельяновны и Шаравара Леонтия Давидовича.

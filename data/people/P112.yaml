@@ -5,7 +5,7 @@ birth_name:
   patronymic: Кириллович
 sex: м
 death:
-  place: пос. Терноватое, ст. Гайчур, Новониколаевский район, Запорожская область (место захоронения)
+  burial_place: пос. Терноватое, ст. Гайчур, Новониколаевский район, Запорожская область
 parents:
 - person_id: P050
   relation_type: мать
@@ -18,9 +18,9 @@ siblings:
   relation_type: биологический
 - person_id: P111
   relation_type: биологический
+nationality: Украинец
 profession:
 - title: Фельдшер
-nationality: Украинец
 residences:
 - residence_info: Территория нынешних Запорожской и Днепропетровской областей
 hobbies: Умел хорошо шить одежду [[doc:notes-svetlana-2004-2006|6484|6507]]
