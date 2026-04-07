@@ -34,6 +34,7 @@ death:
   date_raw: (например, конец 1920-х годов)
   place:
   cause:
+  burial_place:
 
 # Биологические, приемные, сводные
 parents:
@@ -92,8 +93,10 @@ character:
 appearance:
 health:
 
-# Дополнительная информация с произвольными подпунктами. 
-other_info: {}
+# Дополнительная информация с произвольными подпунктами.
+other_info:
+  - label:
+    text:
 
 sources:
   - source:

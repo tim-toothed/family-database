@@ -11,7 +11,10 @@ import yaml
 ROOT_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT_DIR))
 
-from scripts.person_schema_migration import migrate_person_schema, prune_person_schema
+try:
+  from .person_payload import migrate_person_schema, prune_person_schema
+except ImportError:
+  from person_payload import migrate_person_schema, prune_person_schema
 
 ENV_PATH = ROOT_DIR / '.env'
 PEOPLE_DIR = ROOT_DIR / 'data' / 'people'

@@ -86,6 +86,7 @@ function renderBirthDeath(block) {
     ['Дата в свободной форме', event.dateRaw ? escapeHtml(event.dateRaw) : ''],
     ['Место', event.place ? escapeHtml(event.place) : ''],
     ['Причина', event.cause ? escapeHtml(event.cause) : ''],
+    ['Место захоронения', event.burialPlace ? escapeHtml(event.burialPlace) : ''],
   ]);
 }
 

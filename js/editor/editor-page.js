@@ -435,7 +435,7 @@ function bindEditorEvents() {
 
   editorBody.querySelectorAll('[data-action="remove-other-info-entry"]').forEach((button) => {
     button.addEventListener('click', () => {
-      removeOtherInfoEntry(draft, button.dataset.otherInfoPath, button.dataset.otherInfoKey);
+      removeOtherInfoEntry(draft, button.dataset.otherInfoPath, button.dataset.otherInfoIndex);
       renderEditor();
       syncUnsavedChangesState();
       setBannerMessage('');

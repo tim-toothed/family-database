@@ -16,6 +16,7 @@ const NESTED_FIELD_LABELS = {
   place: 'Место',
   reason: 'Причина',
   cause: 'Причина',
+  burial_place: 'Место захоронения',
   person_id: 'Персона',
   relation_type: 'Тип связи',
   marriage: 'Брак',
@@ -269,8 +270,11 @@ function renderScalarEditor(path, key, value, schemaNode, context) {
 }
 
 function renderOtherInfoEditor(value, path, context) {
-  const objectValue = isObject(value) ? value : {};
-  const entries = Object.entries(objectValue);
+  const entries = Array.isArray(value)
+    ? value.map((entryValue, index) => [index, entryValue])
+    : isObject(value)
+      ? Object.entries(value)
+      : [];
   const containerPath = escapeHtml(encodePath(path));
   const disabled = context.disableInputs ? ' disabled' : '';
 
@@ -289,7 +293,7 @@ function renderOtherInfoEditor(value, path, context) {
                 type="button"
                 data-action="remove-other-info-entry"
                 data-other-info-path="${containerPath}"
-                data-other-info-key="${escapeHtml(entryKey)}"
+                data-other-info-index="${escapeHtml(entryKey)}"
                 aria-label="Удалить подпункт"
                 title="Удалить подпункт"
                 ${disabled}
@@ -724,30 +728,34 @@ export function addOtherInfoEntry(draft, pathString) {
 
   const container = ensureContainer(draft, path);
   const leaf = path[path.length - 1];
-  if (!isObject(container[leaf])) {
-    container[leaf] = {};
+  if (!Array.isArray(container[leaf])) {
+    container[leaf] = isObject(container[leaf])
+      ? Object.values(container[leaf]).map((entry) => (
+        isObject(entry) ? { ...entry } : { label: '', text: String(entry ?? '') }
+      ))
+      : [];
   }
 
-  const objectValue = container[leaf];
-  const usedIndexes = Object.keys(objectValue)
-    .map((key) => key.match(/^other_info(\d+)$/i))
-    .filter(Boolean)
-    .map((match) => Number(match[1]));
-  const nextIndex = usedIndexes.length ? Math.max(...usedIndexes) + 1 : 1;
-  objectValue[`other_info${nextIndex}`] = {
+  container[leaf].push({
     label: '',
     text: '',
-  };
+  });
 }
 
-export function removeOtherInfoEntry(draft, pathString, entryKey) {
+export function removeOtherInfoEntry(draft, pathString, entryIndex) {
   const path = parsePath(pathString);
   if (!path.length) return;
 
   const container = ensureContainer(draft, path);
   const leaf = path[path.length - 1];
-  if (!isObject(container[leaf])) return;
-  delete container[leaf][entryKey];
+  if (Array.isArray(container[leaf])) {
+    container[leaf].splice(Number(entryIndex), 1);
+    return;
+  }
+
+  if (isObject(container[leaf])) {
+    delete container[leaf][entryIndex];
+  }
 }
 
 export function removeDraftArrayItem(draft, arrayPathString, index) {

@@ -304,16 +304,34 @@ function migrateEventList(value, legacyDateValue, detailKey) {
 function normalizeOtherInfoValue(value) {
   const text = typeof value === 'string' ? value.trim() : '';
   if (text) {
-    return {
-      other_info1: {
-        label: 'Заметка',
-        text,
-      },
-    };
+    return [{
+      label: 'Заметка',
+      text,
+    }];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (typeof item === 'string') {
+          const entryText = item.trim();
+          return entryText ? { text: entryText } : null;
+        }
+
+        if (!isObject(item)) return null;
+        const textValue = asTrimmedString(item.text || item.value || item.content);
+        const label = asTrimmedString(item.label);
+        if (!textValue) return null;
+        return {
+          ...(label ? { label } : {}),
+          text: textValue,
+        };
+      })
+      .filter(Boolean);
   }
 
   if (!isObject(value)) {
-    return {};
+    return [];
   }
 
   const entries = [];
@@ -339,13 +357,10 @@ function normalizeOtherInfoValue(value) {
     });
   }
 
-  return Object.fromEntries(entries.map((entry, index) => [
-    `other_info${index + 1}`,
-    {
-      ...(entry.label ? { label: entry.label } : {}),
-      text: entry.text,
-    },
-  ]));
+  return entries.map((entry) => ({
+    ...(entry.label ? { label: entry.label } : {}),
+    text: entry.text,
+  }));
 }
 
 export function migratePersonSchema(payload, fallbackId = '') {
@@ -420,6 +435,7 @@ export function getLifeEvent(person, key) {
     dateRaw: asTrimmedString(block.date_raw),
     place: asTrimmedString(block.place),
     cause: asTrimmedString(block.cause),
+    burialPlace: asTrimmedString(block.burial_place),
     other: asTrimmedString(block.other),
     isAlive: key === 'death' && dateValue === null,
   };
@@ -529,6 +545,31 @@ export function getNamedTextEntries(value, options = {}) {
       label: options.defaultLabel || '',
       text: stringValue,
     }];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map((item, index) => {
+        if (typeof item === 'string') {
+          const text = item.trim();
+          if (!text) return null;
+          return {
+            key: `${options.baseKey || labelPrefix}_${index + 1}`,
+            label: '',
+            text,
+          };
+        }
+
+        if (!isObject(item)) return null;
+        const text = asTrimmedString(item.text || item.value || item.content);
+        if (!text) return null;
+        return {
+          key: `${options.baseKey || labelPrefix}_${index + 1}`,
+          label: asTrimmedString(item.label),
+          text,
+        };
+      })
+      .filter(Boolean);
   }
 
   if (isObject(value)) {
