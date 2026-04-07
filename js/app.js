@@ -426,7 +426,7 @@ async function init() {
   } catch (error) {
     console.error(error);
     showError(
-      `Не удалось собрать сайт из YAML. Проверьте data/people/index.json и файлы в data/people.\n\n${error.message}`
+      `Не удалось загрузить данные сайта. Проверьте Supabase или локальные файлы data/people.\n\n${error.message}`
     );
   }
 }

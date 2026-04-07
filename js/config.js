@@ -2,6 +2,8 @@ export const CONFIG = {
   peopleDir: './data/people',
   peopleManifestPath: './data/people/index.json',
   personFileExtension: '.yaml',
+  // auto: сначала Supabase, затем локальный YAML fallback. local: всегда YAML. supabase: ошибка, если Supabase недоступен.
+  dataSource: 'auto',
 };
 
 export const SUPABASE_CONFIG = {
