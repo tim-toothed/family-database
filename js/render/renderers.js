@@ -155,6 +155,13 @@ function renderRelationLine(personId, relationType, dataset) {
   return compactParts([personRef, badge], ' ');
 }
 
+function renderRelationEventMeta(label, values) {
+  const lines = values.filter(Boolean);
+  if (!lines.length) return '';
+
+  return `<div class="relation-secondary"><i>${escapeHtml(label)}:</i> ${lines.join('; ')}</div>`;
+}
+
 function renderSpouseItem(item, dataset) {
   const personRef = formatPersonRef(item.personId, dataset);
   if (!personRef) return '';
@@ -164,7 +171,7 @@ function renderSpouseItem(item, dataset) {
       const parts = [];
       if (entry.dateDisplay) parts.push(escapeHtml(entry.dateDisplay));
       if (entry.place) parts.push(escapeHtml(entry.place));
-      return parts.length ? `<div class="relation-secondary"><i>Брак:</i> ${parts.join(' • ')}</div>` : '';
+      return renderRelationEventMeta('Брак', parts);
     })
     .filter(Boolean);
   const divorceMeta = item.divorceEvents
@@ -172,7 +179,7 @@ function renderSpouseItem(item, dataset) {
       const parts = [];
       if (entry.dateDisplay) parts.push(escapeHtml(entry.dateDisplay));
       if (entry.other) parts.push(escapeHtml(entry.other));
-      return parts.length ? `<div class="relation-secondary"><i>Развод:</i> ${parts.join(' • ')}</div>` : '';
+      return renderRelationEventMeta('Развод', parts);
     })
     .filter(Boolean);
   const meta = [...marriageMeta, ...divorceMeta];
