@@ -305,7 +305,7 @@ function renderOtherInfoEditor(value, path, context) {
             </div>
           `;
         }).join('')
-        : '<div class="editor-array-empty">Раздел пока пустой.</div>'}
+        : ''}
       <button class="editor-array-action" type="button" data-action="add-other-info-entry" data-other-info-path="${containerPath}"${disabled}>Добавить подпункт</button>
     </div>
   `;
@@ -382,7 +382,7 @@ function renderSpousesEditor(schemaNode, value, path, context) {
               ${renderSpouseItemEditor(schemaNode, item, [...path, index], context)}
             </div>
           `).join('')
-        : '<div class="editor-array-empty">Поле пока пустое.</div>'}
+        : ''}
       <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить ещё запись</button>
     </div>
   `;
@@ -433,7 +433,7 @@ function renderArrayEditorClean(schemaNode, value, path, key, context) {
               ${renderEditorNode(schemaNode, item, [...path, index], key, context)}
             </div>
           `).join('')
-        : '<div class="editor-array-empty">Поле пока пустое.</div>'}
+        : ''}
       <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить ещё запись</button>
     </div>
   `;
@@ -686,6 +686,43 @@ export function createDraftFromSchema(schema) {
   return createEmptyValue(schema);
 }
 
+function buildEditableSectionView(sectionKey, person, schema, descriptions = {}, options = {}) {
+  const schemaNode = schema?.[sectionKey];
+  if (schemaNode === undefined) return null;
+
+  const isAlive = sectionKey === 'death' && getLifeEvent(person, 'death').isAlive;
+  const isSectionCollapsed = sectionKey === 'death' && isAlive;
+  const isSectionDisabled = sectionKey === 'id';
+  const sectionLabel = getFieldLabel(sectionKey);
+
+  return {
+    key: sectionKey,
+    label: sectionLabel,
+    description: descriptions[sectionKey] || '',
+    isCollapsed: isSectionCollapsed,
+    isDisabled: isSectionDisabled,
+    headerControlHtml: sectionKey === 'death'
+      ? `
+        <label class="editor-checkbox">
+          <input type="checkbox" data-action="toggle-alive" ${isAlive ? 'checked' : ''} />
+          <span>Жив(-а)</span>
+        </label>
+      `
+      : '',
+    bodyHtml: isSectionCollapsed
+      ? ''
+      : renderEditorNode(schemaNode, person?.[sectionKey], [sectionKey], sectionKey, {
+        personOptionEntries: options.personOptionEntries,
+        enumListIdPrefix: options.enumListIdPrefix,
+        disableInputs: isSectionDisabled,
+      }),
+  };
+}
+
+export function renderEditablePersonSection(sectionKey, person, schema, descriptions = {}, options = {}) {
+  return buildEditableSectionView(sectionKey, person, schema, descriptions, options);
+}
+
 export function buildPersonOptionEntries(dataset) {
   const entries = Array.from(dataset.indexById.entries())
     .map(([personId, name]) => ({
@@ -812,35 +849,25 @@ export function renderEditablePersonDetails(personId, person, schema, descriptio
 
   const title = getPersonDisplayName(person, personId);
   const sections = Object.keys(schema).map((key) => {
-    const isAlive = key === 'death' && getLifeEvent(person, 'death').isAlive;
-    const isSectionCollapsed = key === 'death' && isAlive;
-    const isSectionDisabled = key === 'id';
-    const sectionLabel = getFieldLabel(key);
+    const section = buildEditableSectionView(key, person, schema, descriptions, options);
+    if (!section) return '';
+
     return `
       <section
         id="${escapeHtml(getEditorSectionAnchorId(key))}"
-        class="field-block is-editing${isSectionDisabled ? ' is-disabled' : ''}${isSectionCollapsed ? ' is-collapsed' : ''}"
+        class="field-block is-editing${section.isDisabled ? ' is-disabled' : ''}${section.isCollapsed ? ' is-collapsed' : ''}"
         data-editor-section
         data-section-key="${escapeHtml(key)}"
-        data-section-label="${escapeHtml(sectionLabel)}"
+        data-section-label="${escapeHtml(section.label)}"
       >
         <div class="editor-section-head">
-          <h3 class="field-title">${escapeHtml(sectionLabel)}</h3>
-          ${key === 'death' ? `
-            <label class="editor-checkbox">
-              <input type="checkbox" data-action="toggle-alive" ${isAlive ? 'checked' : ''} />
-              <span>Жив(-а)</span>
-            </label>
-          ` : ''}
+          <h3 class="field-title">${escapeHtml(section.label)}</h3>
+          ${section.headerControlHtml}
         </div>
-        ${descriptions[key] ? `<p class="editor-section-note">${escapeHtml(descriptions[key])}</p>` : ''}
-        ${isSectionCollapsed ? '' : `
+        ${section.description ? `<p class="editor-section-note">${escapeHtml(section.description)}</p>` : ''}
+        ${section.isCollapsed ? '' : `
           <div class="field-value">
-            ${renderEditorNode(schema[key], person[key], [key], key, {
-              personOptionEntries: options.personOptionEntries,
-              enumListIdPrefix: options.enumListIdPrefix,
-              disableInputs: isSectionDisabled,
-            })}
+            ${section.bodyHtml}
           </div>
         `}
       </section>

@@ -83,10 +83,10 @@ function renderBirthDeath(block) {
 
   return renderKvList([
     ['Дата', event.dateDisplay ? escapeHtml(event.dateDisplay) : ''],
-    ['Дата в свободной форме', event.dateRaw ? escapeHtml(event.dateRaw) : ''],
-    ['Место', event.place ? escapeHtml(event.place) : ''],
-    ['Причина', event.cause ? escapeHtml(event.cause) : ''],
-    ['Место захоронения', event.burialPlace ? escapeHtml(event.burialPlace) : ''],
+    ['Дата в свободной форме', event.dateRaw ? renderInlineText(event.dateRaw) : ''],
+    ['Место', event.place ? renderInlineText(event.place) : ''],
+    ['Причина', event.cause ? renderInlineText(event.cause) : ''],
+    ['Место захоронения', event.burialPlace ? renderInlineText(event.burialPlace) : ''],
   ]);
 }
 
@@ -170,7 +170,7 @@ function renderSpouseItem(item, dataset) {
     .map((entry) => {
       const parts = [];
       if (entry.dateDisplay) parts.push(escapeHtml(entry.dateDisplay));
-      if (entry.place) parts.push(escapeHtml(entry.place));
+      if (entry.place) parts.push(renderInlineText(entry.place));
       return renderRelationEventMeta('Брак', parts);
     })
     .filter(Boolean);
@@ -178,7 +178,7 @@ function renderSpouseItem(item, dataset) {
     .map((entry) => {
       const parts = [];
       if (entry.dateDisplay) parts.push(escapeHtml(entry.dateDisplay));
-      if (entry.other) parts.push(escapeHtml(entry.other));
+      if (entry.other) parts.push(renderInlineText(entry.other));
       return renderRelationEventMeta('Развод', parts);
     })
     .filter(Boolean);
@@ -222,14 +222,14 @@ function renderNameChangeItem(item) {
   const showDate = reason.toLowerCase() === 'смена имени';
   const meta = [
     showDate && item?.raw?.date ? `<div class="relation-secondary"><i>Дата:</i> ${escapeHtml(formatDisplayDate(item.raw.date))}</div>` : '',
-    reason ? `<div class="relation-secondary"><i>Причина:</i> ${escapeHtml(reason)}</div>` : '',
+    reason ? `<div class="relation-secondary"><i>Причина:</i> ${renderInlineText(reason)}</div>` : '',
   ].filter(Boolean);
 
   if (!name && !meta.length) return '';
 
   return `
     <div class="relation-stack">
-      ${name ? `<div class="relation-main">${escapeHtml(name)}</div>` : ''}
+      ${name ? `<div class="relation-main">${renderInlineText(name)}</div>` : ''}
       ${meta.length ? `<div class="relation-meta">${meta.join(' ')}</div>` : ''}
     </div>
   `;
@@ -261,7 +261,7 @@ function renderArrayField(key, items, dataset) {
     case 'media':
       return renderList(getRelationEntries({ [key]: items }, key), (item) => {
         const parts = [];
-        if (item.description) parts.push(escapeHtml(item.description));
+        if (item.description) parts.push(renderInlineText(item.description));
         if (item.link) parts.push(`<code>${escapeHtml(item.link)}</code>`);
         return compactParts(parts);
       });
@@ -277,9 +277,9 @@ function renderMilitary(military) {
   if (!military || typeof military !== 'object') return '';
 
   const chunks = [];
-  const service = renderList(getRelationEntries(military, 'military_service'), (item) => escapeHtml(item.serviceInfo));
-  const wars = renderList(getRelationEntries(military, 'war_participation'), (item) => escapeHtml(item.war));
-  const awards = renderList(getRelationEntries(military, 'awards'), (item) => escapeHtml(item.award));
+  const service = renderList(getRelationEntries(military, 'military_service'), (item) => renderInlineText(item.serviceInfo));
+  const wars = renderList(getRelationEntries(military, 'war_participation'), (item) => renderInlineText(item.war));
+  const awards = renderList(getRelationEntries(military, 'awards'), (item) => renderInlineText(item.award));
 
   if (service) chunks.push(`<strong>Служба</strong>${service}`);
   if (wars) chunks.push(`<strong>Участие в войнах</strong>${wars}`);
@@ -338,7 +338,24 @@ function renderField(key, value, dataset) {
   return `<div>${renderInlineText(value)}</div>`;
 }
 
-export function renderPersonDetails(personId, dataset, options = {}) {
+function buildPersonSections(person, dataset) {
+  const sections = [];
+
+  for (const key of SECTION_ORDER) {
+    if (!personHasField(person, key)) continue;
+    const rendered = renderField(key, person[key], dataset);
+    if (!rendered) continue;
+    sections.push({
+      key,
+      label: FIELD_LABELS[key] || key,
+      html: rendered,
+    });
+  }
+
+  return sections;
+}
+
+export function buildPersonDetailsView(personId, dataset, options = {}) {
   const person = options.personOverride || dataset.people.get(personId);
   if (!person) return null;
 
@@ -352,24 +369,23 @@ export function renderPersonDetails(personId, dataset, options = {}) {
   if (birth.dateDisplay) subtitleParts.push(`рожд. ${birth.dateDisplay}`);
   if (death.dateDisplay) subtitleParts.push(`ум. ${death.dateDisplay}`);
 
-  const sections = [];
-  for (const key of SECTION_ORDER) {
-    if (!personHasField(person, key)) continue;
-    const rendered = renderField(key, person[key], dataset);
-    if (!rendered) continue;
-    sections.push(`
-      <section class="field-block">
-        <h3 class="field-title">${escapeHtml(FIELD_LABELS[key] || key)}</h3>
-        <div class="field-value">${rendered}</div>
-      </section>
-    `);
-  }
+  const sections = buildPersonSections(person, dataset);
 
   return {
     title,
     subtitle: subtitleParts.join(' • '),
-    html: sections.join(''),
+    sections,
+    html: sections.map((section) => `
+      <section class="field-block">
+        <h3 class="field-title">${escapeHtml(section.label)}</h3>
+        <div class="field-value">${section.html}</div>
+      </section>
+    `).join(''),
   };
+}
+
+export function renderPersonDetails(personId, dataset, options = {}) {
+  return buildPersonDetailsView(personId, dataset, options);
 }
 
 export function bindPersonLinks(root, onClick) {
