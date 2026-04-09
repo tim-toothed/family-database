@@ -17,9 +17,8 @@ spouses:
   divorce:
   - date:
       year: 1966
-profession:
-- title: инженер
-job_places:
+jobs:
+- job: инженер
 - job: старший инженер, завод «Арсенал», г. Ленинград
 residences:
 - residence_info: г. Ленинград, пр. Металлистов, д.76, кв.343

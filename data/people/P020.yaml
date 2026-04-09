@@ -12,10 +12,9 @@ children:
   relation_type: биологический
 - person_id: P022
   relation_type: биологический
-profession:
-- title: Моряк или служил на флоте (судя по фото).
-military:
-  military_service:
-  - service_info: Моряк или служил на флоте (судя по фото).
+jobs:
+- job: Моряк или служил на флоте (судя по фото).
+military_service:
+- service_info: Моряк или служил на флоте (судя по фото).
 sources:
 - source: Семейные заметки, стр. 7-9 (записи Евгении Викторовны Шарифуллиной)

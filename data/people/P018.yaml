@@ -16,9 +16,8 @@ spouses:
   divorce:
   - date:
       year: 1975
-profession:
-- title: инженер
-job_places:
+jobs:
+- job: инженер
 - job: инженер ВМУ, г. Мурманск
 residences:
 - residence_info: г. Мурманск

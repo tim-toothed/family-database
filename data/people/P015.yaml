@@ -26,11 +26,10 @@ siblings:
   relation_type: биологический
 - person_id: P016
   relation_type: сводный по отцу
-military:
-  military_service:
-  - service_info: 05.07.1941 вступил в Ленинградскую армию народного ополчения
-  war_participation:
-  - war: Великая Отечественная война; погиб в сентябре 1941 года
+military_service:
+- service_info: 05.07.1941 вступил в Ленинградскую армию народного ополчения
+war_participation:
+- war: Великая Отечественная война; погиб в сентябре 1941 года
 residences:
 - residence_info: г. Ленинград, ул. Желябова, д.2, кв.10 (по данным книги учета Дзержинского РВК)
 other_info:

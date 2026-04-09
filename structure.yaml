@@ -71,19 +71,17 @@ class_title:
 religion:
 nationality:
 
-profession:
-  - title:
-
-job_places:
+jobs:
   - job:
 
-military:
-  military_service:
-    - service_info:
-  war_participation:
-    - war:
-  awards:
-    - award:
+military_service:
+  - service_info:
+
+war_participation:
+  - war:
+
+achievements:
+  - achievement:
 
 residences:
   - residence_info:

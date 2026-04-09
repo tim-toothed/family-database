@@ -28,10 +28,9 @@ children:
   relation_type: биологический
 - person_id: P028
   relation_type: биологический
-profession:
-- title: уборщица
-- title: посудомойка
-job_places:
+jobs:
+- job: уборщица
+- job: посудомойка
 - job: Во время Великой Отечественной войны работала уборщицей на заводе.
 - job: Под конец жизни работала посудомойкой в школе.
 residences:

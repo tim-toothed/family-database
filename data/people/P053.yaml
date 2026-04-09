@@ -29,9 +29,8 @@ children:
   relation_type: биологический
 class_title: Свободный крестьянин, кулак
 nationality: Украинец (потомок запорожских казаков) [[doc:notes-svetlana-2004-2006|4258|4296]]
-profession:
-- title: Помещик [[doc:notes-svetlana-2004-2006|4345|4377]]
-job_places:
+jobs:
+- job: Помещик [[doc:notes-svetlana-2004-2006|4345|4377]]
 - job: Занимался сельским хозяйством [[doc:notes-svetlana-2004-2006|4205|4235]]
 residences:
 - residence_info: Слободы на территории будущей Украинской ССР [[doc:notes-svetlana-2004-2006|4328|4343]]

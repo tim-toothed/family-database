@@ -46,9 +46,8 @@ education:
 class_title: Служащая
 religion: Мусульманка
 nationality: Татарка
-profession:
-- title: Машинистка
-job_places:
+jobs:
+- job: Машинистка
 - job: Машинистка в райкоме села
 - job: Машинистка в УБР Лениногорска
 residences:

@@ -47,13 +47,12 @@ children:
   relation_type: биологический
 religion: Член КПСС
 nationality: Татарин
-job_places:
+jobs:
 - job: Механик? Лениногорский УБР 1948-1989/90
-military:
-  military_service:
-  - service_info: Призван 29.09.1939 танкист ( механик, водитель танка) 3 танковый батальон Дальний восток
-  war_participation:
-  - war: ВОВ, война с Японией
+military_service:
+- service_info: Призван 29.09.1939 танкист ( механик, водитель танка) 3 танковый батальон Дальний восток
+war_participation:
+- war: ВОВ, война с Японией
 residences:
 - residence_info: Старое Шугурово ТАССР
 - residence_info: 'Лениногорск ТАССР, ул. Тукая 2 или 5? '

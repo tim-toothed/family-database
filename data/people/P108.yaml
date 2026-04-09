@@ -20,10 +20,9 @@ siblings:
   relation_type: приемный
 education:
 - education_info: Инженерно-военное училище
-profession:
-- title: Военный, сапёр
-military:
-  military_service:
-  - service_info: Лейтенант Красной Армии, сапёр
+jobs:
+- job: Военный, сапёр
+military_service:
+- service_info: Лейтенант Красной Армии, сапёр
 sources:
 - source: (ШСП, стр. 6)

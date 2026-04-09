@@ -190,6 +190,47 @@ def _normalize_other_info(value: object) -> list[dict[str, str]]:
   return entries
 
 
+def _migrate_text_entry_list(value: object, key: str, fallback_keys: tuple[str, ...] = ()) -> list[dict[str, str]]:
+  if isinstance(value, list):
+    source_items = value
+  elif _is_object(value):
+    source_items = [value]
+  else:
+    source_items = []
+
+  items: list[dict[str, str]] = []
+  for raw_item in source_items:
+    if not _is_object(raw_item):
+      continue
+    text = ''
+    for candidate_key in (key, *fallback_keys):
+      text = _as_text(raw_item.get(candidate_key))
+      if text:
+        break
+    if text:
+      items.append({key: text})
+
+  return items
+
+
+def _merge_unique_text_entries(lists: list[list[dict[str, str]]], key: str) -> list[dict[str, str]]:
+  merged: list[dict[str, str]] = []
+  seen: set[str] = set()
+
+  for items in lists:
+    for item in items:
+      text = _as_text(item.get(key))
+      if not text:
+        continue
+      dedupe_key = text.lower()
+      if dedupe_key in seen:
+        continue
+      seen.add(dedupe_key)
+      merged.append({key: text})
+
+  return merged
+
+
 def migrate_person_schema(payload: object, fallback_id: str = '') -> dict[str, object]:
   source = deepcopy(payload) if isinstance(payload, dict) else {}
   source['id'] = _as_text(source.get('id') or fallback_id) or fallback_id
@@ -227,6 +268,50 @@ def migrate_person_schema(payload: object, fallback_id: str = '') -> dict[str, o
 
   if 'other_info' in source:
     source['other_info'] = _normalize_other_info(source.get('other_info'))
+
+  jobs = _merge_unique_text_entries([
+    _migrate_text_entry_list(source.get('jobs'), 'job', ('title',)),
+    _migrate_text_entry_list(source.get('profession'), 'job', ('title',)),
+    _migrate_text_entry_list(source.get('job_places'), 'job', ('title',)),
+  ], 'job')
+  if jobs:
+    source['jobs'] = jobs
+  else:
+    source.pop('jobs', None)
+  source.pop('profession', None)
+  source.pop('job_places', None)
+
+  legacy_military = source.get('military') if _is_object(source.get('military')) else {}
+  military_service = _merge_unique_text_entries([
+    _migrate_text_entry_list(source.get('military_service'), 'service_info'),
+    _migrate_text_entry_list(legacy_military.get('military_service'), 'service_info'),
+  ], 'service_info')
+  war_participation = _merge_unique_text_entries([
+    _migrate_text_entry_list(source.get('war_participation'), 'war'),
+    _migrate_text_entry_list(legacy_military.get('war_participation'), 'war'),
+  ], 'war')
+  achievements = _merge_unique_text_entries([
+    _migrate_text_entry_list(source.get('achievements'), 'achievement', ('award', 'award_info')),
+    _migrate_text_entry_list(legacy_military.get('achievements'), 'achievement', ('award', 'award_info')),
+    _migrate_text_entry_list(legacy_military.get('awards'), 'achievement', ('award', 'award_info')),
+  ], 'achievement')
+
+  if military_service:
+    source['military_service'] = military_service
+  else:
+    source.pop('military_service', None)
+
+  if war_participation:
+    source['war_participation'] = war_participation
+  else:
+    source.pop('war_participation', None)
+
+  if achievements:
+    source['achievements'] = achievements
+  else:
+    source.pop('achievements', None)
+
+  source.pop('military', None)
 
   return source
 

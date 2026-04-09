@@ -22,9 +22,8 @@ children:
   relation_type: биологический
 class_title: Свободная крестьянка, кулак
 nationality: Украинка (потомок запорожских казаков) [[doc:notes-svetlana-2004-2006|4258|4296]]
-profession:
-- title: Помещица
-job_places:
+jobs:
+- job: Помещица
 - job: Управление крестьянами, сельское хозяйство [[doc:notes-svetlana-2004-2006|4201|4378]]
 residences:
 - residence_info: Слободы на территории будущей Украинской ССР [[doc:notes-svetlana-2004-2006|4328|4343]]

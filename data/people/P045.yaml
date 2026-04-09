@@ -40,9 +40,8 @@ children:
 education:
 - education_info: Школа (точное количество классов неизвестно)
 nationality: полька
-profession:
-- title: ткачиха
-job_places:
+jobs:
+- job: ткачиха
 - job: Работала ткачихой на комбинате в Ахмедлы, г. Баку
 residences:
 - residence_info: г. Махачкала

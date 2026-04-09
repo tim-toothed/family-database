@@ -363,6 +363,43 @@ function normalizeOtherInfoValue(value) {
   }));
 }
 
+function migrateTextEntryList(value, key, fallbackKeys = []) {
+  const sourceItems = Array.isArray(value)
+    ? value
+    : isObject(value)
+      ? [value]
+      : [];
+
+  return sourceItems
+    .map((item) => {
+      const entry = asObject(item);
+      const text = asTrimmedString(
+        [entry[key], ...fallbackKeys.map((fallbackKey) => entry[fallbackKey])]
+          .find((candidate) => hasOwnValue(candidate))
+      );
+      return text ? { [key]: text } : null;
+    })
+    .filter(Boolean);
+}
+
+function mergeUniqueTextEntryLists(lists, key) {
+  const merged = [];
+  const seen = new Set();
+
+  for (const items of lists) {
+    for (const item of items) {
+      const text = asTrimmedString(item?.[key]);
+      if (!text) continue;
+      const dedupeKey = text.toLowerCase();
+      if (seen.has(dedupeKey)) continue;
+      seen.add(dedupeKey);
+      merged.push({ [key]: text });
+    }
+  }
+
+  return merged;
+}
+
 export function migratePersonSchema(payload, fallbackId = '') {
   const object = asObject(payload);
   const migrated = {
@@ -414,6 +451,54 @@ export function migratePersonSchema(payload, fallbackId = '') {
   if (Object.prototype.hasOwnProperty.call(migrated, 'other_info')) {
     migrated.other_info = normalizeOtherInfoValue(migrated.other_info);
   }
+
+  const jobs = mergeUniqueTextEntryLists([
+    migrateTextEntryList(migrated.jobs, 'job', ['title']),
+    migrateTextEntryList(migrated.profession, 'job', ['title']),
+    migrateTextEntryList(migrated.job_places, 'job', ['title']),
+  ], 'job');
+  if (jobs.length > 0) {
+    migrated.jobs = jobs;
+  } else {
+    delete migrated.jobs;
+  }
+  delete migrated.profession;
+  delete migrated.job_places;
+
+  const legacyMilitary = asObject(migrated.military);
+  const militaryService = mergeUniqueTextEntryLists([
+    migrateTextEntryList(migrated.military_service, 'service_info'),
+    migrateTextEntryList(legacyMilitary.military_service, 'service_info'),
+  ], 'service_info');
+  const warParticipation = mergeUniqueTextEntryLists([
+    migrateTextEntryList(migrated.war_participation, 'war'),
+    migrateTextEntryList(legacyMilitary.war_participation, 'war'),
+  ], 'war');
+  const achievements = mergeUniqueTextEntryLists([
+    migrateTextEntryList(migrated.achievements, 'achievement', ['award', 'award_info']),
+    migrateTextEntryList(legacyMilitary.achievements, 'achievement', ['award', 'award_info']),
+    migrateTextEntryList(legacyMilitary.awards, 'achievement', ['award', 'award_info']),
+  ], 'achievement');
+
+  if (militaryService.length > 0) {
+    migrated.military_service = militaryService;
+  } else {
+    delete migrated.military_service;
+  }
+
+  if (warParticipation.length > 0) {
+    migrated.war_participation = warParticipation;
+  } else {
+    delete migrated.war_participation;
+  }
+
+  if (achievements.length > 0) {
+    migrated.achievements = achievements;
+  } else {
+    delete migrated.achievements;
+  }
+
+  delete migrated.military;
 
   return migrated;
 }
@@ -492,14 +577,14 @@ export function getRelationEntries(person, key) {
       reason: asTrimmedString(object.reason),
       educationInfo: asTrimmedString(object.education_info),
       title: asTrimmedString(object.title),
-      job: asTrimmedString(object.job),
+      job: asTrimmedString(object.job || object.title),
       residenceInfo: asTrimmedString(object.residence_info),
       source: asTrimmedString(object.source),
       description: asTrimmedString(object.description),
       link: asTrimmedString(object.link),
       serviceInfo: asTrimmedString(object.service_info),
       war: asTrimmedString(object.war),
-      award: asTrimmedString(object.award),
+      achievement: asTrimmedString(object.achievement || object.award || object.award_info),
       marriageEvents: normalizeEventList(object.marriage, object.marriage_date, 'place'),
       divorceEvents: normalizeEventList(object.divorce, object.divorce_date, 'other'),
     };

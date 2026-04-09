@@ -25,11 +25,10 @@ siblings:
   relation_type: биологический
 spouses:
 - person_id: P109
-profession:
-- title: Военный
-military:
-  war_participation:
-  - war: 1939-1940. Советско-Финская Война. Погиб.
+jobs:
+- job: Военный
+war_participation:
+- war: 1939-1940. Советско-Финская Война. Погиб.
 residences:
 - residence_info: г. Москва
 sources:

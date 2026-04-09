@@ -15,14 +15,12 @@ parents:
 siblings:
 - person_id: P006
   relation_type: биологический
-profession:
-- title: слесарь
-job_places:
+jobs:
+- job: слесарь
 - job: слесарь, завод №65 (завод 211), Выборгский район Ленинграда; с 1934
 - job: оборонные работы, станция Тайцы; 1941
-military:
-  awards:
-  - award: медаль «За оборону Ленинграда», удостоверение AD-57385
+achievements:
+- achievement: медаль «За оборону Ленинграда», удостоверение AD-57385
 residences:
 - residence_info: г. Ленинград, ул. Салтыкова-Щедрина, д.8, кв.93
 sources:

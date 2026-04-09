@@ -250,10 +250,14 @@ function renderArrayField(key, items, dataset) {
       return renderList(getRelationEntries({ [key]: items }, key), (item) => renderNameChangeItem(item), 'relation-list');
     case 'education':
       return renderList(getRelationEntries({ [key]: items }, key), (item) => renderInlineText(item.educationInfo));
-    case 'profession':
-      return renderList(getRelationEntries({ [key]: items }, key), (item) => renderInlineText(item.title));
-    case 'job_places':
+    case 'jobs':
       return renderList(getRelationEntries({ [key]: items }, key), (item) => renderInlineText(item.job));
+    case 'military_service':
+      return renderList(getRelationEntries({ [key]: items }, key), (item) => renderInlineText(item.serviceInfo));
+    case 'war_participation':
+      return renderList(getRelationEntries({ [key]: items }, key), (item) => renderInlineText(item.war));
+    case 'achievements':
+      return renderList(getRelationEntries({ [key]: items }, key), (item) => renderInlineText(item.achievement));
     case 'residences':
       return renderList(getRelationEntries({ [key]: items }, key), (item) => renderInlineText(item.residenceInfo));
     case 'sources':
@@ -273,21 +277,6 @@ function renderArrayField(key, items, dataset) {
   }
 }
 
-function renderMilitary(military) {
-  if (!military || typeof military !== 'object') return '';
-
-  const chunks = [];
-  const service = renderList(getRelationEntries(military, 'military_service'), (item) => renderInlineText(item.serviceInfo));
-  const wars = renderList(getRelationEntries(military, 'war_participation'), (item) => renderInlineText(item.war));
-  const awards = renderList(getRelationEntries(military, 'awards'), (item) => renderInlineText(item.award));
-
-  if (service) chunks.push(`<strong>Служба</strong>${service}`);
-  if (wars) chunks.push(`<strong>Участие в войнах</strong>${wars}`);
-  if (awards) chunks.push(`<strong>Награды</strong>${awards}`);
-
-  return chunks.join('');
-}
-
 function renderField(key, value, dataset) {
   if (value === undefined || value === null || value === '') return '';
 
@@ -298,10 +287,6 @@ function renderField(key, value, dataset) {
   if (key === 'birth_name') {
     const name = formatBirthName(value);
     return name ? `<div>${escapeHtml(name)}</div>` : '';
-  }
-
-  if (key === 'military') {
-    return renderMilitary(value);
   }
 
   if (key === 'other_info') {

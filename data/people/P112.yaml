@@ -19,8 +19,8 @@ siblings:
 - person_id: P111
   relation_type: биологический
 nationality: Украинец
-profession:
-- title: Фельдшер
+jobs:
+- job: Фельдшер
 residences:
 - residence_info: Территория нынешних Запорожской и Днепропетровской областей
 hobbies: Умел хорошо шить одежду [[doc:notes-svetlana-2004-2006|6484|6507]]
