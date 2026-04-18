@@ -18,6 +18,8 @@ Thumbs.db
 
 # Environment variables file
 .env
+.wrangler/
+.cloudflare-d1-import.sql
 
 # Files for Codex
 AGENTS.md

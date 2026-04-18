@@ -14,6 +14,8 @@ birth:
 parents:
 - person_id: P048
   relation_type: отец
+- person_id: P046
+  relation_type: мать
 education:
 - education_info: '2008. Школа №128. 1 класс (до зимы). '
 - education_info: 2008-2019. Гимназия №114. 1-11 класс.
