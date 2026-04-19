@@ -20,6 +20,7 @@ Thumbs.db
 .env
 .wrangler/
 .cloudflare-d1-import.sql
+.pages-build/
 
 # Files for Codex
 AGENTS.md
