@@ -2,8 +2,9 @@ export const CONFIG = {
   peopleDir: './data/people',
   peopleManifestPath: './data/people/index.json',
   personFileExtension: '.yaml',
-  // auto: сначала Supabase, затем локальный YAML fallback. local: всегда YAML. supabase: ошибка, если Supabase недоступен.
-  dataSource: 'auto',
+  // supabase: продовый режим без зависимости от data/* в публичном репозитории.
+  // auto: сначала Supabase, затем локальный fallback. local: всегда локальные файлы.
+  dataSource: 'supabase',
 };
 
 export const SUPABASE_CONFIG = {
@@ -14,6 +15,9 @@ export const SUPABASE_CONFIG = {
   tables: {
     people: 'family_people',
     yaml: 'family_yaml',
+    textDocuments: 'text_documents',
+    textDocumentBlocks: 'text_document_blocks',
+    textDocumentMentions: 'text_document_mentions',
   },
 };
 

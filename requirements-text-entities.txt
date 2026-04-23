@@ -1,1 +1,2 @@
 natasha>=1.6,<2
+pymorphy2>=0.9,<1

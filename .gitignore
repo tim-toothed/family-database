@@ -21,6 +21,7 @@ Thumbs.db
 .wrangler/
 .cloudflare-d1-import.sql
 legacy/
+data/
 
 # Files for Codex
 AGENTS.md

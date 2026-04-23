@@ -1,19 +1,24 @@
+import { CONFIG, SUPABASE_CONFIG } from './config.js';
 import { buildDocumentSnippet } from './document-links.js';
 
-const MANIFEST_PATH = './data/text_processing/index.json';
-const DEFAULT_ENTITIES_BASE_PATH = './data/text_processing/entities';
+const MANIFEST_PATH = './data/docs_processed/index.json';
+const DEFAULT_ENTITIES_BASE_PATH = './data/docs_processed/entities';
+const SUPABASE_ESM_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const LINKABLE_TEXT_SKIP_SELECTOR = 'script, style';
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
 const ENTITY_BLOCK_SELECTOR = 'h1, h2, h3, h4, h5, h6, p, li, td, th, blockquote';
 const ENTITY_SKIP_SELECTOR = 'script, style, .entity-candidate';
 const SELECTION_QUOTE_LIMIT = 160;
+const DATA_SOURCE_VALUES = new Set(['auto', 'local', 'supabase']);
 
 const state = {
   documents: [],
+  documentsSource: null,
   currentDocumentId: null,
   currentLoadToken: 0,
   currentDocumentHtml: '',
   currentDocumentEntityData: null,
+  currentDocumentLoadSource: null,
   outline: [],
   highlightedEntities: [],
   shareSelection: null,
@@ -35,6 +40,7 @@ const documentReaderShell = document.querySelector('.document-reader-shell');
 const selectionLinkBubble = document.getElementById('selectionLinkBubble');
 let copySelectionLinkStatusTimer = 0;
 let selectionLinkBubbleStateTimer = 0;
+let supabaseClientPromise = null;
 
 function normalizeWhitespace(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -185,54 +191,191 @@ function hideLoading() {
   documentLoadingState.classList.add('hidden');
 }
 
+function normalizeDataSource(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return DATA_SOURCE_VALUES.has(normalized) ? normalized : 'auto';
+}
+
+function getRequestedDataSource() {
+  const configured = normalizeDataSource(CONFIG.dataSource);
+  const params = new URLSearchParams(globalThis.location?.search || '');
+  const override = normalizeDataSource(params.get('dataSource') || params.get('source'));
+  return override === 'auto' && !params.has('dataSource') && !params.has('source')
+    ? configured
+    : override;
+}
+
+function hasSupabaseConfig() {
+  return Boolean(
+    SUPABASE_CONFIG?.url
+    && SUPABASE_CONFIG?.publishableKey
+    && SUPABASE_CONFIG?.tables?.textDocuments
+    && SUPABASE_CONFIG?.tables?.textDocumentBlocks
+    && SUPABASE_CONFIG?.tables?.textDocumentMentions,
+  );
+}
+
+async function getSupabaseClient() {
+  if (!hasSupabaseConfig()) {
+    throw new Error('Supabase не настроен для документов в js/config.js.');
+  }
+
+  if (!supabaseClientPromise) {
+    supabaseClientPromise = (async () => {
+      const { createClient } = await import(SUPABASE_ESM_URL);
+      const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      });
+      return SUPABASE_CONFIG.schema ? supabase.schema(SUPABASE_CONFIG.schema) : supabase;
+    })();
+  }
+
+  return supabaseClientPromise;
+}
+
 async function fetchJson(path) {
   const response = await fetch(path);
-  if (!response.ok) throw new Error(`Failed to load ${path}: ${response.status}`);
+  if (!response.ok) throw new Error(`Не удалось загрузить ${path}: ${response.status}`);
   return response.json();
 }
 
 async function fetchOptionalJson(path) {
   const response = await fetch(path);
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`Failed to load ${path}: ${response.status}`);
+  if (!response.ok) throw new Error(`Не удалось загрузить ${path}: ${response.status}`);
   return response.json();
 }
 
 async function fetchText(path) {
   const response = await fetch(path);
-  if (!response.ok) throw new Error(`Failed to load ${path}: ${response.status}`);
+  if (!response.ok) throw new Error(`Не удалось загрузить ${path}: ${response.status}`);
   return response.text();
 }
 
 async function fetchArrayBuffer(path) {
   const response = await fetch(path);
-  if (!response.ok) throw new Error(`Failed to load ${path}: ${response.status}`);
+  if (!response.ok) throw new Error(`Не удалось загрузить ${path}: ${response.status}`);
   return response.arrayBuffer();
 }
 
 function normalizeDocumentEntry(entry, index) {
-  const path = String(entry?.path || '').trim();
-  const type = String(entry?.type || '').trim().toLowerCase();
+  const id = String(entry?.id || `document-${index + 1}`).trim();
+  const path = String(entry?.path || entry?.source_path || '').trim();
+  const type = String(entry?.type || entry?.source_type || '').trim().toLowerCase();
   if (!path || !type) return null;
 
   return {
-    id: String(entry?.id || `document-${index + 1}`).trim(),
+    id,
     title: String(entry?.title || path).trim(),
     description: String(entry?.description || '').trim(),
     type,
     path,
     entitiesPath: String(
-      entry?.entities_path || `${DEFAULT_ENTITIES_BASE_PATH}/${String(entry?.id || `document-${index + 1}`).trim()}.json`,
+      entry?.entities_path || `${DEFAULT_ENTITIES_BASE_PATH}/${id}.json`,
     ).trim(),
+    storage: String(entry?.storage || 'local').trim().toLowerCase() === 'supabase' ? 'supabase' : 'local',
+    blockCount: Number(entry?.block_count || 0),
+    mentionCount: Number(entry?.mention_count || 0),
+    generatedAt: String(entry?.generated_at || '').trim(),
   };
 }
 
-async function loadDocumentManifest() {
+async function loadLocalDocumentManifest() {
   const manifest = await fetchJson(MANIFEST_PATH);
   const entries = Array.isArray(manifest?.documents) ? manifest.documents : [];
-  const documents = entries.map(normalizeDocumentEntry).filter(Boolean);
-  if (!documents.length) throw new Error('No documents in manifest.');
+  const documents = entries
+    .map((entry, index) => normalizeDocumentEntry({ ...entry, storage: 'local' }, index))
+    .filter(Boolean);
+  if (!documents.length) throw new Error('В локальном манифесте нет документов.');
   return documents;
+}
+
+async function fetchSupabasePagedRows(table, selectClause, options = {}) {
+  const client = await getSupabaseClient();
+  const pageSize = Number(options.pageSize) > 0 ? Number(options.pageSize) : 1000;
+  const rows = [];
+
+  for (let from = 0; ; from += pageSize) {
+    let query = client
+      .from(table)
+      .select(selectClause)
+      .range(from, from + pageSize - 1);
+
+    for (const order of options.orders || []) {
+      query = query.order(order.column, { ascending: order.ascending !== false });
+    }
+
+    for (const filter of options.filters || []) {
+      query = query.eq(filter.column, filter.value);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const page = Array.isArray(data) ? data : [];
+    rows.push(...page);
+
+    if (page.length < pageSize) {
+      break;
+    }
+  }
+
+  return rows;
+}
+
+async function loadSupabaseDocumentManifest() {
+  const rows = await fetchSupabasePagedRows(
+    SUPABASE_CONFIG.tables.textDocuments,
+    'id,title,description,source_type,source_path,block_count,mention_count,generated_at',
+    {
+      orders: [{ column: 'title', ascending: true }],
+      pageSize: 500,
+    },
+  );
+
+  const documents = rows
+    .map((row, index) => normalizeDocumentEntry({ ...row, storage: 'supabase' }, index))
+    .filter(Boolean);
+
+  if (!documents.length) {
+    throw new Error('В Supabase не найдено ни одного документа.');
+  }
+
+  return documents;
+}
+
+async function loadDocumentManifest() {
+  const source = getRequestedDataSource();
+
+  if (source === 'local') {
+    const documents = await loadLocalDocumentManifest();
+    state.documentsSource = { type: 'local' };
+    return documents;
+  }
+
+  try {
+    const documents = await loadSupabaseDocumentManifest();
+    state.documentsSource = { type: 'supabase' };
+    return documents;
+  } catch (error) {
+    if (source === 'supabase') {
+      throw error;
+    }
+
+    console.warn('Supabase недоступен для документов, загружаю локальные файлы.', error);
+    const documents = await loadLocalDocumentManifest();
+    state.documentsSource = {
+      type: 'local',
+      fallbackFrom: 'supabase',
+      fallbackReason: error?.message || String(error),
+    };
+    return documents;
+  }
 }
 
 function renderDocumentList() {
@@ -811,6 +954,43 @@ function getHighlightedEntityStats() {
   return stats;
 }
 
+function formatBlockTextAsHtml(text) {
+  return escapeHtml(String(text).replaceAll('\r\n', '\n').replaceAll('\r', '\n')).replaceAll('\n', '<br>');
+}
+
+function renderSupabaseDocumentHtml(blocks) {
+  const parts = [];
+  let listItems = [];
+
+  const flushList = () => {
+    if (!listItems.length) return;
+    parts.push(`<ul>${listItems.join('')}</ul>`);
+    listItems = [];
+  };
+
+  for (const block of blocks) {
+    const rawText = String(block?.text || '');
+    if (!rawText.trim()) continue;
+
+    if (block.kind === 'list_item') {
+      listItems.push(`<li>${formatBlockTextAsHtml(rawText)}</li>`);
+      continue;
+    }
+
+    flushList();
+
+    if (block.kind === 'heading') {
+      parts.push(`<h2>${formatBlockTextAsHtml(rawText)}</h2>`);
+      continue;
+    }
+
+    parts.push(`<p>${formatBlockTextAsHtml(rawText)}</p>`);
+  }
+
+  flushList();
+  return parts.join('');
+}
+
 function renderDocumentView() {
   if (!state.currentDocumentHtml) return;
 
@@ -824,11 +1004,17 @@ function renderDocumentView() {
 
   const stats = getHighlightedEntityStats();
   const currentDocument = state.documents.find((entry) => entry.id === state.currentDocumentId);
+  const sourceLabel = state.currentDocumentLoadSource === 'supabase'
+    ? 'Supabase'
+    : state.currentDocumentLoadSource === 'local'
+      ? 'GitHub'
+      : '';
   const entityLabel = stats.total
     ? `${stats.total} NLP-подсветок`
     : 'без NLP-подсветок';
 
   documentMeta.textContent = [
+    sourceLabel,
     currentDocument?.type === 'markdown' ? 'Markdown' : 'DOCX',
     state.outline.length ? `${state.outline.length} заголовков` : 'без заголовков',
     entityLabel,
@@ -904,6 +1090,112 @@ async function loadDocumentEntityData(documentEntry) {
   };
 }
 
+async function loadSupabaseDocumentPayload(documentEntry) {
+  const [blocks, mentions] = await Promise.all([
+    fetchSupabasePagedRows(
+      SUPABASE_CONFIG.tables.textDocumentBlocks,
+      'block_index,kind,text,mention_count',
+      {
+        filters: [{ column: 'document_id', value: documentEntry.id }],
+        orders: [{ column: 'block_index', ascending: true }],
+        pageSize: 1000,
+      },
+    ),
+    fetchSupabasePagedRows(
+      SUPABASE_CONFIG.tables.textDocumentMentions,
+      'block_index,mention_index,kind,text,start_offset,end_offset,source',
+      {
+        filters: [{ column: 'document_id', value: documentEntry.id }],
+        orders: [
+          { column: 'block_index', ascending: true },
+          { column: 'mention_index', ascending: true },
+        ],
+        pageSize: 1000,
+      },
+    ),
+  ]);
+
+  if (!blocks.length) {
+    throw new Error(`В Supabase не найдены блоки документа ${documentEntry.id}.`);
+  }
+
+  const mentionsByBlockIndex = new Map();
+  for (const mention of mentions) {
+    const blockIndex = Number(mention?.block_index);
+    if (!Number.isFinite(blockIndex)) continue;
+
+    if (!mentionsByBlockIndex.has(blockIndex)) {
+      mentionsByBlockIndex.set(blockIndex, []);
+    }
+
+    mentionsByBlockIndex.get(blockIndex).push({
+      id: `S${blockIndex + 1}-${Number(mention?.mention_index || 0) + 1}`,
+      kind: mention?.kind === 'kinship' ? 'kinship' : 'name',
+      text: String(mention?.text || ''),
+      start: Number(mention?.start_offset || 0),
+      end: Number(mention?.end_offset || 0),
+      prefix: '',
+      suffix: '',
+      source: String(mention?.source || ''),
+      confidence: '',
+    });
+  }
+
+  const normalizedBlocks = blocks.map((block, index) => ({
+    index: Number.isFinite(Number(block?.block_index)) ? Number(block.block_index) : index,
+    kind: String(block?.kind || 'paragraph'),
+    text: String(block?.text || ''),
+    entities: (mentionsByBlockIndex.get(Number(block?.block_index)) || [])
+      .filter((entity) => entity.text && entity.end > entity.start),
+  }));
+
+  return {
+    html: renderSupabaseDocumentHtml(normalizedBlocks),
+    entityData: {
+      documentId: documentEntry.id,
+      extractor: null,
+      generatedAt: documentEntry.generatedAt || '',
+      blocks: normalizedBlocks.filter((block) => block.entities.length),
+    },
+    loadSource: 'supabase',
+  };
+}
+
+async function loadLocalDocumentPayload(documentEntry) {
+  const [html, entityData] = await Promise.all([
+    loadDocumentHtml(documentEntry),
+    loadDocumentEntityData(documentEntry),
+  ]);
+
+  return {
+    html,
+    entityData,
+    loadSource: 'local',
+  };
+}
+
+async function loadDocumentPayload(documentEntry) {
+  const source = getRequestedDataSource();
+
+  if (source === 'local' || documentEntry.storage === 'local') {
+    return loadLocalDocumentPayload(documentEntry);
+  }
+
+  try {
+    return await loadSupabaseDocumentPayload(documentEntry);
+  } catch (error) {
+    if (source === 'supabase') {
+      throw error;
+    }
+
+    console.warn(`Supabase недоступен для документа ${documentEntry.id}, пробую локальный файл.`, error);
+    return loadLocalDocumentPayload({
+      ...documentEntry,
+      storage: 'local',
+    });
+  }
+}
+
 function showReaderError(message) {
   documentReader.innerHTML = `<div class="error-box">${escapeHtml(message)}</div>`;
   documentOutline.innerHTML = '<div class="documents-empty-state documents-empty-state-compact">Оглавление недоступно.</div>';
@@ -914,33 +1206,46 @@ function showReaderError(message) {
   documentSourceLink.removeAttribute('href');
   state.currentDocumentHtml = '';
   state.currentDocumentEntityData = null;
+  state.currentDocumentLoadSource = null;
   state.highlightedEntities = [];
   clearShareSelection();
 }
 
+function updateDocumentSourceLink(documentEntry, loadSource) {
+  if (!documentSourceLink) return;
+
+  const canLinkToLocalSource = loadSource === 'local' && documentEntry?.path;
+  if (!canLinkToLocalSource) {
+    documentSourceLink.classList.add('hidden');
+    documentSourceLink.removeAttribute('href');
+    return;
+  }
+
+  documentSourceLink.href = documentEntry.path;
+  documentSourceLink.classList.remove('hidden');
+}
+
 async function loadAndRenderDocument(documentId, options = {}) {
   const documentEntry = state.documents.find((entry) => entry.id === documentId);
-  if (!documentEntry) throw new Error('Document not found.');
+  if (!documentEntry) throw new Error('Документ не найден.');
 
   state.currentDocumentId = documentEntry.id;
   state.currentDocumentEntityData = null;
+  state.currentDocumentLoadSource = null;
   renderDocumentList();
   showLoading('Загрузка документа...');
 
   const loadToken = ++state.currentLoadToken;
 
   try {
-    const [html, entityData] = await Promise.all([
-      loadDocumentHtml(documentEntry),
-      loadDocumentEntityData(documentEntry),
-    ]);
+    const payload = await loadDocumentPayload(documentEntry);
     if (loadToken !== state.currentLoadToken) return;
 
-    state.currentDocumentHtml = html;
-    state.currentDocumentEntityData = entityData;
+    state.currentDocumentHtml = payload.html;
+    state.currentDocumentEntityData = payload.entityData;
+    state.currentDocumentLoadSource = payload.loadSource;
     documentTitle.textContent = documentEntry.title;
-    documentSourceLink.href = documentEntry.path;
-    documentSourceLink.classList.remove('hidden');
+    updateDocumentSourceLink(documentEntry, payload.loadSource);
     renderDocumentView();
     syncLocation(documentEntry.id, '', { preserveSelection: options.preserveSelection });
   } catch (error) {
@@ -1034,7 +1339,7 @@ async function init() {
       : state.documents[0]?.id;
 
     if (!initialDocument) {
-      throw new Error('No document available.');
+      throw new Error('Нет доступных документов.');
     }
 
     await loadAndRenderDocument(initialDocument, {

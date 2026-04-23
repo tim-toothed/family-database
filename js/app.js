@@ -1094,7 +1094,7 @@ async function init() {
   } catch (error) {
     console.error(error);
     showError(
-      `Не удалось загрузить данные сайта. Проверьте Supabase или локальные файлы data/people.\n\n${error.message}`
+      `Не удалось загрузить данные сайта. Проверьте Supabase или локальный приватный каталог данных.\n\n${error.message}`
     );
   }
 }
