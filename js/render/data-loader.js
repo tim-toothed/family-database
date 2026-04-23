@@ -1,13 +1,12 @@
 import { CONFIG, SUPABASE_CONFIG } from '../config.js';
+import { getSchemaClient } from '../auth.js';
 import { buildFamilyGroups } from '../visualization/table-family-groups.js';
 import { getPersonDisplayName } from './person-name.js';
 import { buildPeopleTableData } from '../visualization/table-view.js';
 import { normalizeLoadedPerson } from '../person/model.js';
 import { parseYaml } from '../lib/yaml.js';
 
-const SUPABASE_ESM_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const DATA_SOURCE_VALUES = new Set(['auto', 'local', 'supabase']);
-let supabaseClientPromise = null;
 
 async function fetchText(path) {
   const response = await fetch(path);
@@ -55,29 +54,15 @@ function hasSupabaseConfig() {
   return Boolean(SUPABASE_CONFIG?.url && SUPABASE_CONFIG?.publishableKey && SUPABASE_CONFIG?.tables?.yaml);
 }
 
-async function getSupabaseClient() {
+async function getSupabaseDataClient() {
   if (!hasSupabaseConfig()) {
     throw new Error('Supabase не настроен в js/config.js.');
   }
-
-  if (!supabaseClientPromise) {
-    supabaseClientPromise = (async () => {
-      const { createClient } = await import(SUPABASE_ESM_URL);
-      const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      });
-      return SUPABASE_CONFIG.schema ? supabase.schema(SUPABASE_CONFIG.schema) : supabase;
-    })();
-  }
-
-  return supabaseClientPromise;
+  return getSchemaClient();
 }
 
 async function fetchSupabaseRows() {
-  const client = await getSupabaseClient();
+  const client = await getSupabaseDataClient();
   const { data, error } = await client
     .from(SUPABASE_CONFIG.tables.yaml)
     .select('id, payload')

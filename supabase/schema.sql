@@ -94,37 +94,43 @@ alter table family_site.family_yaml enable row level security;
 alter table family_site.family_people enable row level security;
 
 drop policy if exists "family_yaml_public_select" on family_site.family_yaml;
-create policy "family_yaml_public_select"
+drop policy if exists "family_yaml_authenticated_select" on family_site.family_yaml;
+create policy "family_yaml_authenticated_select"
 on family_site.family_yaml
 for select
-to anon, authenticated
+to authenticated
 using (true);
 
 drop policy if exists "family_yaml_public_insert" on family_site.family_yaml;
-create policy "family_yaml_public_insert"
+drop policy if exists "family_yaml_authenticated_insert" on family_site.family_yaml;
+create policy "family_yaml_authenticated_insert"
 on family_site.family_yaml
 for insert
-to anon, authenticated
+to authenticated
 with check (true);
 
 drop policy if exists "family_yaml_public_update" on family_site.family_yaml;
-create policy "family_yaml_public_update"
+drop policy if exists "family_yaml_authenticated_update" on family_site.family_yaml;
+create policy "family_yaml_authenticated_update"
 on family_site.family_yaml
 for update
-to anon, authenticated
+to authenticated
 using (true)
 with check (true);
 
 drop policy if exists "family_people_public_select" on family_site.family_people;
-create policy "family_people_public_select"
+drop policy if exists "family_people_authenticated_select" on family_site.family_people;
+create policy "family_people_authenticated_select"
 on family_site.family_people
 for select
-to anon, authenticated
+to authenticated
 using (true);
 
 grant usage on schema family_site to anon, authenticated, service_role;
-grant select, insert, update on family_site.family_yaml to anon, authenticated, service_role;
-grant select on family_site.family_people to anon, authenticated, service_role;
+revoke select, insert, update on family_site.family_yaml from anon;
+revoke select on family_site.family_people from anon;
+grant select, insert, update on family_site.family_yaml to authenticated, service_role;
+grant select on family_site.family_people to authenticated, service_role;
 
 create table if not exists family_site.text_documents (
   id text primary key,
@@ -365,31 +371,40 @@ alter table family_site.text_document_blocks enable row level security;
 alter table family_site.text_document_mentions enable row level security;
 
 drop policy if exists "text_documents_public_select" on family_site.text_documents;
-create policy "text_documents_public_select"
+drop policy if exists "text_documents_authenticated_select" on family_site.text_documents;
+create policy "text_documents_authenticated_select"
 on family_site.text_documents
 for select
-to anon, authenticated
+to authenticated
 using (true);
 
 drop policy if exists "text_document_blocks_public_select" on family_site.text_document_blocks;
-create policy "text_document_blocks_public_select"
+drop policy if exists "text_document_blocks_authenticated_select" on family_site.text_document_blocks;
+create policy "text_document_blocks_authenticated_select"
 on family_site.text_document_blocks
 for select
-to anon, authenticated
+to authenticated
 using (true);
 
 drop policy if exists "text_document_mentions_public_select" on family_site.text_document_mentions;
-create policy "text_document_mentions_public_select"
+drop policy if exists "text_document_mentions_authenticated_select" on family_site.text_document_mentions;
+create policy "text_document_mentions_authenticated_select"
 on family_site.text_document_mentions
 for select
-to anon, authenticated
+to authenticated
 using (true);
 
-grant select on family_site.text_documents to anon, authenticated, service_role;
-grant select on family_site.text_document_blocks to anon, authenticated, service_role;
-grant select on family_site.text_document_mentions to anon, authenticated, service_role;
+revoke select on family_site.text_documents from anon;
+revoke select on family_site.text_document_blocks from anon;
+revoke select on family_site.text_document_mentions from anon;
+grant select on family_site.text_documents to authenticated, service_role;
+grant select on family_site.text_document_blocks to authenticated, service_role;
+grant select on family_site.text_document_mentions to authenticated, service_role;
 grant insert, update, delete on family_site.text_documents to service_role;
 grant insert, update, delete on family_site.text_document_blocks to service_role;
 grant insert, update, delete on family_site.text_document_mentions to service_role;
 grant usage, select on all sequences in schema family_site to service_role;
+revoke execute on function family_site.import_text_document(jsonb, jsonb, jsonb) from public;
+revoke execute on function family_site.import_text_document(jsonb, jsonb, jsonb) from anon;
+revoke execute on function family_site.import_text_document(jsonb, jsonb, jsonb) from authenticated;
 grant execute on function family_site.import_text_document(jsonb, jsonb, jsonb) to service_role;

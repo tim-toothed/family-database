@@ -1,9 +1,9 @@
 import { CONFIG, SUPABASE_CONFIG } from './config.js';
+import { getSchemaClient, requireAuth } from './auth.js';
 import { buildDocumentSnippet } from './document-links.js';
 
 const MANIFEST_PATH = './data/docs_processed/index.json';
 const DEFAULT_ENTITIES_BASE_PATH = './data/docs_processed/entities';
-const SUPABASE_ESM_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 const LINKABLE_TEXT_SKIP_SELECTOR = 'script, style';
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6';
 const ENTITY_BLOCK_SELECTOR = 'h1, h2, h3, h4, h5, h6, p, li, td, th, blockquote';
@@ -40,7 +40,6 @@ const documentReaderShell = document.querySelector('.document-reader-shell');
 const selectionLinkBubble = document.getElementById('selectionLinkBubble');
 let copySelectionLinkStatusTimer = 0;
 let selectionLinkBubbleStateTimer = 0;
-let supabaseClientPromise = null;
 
 function normalizeWhitespace(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
@@ -215,25 +214,11 @@ function hasSupabaseConfig() {
   );
 }
 
-async function getSupabaseClient() {
+async function getSupabaseDataClient() {
   if (!hasSupabaseConfig()) {
     throw new Error('Supabase не настроен для документов в js/config.js.');
   }
-
-  if (!supabaseClientPromise) {
-    supabaseClientPromise = (async () => {
-      const { createClient } = await import(SUPABASE_ESM_URL);
-      const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey, {
-        auth: {
-          persistSession: false,
-          autoRefreshToken: false,
-        },
-      });
-      return SUPABASE_CONFIG.schema ? supabase.schema(SUPABASE_CONFIG.schema) : supabase;
-    })();
-  }
-
-  return supabaseClientPromise;
+  return getSchemaClient();
 }
 
 async function fetchJson(path) {
@@ -294,7 +279,7 @@ async function loadLocalDocumentManifest() {
 }
 
 async function fetchSupabasePagedRows(table, selectClause, options = {}) {
-  const client = await getSupabaseClient();
+  const client = await getSupabaseDataClient();
   const pageSize = Number(options.pageSize) > 0 ? Number(options.pageSize) : 1000;
   const rows = [];
 
@@ -1329,6 +1314,7 @@ documentReaderShell?.addEventListener('scroll', () => {
 
 async function init() {
   try {
+    await requireAuth();
     state.documents = await loadDocumentManifest();
     renderDocumentList();
 

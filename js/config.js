@@ -2,6 +2,7 @@ export const CONFIG = {
   peopleDir: './data/people',
   peopleManifestPath: './data/people/index.json',
   personFileExtension: '.yaml',
+  requireAuth: true,
   // supabase: продовый режим без зависимости от data/* в публичном репозитории.
   // auto: сначала Supabase, затем локальный fallback. local: всегда локальные файлы.
   dataSource: 'supabase',

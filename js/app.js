@@ -1,4 +1,5 @@
 import { FIELD_LABELS, SECTION_ORDER } from './config.js';
+import { requireAuth } from './auth.js';
 import { collectDocumentSnippetTokens } from './document-links.js';
 import {
   addDraftArrayItem,
@@ -1052,6 +1053,7 @@ function setupTabs() {
 
 async function init() {
   try {
+    await requireAuth();
     setupGraphLayoutTrigger();
 
     const [loadedDataset, loadedSchema, loadedDescriptions] = await Promise.all([

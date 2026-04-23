@@ -1,20 +1,12 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { SUPABASE_CONFIG } from '../config.js';
+import { getSchemaClient } from '../auth.js';
 import { normalizeLoadedPerson } from '../person/model.js';
 
-const { url, publishableKey, schema, tables } = SUPABASE_CONFIG;
+const { url, publishableKey, tables } = SUPABASE_CONFIG;
 
 if (!url || !publishableKey) {
   throw new Error('Supabase URL или publishable key не настроены в js/config.js.');
 }
-
-const supabase = createClient(url, publishableKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-});
-const schemaClient = schema ? supabase.schema(schema) : supabase;
 
 function normalizePersonPayload(personId, payload) {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
@@ -202,6 +194,7 @@ async function loadYamlRowsByIds(ids) {
   )];
   if (!normalizedIds.length) return [];
 
+  const schemaClient = await getSchemaClient();
   const { data, error } = await schemaClient
     .from(tables.yaml)
     .select('id, payload')
@@ -218,6 +211,7 @@ async function persistPersonWithReciprocalLinks(personId, payload, options = {})
   const normalized = normalizePersonPayload(personId, payload);
   const shouldRequireExisting = options.requireExisting !== false;
 
+  const schemaClient = await getSchemaClient();
   const { data: existingCurrentRow, error: existingCurrentError } = await schemaClient
     .from(tables.yaml)
     .select('id, payload')
@@ -395,6 +389,7 @@ async function persistPersonWithReciprocalLinks(personId, payload, options = {})
 }
 
 export async function loadPeopleIndex() {
+  const schemaClient = await getSchemaClient();
   const { data, error } = await schemaClient
     .from(tables.people)
     .select('id, display_name');
@@ -412,6 +407,7 @@ export async function loadPeopleIndex() {
 }
 
 export async function loadEditablePerson(personId) {
+  const schemaClient = await getSchemaClient();
   const { data, error } = await schemaClient
     .from(tables.yaml)
     .select('id, payload')

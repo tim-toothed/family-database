@@ -22,6 +22,7 @@ import {
   loadPeopleIndex,
   saveEditablePerson,
 } from './supabase-editor-store.js';
+import { requireAuth } from '../auth.js';
 
 const editorLoading = document.getElementById('editorLoading');
 const editorError = document.getElementById('editorError');
@@ -672,6 +673,7 @@ function setupToolbarActions() {
 
 async function init() {
   try {
+    await requireAuth();
     const params = new URLSearchParams(window.location.search);
     const requestedId = params.get('id');
     const requestedNew = params.get('new') === '1';

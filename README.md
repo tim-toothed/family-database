@@ -166,6 +166,15 @@ Legacy/local fallback всё ещё может читать `data/people/index.j
 
 Работа с Supabase реализована в [js/editor/supabase-editor-store.js](js/editor/supabase-editor-store.js).
 
+Сайт использует минимальную авторизацию через Supabase Auth. При первом входе нужно ввести email и пароль существующего пользователя Supabase. Сессия сохраняется в браузере через Supabase client, поэтому повторно вводить пароль обычно не нужно.
+
+Для закрытого семейного режима:
+
+1. Создай пользователя в Supabase Auth.
+2. Примени [supabase/schema.sql](supabase/schema.sql), чтобы RLS policies разрешали чтение только роли `authenticated`.
+3. Оставь `CONFIG.requireAuth = true` в [js/config.js](js/config.js).
+4. В Supabase Dashboard отключи публичную самостоятельную регистрацию, если она не нужна.
+
 Редактор умеет:
 
 - загрузить индекс людей;
@@ -240,7 +249,8 @@ http://localhost:8000/
 
 - доступен ли Supabase;
 - корректны ли `SUPABASE_CONFIG.url`, `publishableKey`, `schema` и названия таблиц;
-- включены ли нужные RLS policy/grant для публичного чтения.
+- включены ли нужные RLS policy/grant для роли `authenticated`;
+- есть ли активная Supabase Auth-сессия в браузере.
 
 ## Что за что отвечает
 
