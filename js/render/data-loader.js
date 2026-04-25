@@ -1,12 +1,11 @@
-import { CONFIG, SUPABASE_CONFIG } from '../config.js';
-import { getSchemaClient } from '../auth.js';
+import { CONFIG } from '../config.js';
+import { fetchRemotePeopleRows } from '../db/people-store.js';
+import { getRequestedDataSource, getRemoteDataSource } from '../db/source.js';
 import { buildFamilyGroups } from '../visualization/table-family-groups.js';
 import { getPersonDisplayName } from './person-name.js';
 import { buildPeopleTableData } from '../visualization/table-view.js';
 import { normalizeLoadedPerson } from '../person/model.js';
 import { parseYaml } from '../lib/yaml.js';
-
-const DATA_SOURCE_VALUES = new Set(['auto', 'local', 'supabase']);
 
 async function fetchText(path) {
   const response = await fetch(path);
@@ -34,50 +33,6 @@ async function loadPersonYaml(id) {
   const text = await response.text();
   const data = await parseYaml(text);
   return { id, data, path };
-}
-
-function normalizeDataSource(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  return DATA_SOURCE_VALUES.has(normalized) ? normalized : 'auto';
-}
-
-function getRequestedDataSource() {
-  const configured = normalizeDataSource(CONFIG.dataSource);
-  const params = new URLSearchParams(globalThis.location?.search || '');
-  const override = normalizeDataSource(params.get('dataSource') || params.get('source'));
-  return override === 'auto' && !params.has('dataSource') && !params.has('source')
-    ? configured
-    : override;
-}
-
-function hasSupabaseConfig() {
-  return Boolean(SUPABASE_CONFIG?.url && SUPABASE_CONFIG?.publishableKey && SUPABASE_CONFIG?.tables?.yaml);
-}
-
-async function getSupabaseDataClient() {
-  if (!hasSupabaseConfig()) {
-    throw new Error('Supabase не настроен в js/config.js.');
-  }
-  return getSchemaClient();
-}
-
-async function fetchSupabaseRows() {
-  const client = await getSupabaseDataClient();
-  const { data, error } = await client
-    .from(SUPABASE_CONFIG.tables.yaml)
-    .select('id, payload')
-    .order('id', { ascending: true })
-    .limit(5000);
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!Array.isArray(data) || !data.length) {
-    throw new Error('В Supabase не найдено ни одной карточки.');
-  }
-
-  return data;
 }
 
 function extractPersonIdFromHref(href) {
@@ -179,8 +134,8 @@ async function loadLocalPeople() {
   return buildDatasetFromPeople(people, { type: 'local' });
 }
 
-async function loadSupabasePeople() {
-  const rows = await fetchSupabaseRows();
+async function loadRemotePeople(source) {
+  const rows = await fetchRemotePeopleRows(source);
   const people = new Map();
 
   for (const row of rows) {
@@ -192,10 +147,10 @@ async function loadSupabasePeople() {
   }
 
   if (!people.size) {
-    throw new Error('В Supabase нет корректных карточек.');
+    throw new Error(`В ${source} нет корректных карточек.`);
   }
 
-  return buildDatasetFromPeople(people, { type: 'supabase' });
+  return buildDatasetFromPeople(people, { type: source });
 }
 
 export async function loadDataset() {
@@ -205,18 +160,20 @@ export async function loadDataset() {
     return loadLocalPeople();
   }
 
+  const remoteSource = getRemoteDataSource(source);
+
   try {
-    return await loadSupabasePeople();
+    return await loadRemotePeople(remoteSource);
   } catch (error) {
-    if (source === 'supabase') {
+    if (source === 'supabase' || source === 'yandex') {
       throw error;
     }
 
-    console.warn('Supabase недоступен, загружаю локальные YAML.', error);
+    console.warn(`${remoteSource} недоступен, загружаю локальные YAML.`, error);
     const dataset = await loadLocalPeople();
     dataset.source = {
       type: 'local',
-      fallbackFrom: 'supabase',
+      fallbackFrom: remoteSource,
       fallbackReason: error?.message || String(error),
     };
     return dataset;

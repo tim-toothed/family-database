@@ -15,13 +15,14 @@ import {
   updateDraftValue,
   validateEditorPersonDraft,
 } from './person-editor.js';
-import { collectDocumentSnippetTokens } from '../document-links.js';
+import { collectDocumentSnippetTokens } from '../documents/deeplinks.js';
 import {
   createEditablePerson,
   loadEditablePerson,
   loadPeopleIndex,
   saveEditablePerson,
-} from './supabase-editor-store.js';
+} from '../db/editor-store.js';
+import { getRemoteDataSource } from '../db/source.js';
 import { requireAuth } from '../auth.js';
 
 const editorLoading = document.getElementById('editorLoading');
@@ -56,6 +57,10 @@ let sectionObserver = null;
 let sectionNavOpen = false;
 let activeEditorSectionId = '';
 const LINK_MASK_URL_RE = /(https?:\/\/[^\s<>"']+|doc:\/\/[^\s<>"']+)/giu;
+
+function getDbLabel() {
+  return getRemoteDataSource() === 'yandex' ? 'Yandex DB' : 'Supabase';
+}
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -349,8 +354,8 @@ function syncSaveButtonState() {
   savePersonButton.textContent = isSaving
     ? 'Сохранение...'
     : isCreatingNew
-      ? 'Создать в Supabase'
-      : 'Сохранить в Supabase';
+      ? `Создать в ${getDbLabel()}`
+      : `Сохранить в ${getDbLabel()}`;
 }
 
 function refreshHeader() {
@@ -587,8 +592,8 @@ async function saveCurrentPerson() {
     const synchronizedIds = Array.isArray(saveResult?.synchronizedIds) ? saveResult.synchronizedIds : [];
     const skippedIds = Array.isArray(saveResult?.skippedIds) ? saveResult.skippedIds : [];
     const baseMessage = wasCreatingNew
-      ? 'Карточка создана в Supabase.'
-      : 'Изменения сохранены в Supabase.';
+      ? `Карточка создана в ${getDbLabel()}.`
+      : `Изменения сохранены в ${getDbLabel()}.`;
     const syncMessage = synchronizedIds.length
       ? ` Синхронизированы карточки: ${synchronizedIds.join(', ')}.`
       : '';
@@ -696,7 +701,7 @@ async function init() {
       personId = requestedId;
       const loadedPerson = await loadEditablePerson(personId);
       if (!loadedPerson) {
-        showError(`Карточка ${personId} не найдена в Supabase.`);
+        showError(`Карточка ${personId} не найдена в ${getDbLabel()}.`);
         return;
       }
       draft = hydrateDraftForEditor(loadedPerson, schema, dataset.indexById);

@@ -29,3 +29,6 @@ NAVIGATION_*
 
 # To-do lists
 *.todo
+
+*authorized_key.json
+ydb/*

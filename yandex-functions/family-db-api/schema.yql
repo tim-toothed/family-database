@@ -1,0 +1,50 @@
+CREATE TABLE IF NOT EXISTS family_yaml (
+  id Utf8 NOT NULL,
+  payload Json NOT NULL,
+  created_at Utf8 NOT NULL,
+  updated_at Utf8 NOT NULL,
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS family_people (
+  id Utf8 NOT NULL,
+  display_name Utf8 NOT NULL,
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS text_documents (
+  id Utf8 NOT NULL,
+  title Utf8 NOT NULL,
+  description Utf8,
+  source_type Utf8 NOT NULL,
+  source_path Utf8 NOT NULL,
+  extractor Json,
+  content_hash Utf8,
+  generated_at Utf8,
+  block_count Int32 NOT NULL,
+  mention_count Int32 NOT NULL,
+  created_at Utf8 NOT NULL,
+  updated_at Utf8 NOT NULL,
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS text_document_blocks (
+  document_id Utf8 NOT NULL,
+  block_index Int32 NOT NULL,
+  kind Utf8 NOT NULL,
+  text Utf8 NOT NULL,
+  mention_count Int32 NOT NULL,
+  PRIMARY KEY (document_id, block_index)
+);
+
+CREATE TABLE IF NOT EXISTS text_document_mentions (
+  document_id Utf8 NOT NULL,
+  block_index Int32 NOT NULL,
+  mention_index Int32 NOT NULL,
+  kind Utf8 NOT NULL,
+  text Utf8 NOT NULL,
+  start_offset Int32 NOT NULL,
+  end_offset Int32 NOT NULL,
+  source Utf8 NOT NULL,
+  PRIMARY KEY (document_id, block_index, mention_index)
+);

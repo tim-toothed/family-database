@@ -1,39 +1,27 @@
-import { CONFIG, SUPABASE_CONFIG } from './config.js';
+import { CONFIG } from './config.js';
+import {
+  getSupabaseAuthSession,
+  signInWithSupabasePassword,
+  signOutFromSupabase,
+} from './db/supabase/client.js';
+import { getRemoteDataSource } from './db/source.js';
 
-const SUPABASE_ESM_URL = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-let supabaseClientPromise = null;
 let authSessionPromise = null;
+const SUPABASE_AUTH_STORAGE_KEY = 'family-database-auth';
 
-function hasSupabaseConfig() {
-  return Boolean(SUPABASE_CONFIG?.url && SUPABASE_CONFIG?.publishableKey);
-}
-
-export async function getSupabaseClient() {
-  if (!hasSupabaseConfig()) {
-    throw new Error('Supabase не настроен в js/config.js.');
+function getCachedAuthSession() {
+  try {
+    const raw = window.localStorage?.getItem(SUPABASE_AUTH_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const session = parsed?.currentSession || parsed;
+    const expiresAt = Number(session?.expires_at || 0);
+    if (!session?.access_token || (expiresAt && expiresAt * 1000 <= Date.now())) {
+      return null;
+    }
+    return session;
+  } catch {
+    return null;
   }
-
-  if (!supabaseClientPromise) {
-    supabaseClientPromise = (async () => {
-      const { createClient } = await import(SUPABASE_ESM_URL);
-      return createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.publishableKey, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-          detectSessionInUrl: true,
-          storageKey: 'family-database-auth',
-        },
-      });
-    })();
-  }
-
-  return supabaseClientPromise;
-}
-
-export async function getSchemaClient() {
-  const supabase = await getSupabaseClient();
-  return SUPABASE_CONFIG.schema ? supabase.schema(SUPABASE_CONFIG.schema) : supabase;
 }
 
 function ensureAuthShell() {
@@ -101,13 +89,12 @@ function renderAuthToolbar(session) {
     <button id="authSignOutButton" class="toolbar-button toolbar-button-subtle" type="button">Выйти</button>
   `;
   document.getElementById('authSignOutButton')?.addEventListener('click', async () => {
-    const supabase = await getSupabaseClient();
-    await supabase.auth.signOut();
+    await signOutFromSupabase();
     window.location.reload();
   });
 }
 
-async function waitForPasswordSignIn(supabase) {
+async function waitForPasswordSignIn() {
   const shell = ensureAuthShell();
   const form = document.getElementById('authGateForm');
   const emailInput = document.getElementById('authEmailInput');
@@ -123,7 +110,7 @@ async function waitForPasswordSignIn(supabase) {
       try {
         const email = String(emailInput?.value || '').trim();
         const password = String(passwordInput?.value || '');
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await signInWithSupabasePassword({ email, password });
         if (error) throw error;
         if (!data.session) throw new Error('Supabase не вернул сессию.');
 
@@ -145,8 +132,13 @@ export async function requireAuth() {
 
   if (!authSessionPromise) {
     authSessionPromise = (async () => {
-      const supabase = await getSupabaseClient();
-      const { data, error } = await supabase.auth.getSession();
+      const cachedSession = getCachedAuthSession();
+      if (cachedSession && getRemoteDataSource() === 'yandex') {
+        renderAuthToolbar(cachedSession);
+        return cachedSession;
+      }
+
+      const { data, error } = await getSupabaseAuthSession();
       if (error) throw error;
 
       if (data.session) {
@@ -154,7 +146,7 @@ export async function requireAuth() {
         return data.session;
       }
 
-      return waitForPasswordSignIn(supabase);
+      return waitForPasswordSignIn();
     })();
   }
 

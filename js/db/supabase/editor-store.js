@@ -1,6 +1,6 @@
-import { SUPABASE_CONFIG } from '../config.js';
-import { getSchemaClient } from '../auth.js';
-import { normalizeLoadedPerson } from '../person/model.js';
+import { SUPABASE_CONFIG } from '../../config.js';
+import { getSchemaClient } from './client.js';
+import { normalizeLoadedPerson } from '../../person/model.js';
 
 const { url, publishableKey, tables } = SUPABASE_CONFIG;
 

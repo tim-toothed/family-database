@@ -1,5 +1,5 @@
 import { FIELD_LABELS, SECTION_ORDER } from '../config.js';
-import { buildDocumentHref, collectDocumentSnippetTokens, parseDocumentSnippet } from '../document-links.js';
+import { buildDocumentHref, collectDocumentSnippetTokens, parseDocumentSnippet } from '../documents/deeplinks.js';
 import { formatBirthName, getDatasetPersonName, getPersonDisplayName } from './person-name.js';
 import {
   formatDateValue,

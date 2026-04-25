@@ -1,6 +1,6 @@
 import { FIELD_LABELS, SECTION_ORDER } from './config.js';
 import { requireAuth } from './auth.js';
-import { collectDocumentSnippetTokens } from './document-links.js';
+import { collectDocumentSnippetTokens } from './documents/deeplinks.js';
 import {
   addDraftArrayItem,
   addOtherInfoEntry,
@@ -19,7 +19,8 @@ import {
   updateDraftValue,
   validateEditorPersonDraft,
 } from './editor/person-editor.js';
-import { loadEditablePerson, saveEditablePerson } from './editor/supabase-editor-store.js';
+import { loadEditablePerson, saveEditablePerson } from './db/editor-store.js';
+import { getRemoteDataSource } from './db/source.js';
 import { personHasField } from './person/model.js';
 import { loadDataset } from './render/data-loader.js';
 import { getDatasetPersonName } from './render/person-name.js';
@@ -38,6 +39,10 @@ const detailsEmpty = document.getElementById('detailsEmpty');
 const detailsContent = document.getElementById('detailsContent');
 const personTitle = document.getElementById('personTitle');
 const personSubtitle = document.getElementById('personSubtitle');
+
+function getDbLabel() {
+  return getRemoteDataSource() === 'yandex' ? 'Yandex DB' : 'Supabase';
+}
 const personBody = document.getElementById('personBody');
 const rootPersonSelect = document.getElementById('rootPersonSelect');
 const buildTreeButton = document.getElementById('buildTreeButton');
@@ -640,7 +645,7 @@ async function startInlineSectionEdit(sectionKey, options = {}) {
     }
   } catch (error) {
     console.warn('Не удалось загрузить свежую версию карточки для inline-редактора.', error);
-    inlineStatusMessage = 'Не удалось получить свежие данные из Supabase. Использую текущую версию карточки.';
+    inlineStatusMessage = `Не удалось получить свежие данные из ${getDbLabel()}. Использую текущую версию карточки.`;
     inlineStatusTone = 'info';
   }
 
@@ -758,7 +763,7 @@ async function saveInlineSection() {
       ? ` Не удалось обновить карточки: ${skippedIds.join(', ')}.`
       : '';
 
-    inlineStatusMessage = `Изменения сохранены в Supabase.${syncMessage}${skippedMessage}`;
+    inlineStatusMessage = `Изменения сохранены в ${getDbLabel()}.${syncMessage}${skippedMessage}`;
     inlineStatusTone = 'valid';
     resetInlineEditorState({ clearStatus: false });
     await reloadDatasetAfterSave(selectedPersonId);
@@ -1096,7 +1101,7 @@ async function init() {
   } catch (error) {
     console.error(error);
     showError(
-      `Не удалось загрузить данные сайта. Проверьте Supabase или локальный приватный каталог данных.\n\n${error.message}`
+      `Не удалось загрузить данные сайта. Проверьте удаленную БД или локальный приватный каталог данных.\n\n${error.message}`
     );
   }
 }

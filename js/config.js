@@ -3,9 +3,9 @@ export const CONFIG = {
   peopleManifestPath: './data/people/index.json',
   personFileExtension: '.yaml',
   requireAuth: true,
-  // supabase: продовый режим без зависимости от data/* в публичном репозитории.
+  // supabase / yandex: продовый режим без зависимости от data/* в публичном репозитории.
   // auto: сначала Supabase, затем локальный fallback. local: всегда локальные файлы.
-  dataSource: 'supabase',
+  dataSource: 'yandex',
 };
 
 export const SUPABASE_CONFIG = {
@@ -20,6 +20,11 @@ export const SUPABASE_CONFIG = {
     textDocumentBlocks: 'text_document_blocks',
     textDocumentMentions: 'text_document_mentions',
   },
+};
+
+export const YANDEX_DB_CONFIG = {
+  apiUrl: 'https://functions.yandexcloud.net/d4ebrmtiseqef31cdo03',
+  apiToken: '',
 };
 
 export const FIELD_LABELS = {
