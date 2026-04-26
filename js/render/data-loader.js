@@ -109,10 +109,19 @@ function buildDatasetFromPeople(people, sourceInfo) {
     availableIds,
     source: sourceInfo,
   };
-  dataset.peopleTable = buildPeopleTableData(dataset, {
-    anchorId: people.has('P049') ? 'P049' : Array.from(people.keys()).sort()[0],
-  });
-  dataset.familyGroups = buildFamilyGroups(dataset, dataset.peopleTable);
+  return dataset;
+}
+
+export function ensureDatasetTableData(dataset) {
+  if (!dataset.peopleTable) {
+    dataset.peopleTable = buildPeopleTableData(dataset, {
+      anchorId: dataset.people.has('P049') ? 'P049' : Array.from(dataset.people.keys()).sort()[0],
+    });
+  }
+
+  if (!dataset.familyGroups) {
+    dataset.familyGroups = buildFamilyGroups(dataset, dataset.peopleTable);
+  }
 
   return dataset;
 }

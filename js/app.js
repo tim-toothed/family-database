@@ -22,7 +22,7 @@ import {
 import { loadEditablePerson, saveEditablePerson } from './db/editor-store.js';
 import { getRemoteDataSource } from './db/source.js';
 import { personHasField } from './person/model.js';
-import { loadDataset } from './render/data-loader.js';
+import { ensureDatasetTableData, loadDataset } from './render/data-loader.js';
 import { getDatasetPersonName } from './render/person-name.js';
 import { bindPersonLinks, buildPersonDetailsView } from './render/renderers.js';
 import { renderPeopleTable, setPeopleTableSelection, TABLE_SORTS } from './visualization/table-view.js';
@@ -806,6 +806,7 @@ function updateBuildTreeButtonState() {
 }
 
 function renderTable() {
+  ensureDatasetTableData(dataset);
   renderPeopleTable(peopleTable, dataset, dataset.peopleTable, {
     groupByFamily: currentTableGroupByFamily,
     familyGroups: dataset.familyGroups,
