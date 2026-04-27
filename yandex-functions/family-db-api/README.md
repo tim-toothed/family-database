@@ -44,6 +44,7 @@ PUT  /people/{personId}
 POST /people/{personId}
 GET  /documents
 GET  /documents/{documentId}
+DELETE /documents/{documentId}
 GET  /documents/{documentId}/chunk?from=0&chunkSize=200
 ```
 

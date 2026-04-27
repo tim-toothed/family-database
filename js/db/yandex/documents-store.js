@@ -23,3 +23,10 @@ export async function fetchYandexDocumentChunkRows(documentId, { from, to }) {
     mentions: Array.isArray(payload?.mentions) ? payload.mentions : [],
   };
 }
+
+export async function deleteYandexDocument(documentId) {
+  const payload = await fetchYandexDbApi(`/documents/${encodeURIComponent(documentId)}`, {
+    method: 'DELETE',
+  });
+  return payload?.document || null;
+}

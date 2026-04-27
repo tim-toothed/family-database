@@ -17,6 +17,7 @@ export const elements = {
   documentCountBadge: document.getElementById('documentCountBadge'),
   outlineCountBadge: document.getElementById('outlineCountBadge'),
   documentList: document.getElementById('documentList'),
+  documentUploadInput: document.getElementById('documentUploadInput'),
   documentOutline: document.getElementById('documentOutline'),
   documentLoadingState: document.getElementById('documentLoadingState'),
   documentMeta: document.getElementById('documentMeta'),

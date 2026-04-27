@@ -1,6 +1,7 @@
 import { requireAuth } from '../auth.js';
-import { cacheDocumentPayload, getCachedDocumentPayload } from './cache.js';
+import { clearDocumentManifestCache, cacheDocumentPayload, getCachedDocumentPayload } from './cache.js';
 import { getRequestedDataSource } from './config.js';
+import { importYandexDocumentFile } from '../db/yandex/document-import.js';
 import {
   applyDocumentPayload,
   appendStreamingDocumentChunk as appendStreamingStateChunk,
@@ -14,6 +15,7 @@ import {
   state,
 } from './context.js';
 import { loadDocumentManifest, loadDocumentPayload, loadRemoteDocumentChunk } from './data.js';
+import { deleteRemoteDocument } from '../db/documents-store.js';
 import {
   copySelectionLinkSilently,
   hideSelectionLinkBubble,
@@ -33,6 +35,8 @@ import {
   syncLocation,
   updateDocumentSourceLink,
 } from './render.js';
+
+const SUPPORTED_UPLOAD_EXTENSIONS = new Set(['md', 'markdown', 'docx', 'pdf', 'txt']);
 
 function showLoading(message) {
   elements.documentLoadingState.textContent = message;
@@ -136,6 +140,46 @@ async function loadAndRenderDocument(documentId, options = {}) {
   }
 }
 
+async function deleteDocument(documentId) {
+  const documentEntry = state.documents.find((entry) => entry.id === documentId);
+  if (!documentEntry) throw new Error('Документ не найден.');
+
+  const confirmed = window.confirm(`Удалить документ "${documentEntry.title}" из базы?`);
+  if (!confirmed) return;
+
+  const source = getRequestedDataSource();
+  if (source !== 'yandex') {
+    throw new Error('Удаление документов сейчас подключено только для Yandex DB.');
+  }
+
+  showLoading('Удаление документа...');
+  try {
+    const deletedIndex = state.documents.findIndex((entry) => entry.id === documentId);
+    await deleteRemoteDocument(source, documentId);
+    clearDocumentManifestCache('yandex');
+    state.documents = await loadDocumentManifest().catch(() => []);
+
+    const nextDocument = state.documents[Math.min(deletedIndex, state.documents.length - 1)] || null;
+    if (nextDocument) {
+      await loadAndRenderDocument(nextDocument.id);
+      return;
+    }
+
+    state.currentDocumentId = null;
+    resetDocumentViewState();
+    renderDocumentList();
+    syncLocation('', '');
+    elements.documentTitle.textContent = 'Документы отсутствуют';
+    elements.documentMeta.textContent = 'Нет доступных документов';
+    elements.documentSourceLink.classList.add('hidden');
+    elements.documentReader.innerHTML = '<div class="documents-empty-state">Загрузите первый документ.</div>';
+    elements.documentOutline.innerHTML = '<div class="documents-empty-state documents-empty-state-compact">Оглавление недоступно.</div>';
+    elements.outlineCountBadge.textContent = '0';
+  } finally {
+    hideLoading();
+  }
+}
+
 function bindEvents() {
   elements.documentSelect?.addEventListener('change', (event) => {
     if (event.target.value) {
@@ -144,9 +188,66 @@ function bindEvents() {
   });
 
   elements.documentList?.addEventListener('click', (event) => {
+    const uploadButton = event.target.closest('[data-document-upload]');
+    if (uploadButton) {
+      elements.documentUploadInput?.click();
+      return;
+    }
+
+    const deleteButton = event.target.closest('[data-document-delete]');
+    if (deleteButton) {
+      deleteDocument(deleteButton.dataset.documentDelete).catch((error) => {
+        showReaderError(error instanceof Error ? error.message : String(error));
+      });
+      return;
+    }
+
     const button = event.target.closest('[data-document-id]');
     if (button) {
       loadAndRenderDocument(button.dataset.documentId);
+    }
+  });
+
+  elements.documentUploadInput?.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const extension = String(file.name.split('.').pop() || '').toLowerCase();
+    if (!SUPPORTED_UPLOAD_EXTENSIONS.has(extension)) {
+      showReaderError('Поддерживаются только документы .md, .markdown, .docx, .pdf и .txt.');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      resetDocumentViewState();
+      elements.documentTitle.textContent = file.name;
+      elements.documentMeta.textContent = 'Импорт документа';
+      elements.documentSourceLink.classList.add('hidden');
+      elements.documentReader.innerHTML = '<div class="documents-empty-state">Загружаю документ в базу...</div>';
+      elements.documentOutline.innerHTML = '<div class="documents-empty-state documents-empty-state-compact">Оглавление появится после импорта.</div>';
+      elements.outlineCountBadge.textContent = '0';
+      showLoading('Импорт документа...');
+
+      const source = getRequestedDataSource();
+      if (source !== 'yandex') {
+        throw new Error('Импорт документов сейчас подключен только для Yandex DB.');
+      }
+
+      const importedDocument = await importYandexDocumentFile(file);
+      if (!importedDocument?.id) {
+        throw new Error('Импорт завершился без id документа.');
+      }
+
+      clearDocumentManifestCache('yandex');
+      state.documents = await loadDocumentManifest();
+      renderDocumentList();
+      await loadAndRenderDocument(importedDocument.id);
+    } catch (error) {
+      showReaderError(error instanceof Error ? error.message : String(error));
+    } finally {
+      hideLoading();
+      event.target.value = '';
     }
   });
 

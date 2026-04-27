@@ -27,6 +27,11 @@ export const YANDEX_DB_CONFIG = {
   apiToken: '',
 };
 
+export const YANDEX_DOC_IMPORT_CONFIG = {
+  apiUrl: 'https://functions.yandexcloud.net/d4ekv1u19pvbpl7j8oeq',
+  apiToken: '',
+};
+
 export const FIELD_LABELS = {
   id: 'ID',
   birth_name: 'Имя при рождении',

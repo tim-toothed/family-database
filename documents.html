@@ -28,16 +28,34 @@
             <h2 class="documents-side-title">Документы</h2>
             <span id="documentCountBadge" class="documents-side-badge">0</span>
           </div>
+          <input id="documentUploadInput" class="visually-hidden" type="file" accept=".md,.markdown,.docx,.pdf,.txt" />
           <div id="documentList" class="document-list"></div>
         </section>
 
         <section class="documents-side-section">
           <div class="documents-side-title-row">
+            <h2 class="documents-side-title">Инструменты</h2>
+          </div>
+          <div class="documents-tool-list" aria-label="Инструменты документа">
+            <button id="toggleNamesTool" class="documents-tool-button is-active" type="button" aria-pressed="true">
+              <span class="documents-item-icon documents-item-icon-eye" aria-hidden="true"></span>
+              <span>Имена</span>
+            </button>
+            <button id="toggleKinshipTool" class="documents-tool-button is-active" type="button" aria-pressed="true">
+              <span class="documents-item-icon documents-item-icon-eye" aria-hidden="true"></span>
+              <span>Термины родства</span>
+            </button>
+          </div>
+        </section>
+
+        <details class="documents-side-section documents-collapsible-section">
+          <summary class="documents-side-title-row documents-side-summary">
             <h2 class="documents-side-title">Оглавление</h2>
             <span id="outlineCountBadge" class="documents-side-badge">0</span>
-          </div>
+            <span class="documents-collapse-icon" aria-hidden="true"></span>
+          </summary>
           <nav id="documentOutline" class="document-outline" aria-label="Оглавление документа"></nav>
-        </section>
+        </details>
       </aside>
 
       <section class="documents-reader-panel">

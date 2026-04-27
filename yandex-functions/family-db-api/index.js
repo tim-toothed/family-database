@@ -10,7 +10,7 @@ let sqlPromise;
 function getCorsHeaders() {
   return {
     'Access-Control-Allow-Origin': process.env.CORS_ORIGIN || '*',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization',
     'Access-Control-Max-Age': '86400',
   };
@@ -693,6 +693,23 @@ async function getDocumentChunkRows(sql, documentId, from, chunkSize) {
   return { blocks, mentions };
 }
 
+async function deleteDocument(sql, documentId) {
+  const result = await getDocumentRows(sql, documentId);
+  if (!result.document) {
+    const error = new Error('Not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  await sql.begin(async (tx) => {
+    await tx`DELETE FROM text_document_mentions WHERE document_id = ${documentId}`;
+    await tx`DELETE FROM text_document_blocks WHERE document_id = ${documentId}`;
+    await tx`DELETE FROM text_documents WHERE id = ${documentId}`;
+  });
+
+  return result.document;
+}
+
 async function route(event) {
   const method = String(event?.httpMethod || 'GET').toUpperCase();
   if (method === 'OPTIONS') return emptyResponse(204);
@@ -737,12 +754,20 @@ async function route(event) {
     return jsonResponse(200, { rows: await listDocuments(sql) });
   }
 
-  if (segments[0] === 'documents' && segments.length === 2 && method === 'GET') {
+  if (segments[0] === 'documents' && segments.length === 2) {
     const documentId = segments[1];
     assertId(documentId, 'document id');
-    const result = await getDocumentRows(sql, documentId);
-    if (!result.document) return jsonResponse(404, { error: 'Not found' });
-    return jsonResponse(200, result);
+
+    if (method === 'GET') {
+      const result = await getDocumentRows(sql, documentId);
+      if (!result.document) return jsonResponse(404, { error: 'Not found' });
+      return jsonResponse(200, result);
+    }
+
+    if (method === 'DELETE') {
+      const document = await deleteDocument(sql, documentId);
+      return jsonResponse(200, { document });
+    }
   }
 
   if (segments[0] === 'documents' && segments[2] === 'chunk' && method === 'GET') {

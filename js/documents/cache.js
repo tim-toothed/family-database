@@ -123,6 +123,16 @@ export function cacheDocumentManifest(source, documents) {
   }
 }
 
+export function clearDocumentManifestCache(source) {
+  const cacheKey = getManifestCacheKey(source);
+  documentManifestMemoryCache.delete(cacheKey);
+  try {
+    window.sessionStorage?.removeItem(cacheKey);
+  } catch {
+    // Ignore storage access errors.
+  }
+}
+
 function normalizeCachedDocumentPayload(payload) {
   if (!payload || typeof payload !== 'object') return null;
   if (typeof payload.html !== 'string') return null;

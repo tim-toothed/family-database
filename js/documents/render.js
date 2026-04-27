@@ -9,12 +9,25 @@ export function renderDocumentList() {
     ...state.documents.map((entry) => `<option value="${escapeHtml(entry.id)}">${escapeHtml(entry.title)}</option>`),
   ].join('');
 
-  elements.documentList.innerHTML = state.documents.map((entry) => `
-    <button type="button" class="document-list-item${entry.id === state.currentDocumentId ? ' is-active' : ''}" data-document-id="${escapeHtml(entry.id)}">
-      <span class="document-list-title">${escapeHtml(entry.title)}</span>
-      <span class="document-list-meta">${escapeHtml(entry.description || entry.type.toUpperCase())}</span>
-    </button>
-  `).join('');
+  elements.documentList.innerHTML = [
+    `
+      <button type="button" class="document-list-item document-upload-button" data-document-upload>
+        <span class="documents-item-icon documents-item-icon-import" aria-hidden="true"></span>
+        <span class="document-list-title">Загрузить документ</span>
+      </button>
+    `,
+    ...state.documents.map((entry) => `
+      <div class="document-list-row${entry.id === state.currentDocumentId ? ' is-active' : ''}">
+        <button type="button" class="document-list-item" data-document-id="${escapeHtml(entry.id)}">
+          <span class="documents-item-icon documents-item-icon-document" aria-hidden="true"></span>
+          <span class="document-list-title">${escapeHtml(entry.title)}</span>
+        </button>
+        <button type="button" class="document-delete-button" data-document-delete="${escapeHtml(entry.id)}" aria-label="Удалить документ ${escapeHtml(entry.title)}" title="Удалить документ">
+          <span class="documents-item-icon documents-item-icon-delete" aria-hidden="true"></span>
+        </button>
+      </div>
+    `),
+  ].join('');
 
   elements.documentSelect.value = state.currentDocumentId || '';
   elements.documentCountBadge.textContent = String(state.documents.length);

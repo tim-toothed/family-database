@@ -4,6 +4,7 @@ import {
   fetchSupabaseDocumentPayloadRows,
 } from './supabase/documents-store.js';
 import {
+  deleteYandexDocument,
   fetchYandexDocumentChunkRows,
   fetchYandexDocumentManifestRows,
   fetchYandexDocumentPayloadRows,
@@ -25,4 +26,11 @@ export async function fetchRemoteDocumentChunkRows(source, documentId, options) 
   return source === 'yandex'
     ? fetchYandexDocumentChunkRows(documentId, options)
     : fetchSupabaseDocumentChunkRows(documentId, options);
+}
+
+export async function deleteRemoteDocument(source, documentId) {
+  if (source !== 'yandex') {
+    throw new Error('Удаление документов сейчас подключено только для Yandex DB.');
+  }
+  return deleteYandexDocument(documentId);
 }
