@@ -1,7 +1,13 @@
 import { requireAuth } from '../auth.js';
-import { clearDocumentManifestCache, cacheDocumentPayload, getCachedDocumentPayload } from './cache.js';
+import {
+  clearDocumentManifestCache,
+  clearDocumentPayloadCache,
+  cacheDocumentPayload,
+  getCachedDocumentPayload,
+} from './cache.js';
 import { getRequestedDataSource } from './config.js';
 import { importYandexDocumentFile } from '../db/yandex/document-import.js';
+import { runYandexDocumentNer } from '../db/yandex/document-tools.js';
 import {
   applyDocumentPayload,
   appendStreamingDocumentChunk as appendStreamingStateChunk,
@@ -27,11 +33,15 @@ import {
 } from './selection.js';
 import {
   appendStreamingDocumentChunk,
+  applyEntityKindVisibility,
+  hideDocumentToolError,
   initializeStreamingDocumentView,
   renderDocumentList,
   renderDocumentView,
   refreshDocumentMeta,
   showReaderError,
+  showDocumentToolError,
+  syncEntityToolState,
   syncLocation,
   updateDocumentSourceLink,
 } from './render.js';
@@ -180,11 +190,78 @@ async function deleteDocument(documentId) {
   }
 }
 
+function toggleEntityKind(kind) {
+  state.enabledEntityKinds[kind] = !state.enabledEntityKinds[kind];
+  applyEntityKindVisibility();
+}
+
+async function runDocumentNerForKind(kind) {
+  const documentEntry = state.documents.find((entry) => entry.id === state.currentDocumentId);
+  if (!documentEntry) {
+    showDocumentToolError('Документ не выбран.');
+    return;
+  }
+
+  if (getRequestedDataSource() !== 'yandex') {
+    showDocumentToolError('NLP-инструменты сейчас подключены только для Yandex DB.');
+    return;
+  }
+
+  hideDocumentToolError();
+  state.toolLoadingKind = kind;
+  syncEntityToolState();
+
+  try {
+    const includeNames = kind === 'name' || state.enabledEntityKinds.name;
+    const includeKinship = kind === 'kinship' || state.enabledEntityKinds.kinship;
+    const previousScrollTop = elements.documentReaderShell?.scrollTop || 0;
+
+    await runYandexDocumentNer(documentEntry.id, { includeNames, includeKinship });
+    window.getSelection()?.removeAllRanges();
+    clearShareSelection();
+    clearDocumentManifestCache('yandex');
+    clearDocumentPayloadCache(documentEntry);
+    state.documents = await loadDocumentManifest();
+    renderDocumentList();
+    await loadAndRenderDocument(documentEntry.id);
+    if (elements.documentReaderShell) {
+      elements.documentReaderShell.scrollTop = previousScrollTop;
+    }
+    state.enabledEntityKinds[kind] = true;
+    applyEntityKindVisibility();
+  } catch (error) {
+    showDocumentToolError(error instanceof Error ? error.message : String(error));
+  } finally {
+    state.toolLoadingKind = '';
+    syncEntityToolState();
+  }
+}
+
 function bindEvents() {
+  syncEntityToolState();
+
   elements.documentSelect?.addEventListener('change', (event) => {
     if (event.target.value) {
       loadAndRenderDocument(event.target.value);
     }
+  });
+
+  elements.toggleNamesTool?.addEventListener('click', () => {
+    const hasMentions = Boolean(state.highlightedEntities.some((entity) => entity.kind === 'name'));
+    if (hasMentions) {
+      toggleEntityKind('name');
+      return;
+    }
+    runDocumentNerForKind('name');
+  });
+
+  elements.toggleKinshipTool?.addEventListener('click', () => {
+    const hasMentions = Boolean(state.highlightedEntities.some((entity) => entity.kind === 'kinship'));
+    if (hasMentions) {
+      toggleEntityKind('kinship');
+      return;
+    }
+    runDocumentNerForKind('kinship');
   });
 
   elements.documentList?.addEventListener('click', (event) => {

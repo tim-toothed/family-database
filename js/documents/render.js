@@ -388,6 +388,56 @@ function getHighlightedEntityStats() {
   return stats;
 }
 
+export function syncEntityToolState() {
+  const toolPairs = [
+    [elements.toggleNamesTool, 'name'],
+    [elements.toggleKinshipTool, 'kinship'],
+  ];
+  const stats = getHighlightedEntityStats();
+  const countsByKind = {
+    name: stats.names,
+    kinship: stats.kinship,
+  };
+
+  for (const [button, kind] of toolPairs) {
+    if (!button) continue;
+    const enabled = Boolean(state.enabledEntityKinds[kind]);
+    const hasMentions = countsByKind[kind] > 0;
+    const loading = state.toolLoadingKind === kind;
+    button.classList.toggle('is-active', enabled && hasMentions);
+    button.classList.toggle('has-mentions', hasMentions);
+    button.classList.toggle('is-loading', loading);
+    button.setAttribute('aria-pressed', String(enabled && hasMentions));
+    button.disabled = Boolean(state.toolLoadingKind);
+  }
+}
+
+export function applyEntityKindVisibility(root = getDocumentRoot()) {
+  if (!root) {
+    syncEntityToolState();
+    return;
+  }
+
+  for (const element of root.querySelectorAll('.entity-candidate')) {
+    const kind = element.dataset.entityKind;
+    const enabled = Boolean(state.enabledEntityKinds[kind]);
+    element.classList.toggle('is-disabled-kind', !enabled);
+  }
+  syncEntityToolState();
+}
+
+export function showDocumentToolError(message) {
+  if (!elements.documentToolError) return;
+  elements.documentToolError.textContent = message;
+  elements.documentToolError.classList.remove('hidden');
+}
+
+export function hideDocumentToolError() {
+  if (!elements.documentToolError) return;
+  elements.documentToolError.textContent = '';
+  elements.documentToolError.classList.add('hidden');
+}
+
 function updateDocumentMeta() {
   const stats = getHighlightedEntityStats();
   const currentDocument = state.documents.find((entry) => entry.id === state.currentDocumentId);
@@ -423,6 +473,7 @@ export function renderDocumentView() {
 
   buildOutline(root);
   applyDetectedCandidates(root);
+  applyEntityKindVisibility(root);
   applyRequestedSelection(root);
   updateDocumentMeta();
 }
@@ -447,6 +498,7 @@ export function appendStreamingDocumentChunk(chunk) {
 
   appendOutlineFromNodes(appendedNodes);
   applyDetectedCandidatesToNodes(appendedNodes, chunk.entityBlocks);
+  applyEntityKindVisibility(root);
   applyRequestedSelection(root);
   updateDocumentMeta();
 }

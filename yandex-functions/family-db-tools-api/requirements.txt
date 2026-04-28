@@ -1,0 +1,5 @@
+ydb>=3.18.0
+natasha>=1.6.0
+pymorphy2>=0.9.1
+pymorphy2-dicts-ru>=2.4.417127.4579844
+setuptools>=70.0.0

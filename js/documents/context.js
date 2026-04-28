@@ -8,6 +8,11 @@ export const state = {
   currentDocumentProgress: null,
   outline: [],
   highlightedEntities: [],
+  enabledEntityKinds: {
+    name: true,
+    kinship: true,
+  },
+  toolLoadingKind: '',
   shareSelection: null,
   requestedSelectionApplied: false,
 };
@@ -18,6 +23,9 @@ export const elements = {
   outlineCountBadge: document.getElementById('outlineCountBadge'),
   documentList: document.getElementById('documentList'),
   documentUploadInput: document.getElementById('documentUploadInput'),
+  toggleNamesTool: document.getElementById('toggleNamesTool'),
+  toggleKinshipTool: document.getElementById('toggleKinshipTool'),
+  documentToolError: document.getElementById('documentToolError'),
   documentOutline: document.getElementById('documentOutline'),
   documentLoadingState: document.getElementById('documentLoadingState'),
   documentMeta: document.getElementById('documentMeta'),

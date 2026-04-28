@@ -207,6 +207,16 @@ export function getCachedDocumentPayload(documentEntry) {
   return cached;
 }
 
+export function clearDocumentPayloadCache(documentEntry) {
+  const cacheKey = getDocumentPayloadCacheKey(documentEntry);
+  documentPayloadMemoryCache.delete(cacheKey);
+  try {
+    window.sessionStorage?.removeItem(getDocumentPayloadSessionStorageKey(documentEntry));
+  } catch {
+    // Ignore storage access errors.
+  }
+}
+
 export function cacheDocumentPayload(documentEntry, payload) {
   const normalized = normalizeCachedDocumentPayload(payload);
   if (!normalized) return;

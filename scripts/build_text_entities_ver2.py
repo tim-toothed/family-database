@@ -54,6 +54,8 @@ MARKDOWN_TAG_RE = re.compile(r'<[^>]+>')
 TOKEN_RE = re.compile(r'[A-Za-zА-ЯЁа-яё]+(?:-[A-Za-zА-ЯЁа-яё]+)*|[()\[\]]|[^\s]')
 WORD_RE = re.compile(r'^[А-ЯЁа-яё]+(?:-[А-ЯЁа-яё]+)*$')
 CAPITALIZED_WORD_RE = re.compile(r'^[А-ЯЁ][а-яё]+(?:-[А-ЯЁ][а-яё]+)*$')
+UPPERCASE_WORD_RE = re.compile(r'^[А-ЯЁ]{3,}(?:-[А-ЯЁ]{3,})*$')
+INITIAL_SURNAME_RE = re.compile(r'(?<![А-ЯЁа-яё])(?:[А-ЯЁ]\.){1,3}\s*[А-ЯЁ][А-ЯЁа-яё-]{2,}')
 PATRONYMIC_TOKEN_RE = re.compile(r'(?:вич|вна|ична|оглы|кызы)$', re.IGNORECASE)
 
 KINSHIP_PATTERNS = (
@@ -119,8 +121,10 @@ KINSHIP_MODIFIER_LEMMAS = {
   'троюродный',
 }
 NON_PERSON_COMPONENT_LEMMAS = {
+  'август',
   'дети',
   'дочь',
+  'герой',
   'из',
   'заметка',
   'имя',
@@ -132,6 +136,35 @@ NON_PERSON_COMPONENT_LEMMAS = {
   'сын',
   'тетя',
   'тётя',
+  'февраль',
+  'январь',
+}
+MONTH_LEMMAS = {
+  'январь',
+  'февраль',
+  'март',
+  'апрель',
+  'май',
+  'июнь',
+  'июль',
+  'август',
+  'сентябрь',
+  'октябрь',
+  'ноябрь',
+  'декабрь',
+}
+HONORIFIC_OR_AWARD_LEMMAS = {
+  'герой',
+  'кавалер',
+  'лауреат',
+  'орден',
+  'медаль',
+  'награда',
+  'степень',
+  'союз',
+  'труд',
+  'революция',
+  'звезда',
 }
 ONE_WORD_NAME_CONTEXT_BLOCKERS = {
   'династия',
@@ -359,12 +392,24 @@ def token_top_pos(token_text: str, morph) -> str | None:
   return parses[0].tag.POS
 
 
+def token_is_month(token: TokenSpan, morph) -> bool:
+  return is_word_token(token) and bool(token_normal_forms(token.text, morph) & MONTH_LEMMAS)
+
+
+def token_is_honorific_or_award(token: TokenSpan, morph) -> bool:
+  return is_word_token(token) and bool(token_normal_forms(token.text, morph) & HONORIFIC_OR_AWARD_LEMMAS)
+
+
 def is_word_token(token: TokenSpan) -> bool:
   return bool(WORD_RE.fullmatch(token.text))
 
 
 def is_capitalized_word(token: TokenSpan) -> bool:
   return bool(CAPITALIZED_WORD_RE.fullmatch(token.text))
+
+
+def is_uppercase_word(token: TokenSpan) -> bool:
+  return bool(UPPERCASE_WORD_RE.fullmatch(token.text))
 
 
 def is_kinship_lemma(lemma: str) -> bool:
@@ -403,6 +448,35 @@ def token_is_name_component(token: TokenSpan, morph) -> bool:
   )
 
 
+def token_can_be_name_word(token: TokenSpan, morph) -> bool:
+  if not is_word_token(token):
+    return False
+  if token_is_month(token, morph) or token_is_kinship(token, morph) or token_is_honorific_or_award(token, morph):
+    return False
+  if token_has_geographical_signal(token, morph):
+    return False
+  pos = token_top_pos(token.text, morph)
+  if pos in BLOCKED_NAME_POS and not token_is_name_component(token, morph):
+    return False
+  return token_is_name_component(token, morph) or is_capitalized_word(token) or is_uppercase_word(token)
+
+
+def token_can_be_sequence_name_word(token: TokenSpan, morph) -> bool:
+  return token_can_be_name_word(token, morph) and (is_capitalized_word(token) or is_uppercase_word(token))
+
+
+def trim_geo_suffix_from_sequence(word_tokens: list[TokenSpan], tokens: list[TokenSpan], morph) -> list[TokenSpan]:
+  result = list(word_tokens)
+  while len(result) > 1:
+    last_index = tokens.index(result[-1])
+    next_index = find_next_word_index(tokens, last_index)
+    next_token = tokens[next_index] if next_index is not None else None
+    if not next_token or not (token_normal_forms(next_token.text, morph) & GEO_CONTEXT_LEMMAS):
+      break
+    result.pop()
+  return result
+
+
 def trim_name_edges(word_tokens: list[TokenSpan], morph) -> list[TokenSpan]:
   result = list(word_tokens)
   while result and (
@@ -413,6 +487,23 @@ def trim_name_edges(word_tokens: list[TokenSpan], morph) -> list[TokenSpan]:
   while result and (
     token_is_kinship(result[-1], morph)
     or not token_is_name_component(result[-1], morph)
+  ):
+    result.pop()
+  return result
+
+
+def trim_sequence_edges(word_tokens: list[TokenSpan], morph) -> list[TokenSpan]:
+  result = list(word_tokens)
+  while result and (
+    token_is_kinship(result[0], morph)
+    or token_is_month(result[0], morph)
+    or token_is_honorific_or_award(result[0], morph)
+  ):
+    result.pop(0)
+  while result and (
+    token_is_kinship(result[-1], morph)
+    or token_is_month(result[-1], morph)
+    or token_is_honorific_or_award(result[-1], morph)
   ):
     result.pop()
   return result
@@ -460,6 +551,23 @@ def find_next_word_index(tokens: list[TokenSpan], start_index: int) -> int | Non
   return None
 
 
+def token_separator_is_plain_space(text: str, left: TokenSpan, right: TokenSpan) -> bool:
+  return bool(re.fullmatch(r'\s+', text[left.end:right.start] or ''))
+
+
+def previous_geo_context(tokens: list[TokenSpan], token_index: int, morph, window: int = 2) -> bool:
+  checked = 0
+  index = token_index - 1
+  while index >= 0 and checked < window:
+    token = tokens[index]
+    if is_word_token(token):
+      checked += 1
+      if token_normal_forms(token.text, morph) & GEO_CONTEXT_LEMMAS:
+        return True
+    index -= 1
+  return False
+
+
 def raw_word_tokens_from_match(text: str, tokens: list[TokenSpan], match, morph) -> list[TokenSpan]:
   seed_indexes = find_word_indexes_in_span(tokens, int(match.start), int(match.stop))
   if not seed_indexes:
@@ -493,6 +601,11 @@ def build_name_match(text: str, tokens: list[TokenSpan], match, morph) -> NameMa
   if word_count == 1 and components['last'] and not components['first'] and not components['middle']:
     return None
 
+  if word_count == 1:
+    token_index = tokens.index(word_tokens[0])
+    if not is_capitalized_word(word_tokens[0]) or previous_geo_context(tokens, token_index, morph):
+      return None
+
   if any(token_top_pos(token.text, morph) in BLOCKED_NAME_POS for token in word_tokens if not token_is_kinship(token, morph)):
     return None
 
@@ -502,13 +615,129 @@ def build_name_match(text: str, tokens: list[TokenSpan], match, morph) -> NameMa
   return NameMatch(start=start, end=end, components=components)
 
 
+def expand_name_candidate(text: str, word_tokens: list[TokenSpan], tokens: list[TokenSpan], morph) -> list[TokenSpan]:
+  if not word_tokens:
+    return []
+
+  word_indexes = [index for index, token in enumerate(tokens) if token in word_tokens]
+  if not word_indexes:
+    return word_tokens
+
+  start_index = word_indexes[0]
+  end_index = word_indexes[-1]
+
+  while True:
+    previous_index = find_previous_word_index(tokens, start_index)
+    if (
+      previous_index is None
+      or not token_can_be_name_word(tokens[previous_index], morph)
+      or not token_separator_is_plain_space(text, tokens[previous_index], tokens[start_index])
+    ):
+      break
+    start_index = previous_index
+
+  while True:
+    next_index = find_next_word_index(tokens, end_index)
+    if (
+      next_index is None
+      or not token_can_be_name_word(tokens[next_index], morph)
+      or not token_separator_is_plain_space(text, tokens[end_index], tokens[next_index])
+    ):
+      break
+    end_index = next_index
+
+  expanded = [token for token in tokens[start_index:end_index + 1] if is_word_token(token)]
+  return trim_name_edges(expanded, morph)
+
+
+def mention_key(mention: Mention) -> tuple[int, int, str]:
+  return (mention.start, mention.end, mention.kind)
+
+
+def extract_initial_surname_mentions(text: str) -> list[Mention]:
+  mentions: list[Mention] = []
+  for match in INITIAL_SURNAME_RE.finditer(text):
+    value = normalize_whitespace(match.group(0))
+    if not value:
+      continue
+    mentions.append(
+      Mention(
+        id='',
+        kind='name',
+        text=value,
+        start=match.start(),
+        end=match.end(),
+        source='initials_surname',
+      ),
+    )
+  return mentions
+
+
+def extract_capitalized_sequence_mentions(text: str, morph) -> list[Mention]:
+  tokens = tokenize_text(text)
+  mentions: list[Mention] = []
+  index = 0
+
+  while index < len(tokens):
+    token = tokens[index]
+    if not token_can_be_sequence_name_word(token, morph):
+      index += 1
+      continue
+
+    start_index = index
+    end_index = index
+    next_index = find_next_word_index(tokens, index)
+    while (
+      next_index is not None
+      and token_can_be_sequence_name_word(tokens[next_index], morph)
+      and token_separator_is_plain_space(text, tokens[end_index], tokens[next_index])
+    ):
+      end_index = next_index
+      next_index = find_next_word_index(tokens, end_index)
+
+    word_tokens = [item for item in tokens[start_index:end_index + 1] if is_word_token(item)]
+    word_tokens = trim_geo_suffix_from_sequence(trim_sequence_edges(word_tokens, morph), tokens, morph)
+    components = classify_name_tokens(word_tokens, morph)
+    strong_count = len(components['first']) + len(components['last']) + len(components['middle'])
+    has_uppercase_sequence = len(word_tokens) >= 2 and sum(1 for item in word_tokens if is_uppercase_word(item)) >= 2
+    has_short_acronym_tail = any(is_uppercase_word(item) and len(item.text) <= 4 for item in word_tokens)
+    all_words_uppercase = all(is_uppercase_word(item) for item in word_tokens)
+
+    if (
+      len(word_tokens) >= 2
+      and (strong_count >= 1 or has_uppercase_sequence)
+      and not (has_short_acronym_tail and not all_words_uppercase)
+      and not previous_geo_context(tokens, start_index, morph)
+    ):
+      mentions.append(
+        Mention(
+          id='',
+          kind='name',
+          text=normalize_whitespace(text[word_tokens[0].start:word_tokens[-1].end]),
+          start=word_tokens[0].start,
+          end=word_tokens[-1].end,
+          source='capitalized_name_sequence',
+        ),
+      )
+
+    index = max(end_index + 1, index + 1)
+
+  return mentions
+
+
 def remove_overlaps(mentions: list[Mention]) -> list[Mention]:
   accepted: list[Mention] = []
-  for mention in sorted(mentions, key=lambda item: (item.start, -(item.end - item.start), item.kind)):
+  source_rank = {
+    'initials_surname': 0,
+    'capitalized_name_sequence': 1,
+    'natasha_person': 2,
+    'lemma_kinship': 3,
+  }
+  for mention in sorted(mentions, key=lambda item: (item.start, -(item.end - item.start), source_rank.get(item.source, 9), item.kind)):
     overlap = next(
       (
         item for item in accepted
-        if item.kind == mention.kind and mention.start < item.end and mention.end > item.start
+        if mention.start < item.end and mention.end > item.start
       ),
       None,
     )
@@ -516,8 +745,8 @@ def remove_overlaps(mentions: list[Mention]) -> list[Mention]:
       accepted.append(mention)
       continue
 
-    current_score = (mention.end - mention.start,)
-    overlap_score = (overlap.end - overlap.start,)
+    current_score = (mention.end - mention.start, -source_rank.get(mention.source, 9))
+    overlap_score = (overlap.end - overlap.start, -source_rank.get(overlap.source, 9))
     if current_score > overlap_score:
       accepted.remove(overlap)
       accepted.append(mention)
@@ -536,6 +765,25 @@ def serialize_mention(mention: Mention) -> dict[str, Any]:
   }
 
 
+def assign_mention_ids(mentions: list[Mention]) -> list[Mention]:
+  counters = {'name': 0, 'kinship': 0}
+  result: list[Mention] = []
+  for mention in mentions:
+    counters[mention.kind] = counters.get(mention.kind, 0) + 1
+    prefix = 'K' if mention.kind == 'kinship' else 'N'
+    result.append(
+      Mention(
+        id=mention.id or f'{prefix}{counters[mention.kind]:04d}',
+        kind=mention.kind,
+        text=mention.text,
+        start=mention.start,
+        end=mention.end,
+        source=mention.source,
+      ),
+    )
+  return result
+
+
 def extract_name_mentions(text: str, name_extractor, morph) -> list[Mention]:
   tokens = tokenize_text(text)
   mentions: list[Mention] = []
@@ -545,6 +793,15 @@ def extract_name_mentions(text: str, name_extractor, morph) -> list[Mention]:
     name_match = build_name_match(text, tokens, match, morph)
     if name_match is None:
       continue
+
+    word_indexes = find_word_indexes_in_span(tokens, name_match.start, name_match.end)
+    expanded_tokens = expand_name_candidate(text, [tokens[item] for item in word_indexes], tokens, morph)
+    if expanded_tokens:
+      name_match = NameMatch(
+        start=expanded_tokens[0].start,
+        end=expanded_tokens[-1].end,
+        components=classify_name_tokens(expanded_tokens, morph),
+      )
 
     key = (name_match.start, name_match.end)
     if key in seen:
@@ -563,7 +820,19 @@ def extract_name_mentions(text: str, name_extractor, morph) -> list[Mention]:
       ),
     )
 
-  return remove_overlaps(mentions)
+  mentions.extend(extract_initial_surname_mentions(text))
+  mentions.extend(extract_capitalized_sequence_mentions(text, morph))
+
+  deduped: list[Mention] = []
+  seen_mentions: set[tuple[int, int, str]] = set()
+  for mention in mentions:
+    key = mention_key(mention)
+    if key in seen_mentions:
+      continue
+    seen_mentions.add(key)
+    deduped.append(mention)
+
+  return remove_overlaps(deduped)
 
 
 def token_normal_forms_cached(token_text: str, morph) -> set[str]:
@@ -622,10 +891,10 @@ def build_document_payload(entry: dict[str, str], name_extractor, morph) -> dict
   blocks = extract_blocks(entry)
   payload_blocks = []
   for block in blocks:
-    mentions = remove_overlaps([
+    mentions = assign_mention_ids(remove_overlaps([
       *extract_name_mentions(block.text, name_extractor, morph),
       *extract_kinship_mentions(block.text, morph),
-    ])
+    ]))
     payload_blocks.append({
       'index': block.index,
       'kind': block.kind,
