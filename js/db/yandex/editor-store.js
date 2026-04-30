@@ -28,3 +28,9 @@ export async function createEditablePerson(personId, payload) {
     body: { payload },
   });
 }
+
+export async function deleteEditablePerson(personId) {
+  return fetchYandexDbApi(`/people/${encodeURIComponent(personId)}`, {
+    method: 'DELETE',
+  });
+}

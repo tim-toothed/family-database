@@ -1477,6 +1477,27 @@ body.editor-page {
   background: #ddf5e5;
 }
 
+.delete-person-button {
+  margin-top: 10px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: #9f1d16;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+}
+
+.delete-person-button:hover:not(:disabled) {
+  border-color: #f1c4c4;
+  background: #fff6f5;
+}
+
+.delete-person-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .card-add-section-list {
   margin-top: 10px;
   display: grid;
@@ -3532,4 +3553,9 @@ body.documents-page {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+}
+
+.new-relation-name-grid {
+  display: grid;
+  gap: 12px;
 }

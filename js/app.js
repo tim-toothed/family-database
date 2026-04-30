@@ -19,7 +19,7 @@ import {
   updateDraftValue,
   validateEditorPersonDraft,
 } from './editor/person-editor.js';
-import { createEditablePerson, loadEditablePerson, saveEditablePerson } from './db/editor-store.js';
+import { createEditablePerson, deleteEditablePerson, loadEditablePerson, saveEditablePerson } from './db/editor-store.js';
 import { getRemoteDataSource } from './db/source.js';
 import { personHasField } from './person/model.js';
 import { ensureDatasetTableData, loadDataset } from './render/data-loader.js';
@@ -56,7 +56,9 @@ const rootPersonInput = document.getElementById('rootPersonInput');
 const rootPersonMessage = document.getElementById('rootPersonMessage');
 const rootPersonApplyButton = document.getElementById('rootPersonApplyButton');
 const newRelationPersonDialog = document.getElementById('newRelationPersonDialog');
-const newRelationPersonNameInput = document.getElementById('newRelationPersonNameInput');
+const newRelationPersonSurnameInput = document.getElementById('newRelationPersonSurnameInput');
+const newRelationPersonFirstNameInput = document.getElementById('newRelationPersonFirstNameInput');
+const newRelationPersonPatronymicInput = document.getElementById('newRelationPersonPatronymicInput');
 const newRelationPersonMessage = document.getElementById('newRelationPersonMessage');
 const newRelationPersonCreateButton = document.getElementById('newRelationPersonCreateButton');
 
@@ -148,23 +150,127 @@ function computeNextPersonId(extraIds = []) {
   return `P${String(nextNumber).padStart(width, '0')}`;
 }
 
-function parseFullNameParts(fullName) {
-  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+function parsePath(pathString) {
+  return String(pathString || '')
+    .split('.')
+    .filter(Boolean)
+    .map((part) => (/^\d+$/.test(part) ? Number(part) : part));
+}
+
+function getDraftValueByPath(value, path) {
+  let current = value;
+  for (const segment of path) {
+    if (current === undefined || current === null) return undefined;
+    current = current[segment];
+  }
+  return current;
+}
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function buildChildRelationTypeFromParent(relationType) {
+  const normalized = normalizeText(relationType);
+  if (!normalized) return '';
+  if (normalized.includes('приемн')) return 'приемный';
+  if (normalized.includes('мачех') || normalized.includes('отчим')) return 'сводный';
+  if (normalized.includes('мать') || normalized.includes('отец')) return 'биологический';
+  return '';
+}
+
+function buildParentRelationTypeFromChild(childRelationType, personSex) {
+  const normalizedRelation = normalizeText(childRelationType);
+  const normalizedSex = normalizeText(personSex);
+  const isMale = normalizedSex === 'м';
+  const isFemale = normalizedSex === 'ж';
+  if (!isMale && !isFemale) return '';
+  if (normalizedRelation.includes('приемн')) return isMale ? 'приемный отец' : 'приемная мать';
+  if (normalizedRelation.includes('сводн')) return isMale ? 'отчим' : 'мачеха';
+  return isMale ? 'отец' : 'мать';
+}
+
+function clonePlainValue(value) {
+  if (Array.isArray(value)) return value.map((item) => clonePlainValue(item));
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, clonePlainValue(nested)]));
+  }
+  return value;
+}
+
+function buildMirroredSpouseEntry(personId, spouseEntry) {
+  const entry = { person_id: personId };
+  if (Array.isArray(spouseEntry?.marriage) && spouseEntry.marriage.length) {
+    entry.marriage = clonePlainValue(spouseEntry.marriage);
+  }
+  if (Array.isArray(spouseEntry?.divorce) && spouseEntry.divorce.length) {
+    entry.divorce = clonePlainValue(spouseEntry.divorce);
+  }
+  return entry;
+}
+
+function getNewRelationNameParts() {
   return {
-    surname: parts[0] || '',
-    first_name: parts[1] || '',
-    patronymic: parts.slice(2).join(' '),
+    surname: String(newRelationPersonSurnameInput?.value || '').trim(),
+    first_name: String(newRelationPersonFirstNameInput?.value || '').trim(),
+    patronymic: String(newRelationPersonPatronymicInput?.value || '').trim(),
   };
 }
 
-function createPendingPersonPayload(personId, fullName) {
-  const draft = createDraftFromSchema(schema);
-  draft.id = personId;
-  draft.birth_name = {
-    ...(draft.birth_name && typeof draft.birth_name === 'object' ? draft.birth_name : {}),
-    ...parseFullNameParts(fullName),
+function formatNameParts(parts) {
+  return [parts.surname, parts.first_name, parts.patronymic].filter(Boolean).join(' ');
+}
+
+function getCurrentRelationItem(input) {
+  const path = parsePath(input?.dataset?.path || '');
+  if (!path.length) return {};
+  return getDraftValueByPath(inlineDraft, path.slice(0, -1)) || {};
+}
+
+function applyReciprocalRelationToPendingPayload(payload, input) {
+  if (!selectedPersonId || !activeInlineSectionKey) return;
+  const sourcePerson = inlineDraft || dataset?.people?.get(selectedPersonId) || {};
+  const relationItem = getCurrentRelationItem(input);
+
+  if (activeInlineSectionKey === 'parents') {
+    const entry = { person_id: selectedPersonId };
+    const relationType = buildChildRelationTypeFromParent(relationItem.relation_type);
+    if (relationType) entry.relation_type = relationType;
+    payload.children = [entry];
+    return;
+  }
+
+  if (activeInlineSectionKey === 'children') {
+    const entry = { person_id: selectedPersonId };
+    const relationType = buildParentRelationTypeFromChild(relationItem.relation_type, sourcePerson.sex);
+    if (relationType) entry.relation_type = relationType;
+    payload.parents = [entry];
+    return;
+  }
+
+  if (activeInlineSectionKey === 'siblings') {
+    const entry = { person_id: selectedPersonId };
+    if (relationItem.relation_type) entry.relation_type = relationItem.relation_type;
+    payload.siblings = [entry];
+    return;
+  }
+
+  if (activeInlineSectionKey === 'spouses') {
+    payload.spouses = [buildMirroredSpouseEntry(selectedPersonId, relationItem)];
+  }
+}
+
+function createPendingPersonPayload(personId, nameParts, input) {
+  const payload = {
+    id: personId,
+    birth_name: {
+      surname: nameParts.surname,
+      first_name: nameParts.first_name,
+      patronymic: nameParts.patronymic,
+    },
   };
-  return draft;
+  applyReciprocalRelationToPendingPayload(payload, input);
+  return payload;
 }
 
 function getPeopleIndexWithPending() {
@@ -518,6 +624,16 @@ function renderAddSectionControls(savedPerson) {
   `;
 }
 
+function renderDeletePersonControl(personId) {
+  if (!personId || isVirtualNode(personId)) return '';
+  const disabled = inlineLoadingSectionKey || inlineSavingSectionKey ? ' disabled' : '';
+  return `
+    <button type="button" class="delete-person-button" data-action="delete-person" ${disabled}>
+      Удалить карточку
+    </button>
+  `;
+}
+
 function renderPersonCard(personId, view = null) {
   const person = dataset.people.get(personId);
   if (!person) return;
@@ -552,6 +668,7 @@ function renderPersonCard(personId, view = null) {
     </div>
     ${renderInlineStatus()}
     ${renderAddSectionControls(person)}
+    ${renderDeletePersonControl(personId)}
   `;
 
   bindPersonLinks(personBody, (linkedId) => {
@@ -702,9 +819,11 @@ function setNewRelationPersonMessage(message = '', tone = 'neutral') {
 }
 
 function openNewRelationPersonDialog(input) {
-  if (!newRelationPersonDialog || !newRelationPersonNameInput) return;
+  if (!newRelationPersonDialog || !newRelationPersonSurnameInput || !newRelationPersonFirstNameInput || !newRelationPersonPatronymicInput) return;
   activeRelationCreateInput = input;
-  newRelationPersonNameInput.value = '';
+  newRelationPersonSurnameInput.value = '';
+  newRelationPersonFirstNameInput.value = '';
+  newRelationPersonPatronymicInput.value = '';
   setNewRelationPersonMessage('Карточка будет создана при сохранении секции.', 'neutral');
 
   if (typeof newRelationPersonDialog.showModal === 'function') {
@@ -713,7 +832,7 @@ function openNewRelationPersonDialog(input) {
     newRelationPersonDialog.setAttribute('open', '');
   }
 
-  requestAnimationFrame(() => newRelationPersonNameInput?.focus());
+  requestAnimationFrame(() => newRelationPersonSurnameInput?.focus());
 }
 
 function closeNewRelationPersonDialog() {
@@ -728,9 +847,10 @@ function closeNewRelationPersonDialog() {
 }
 
 function addPendingRelationPerson() {
-  const fullName = String(newRelationPersonNameInput?.value || '').trim();
+  const nameParts = getNewRelationNameParts();
+  const fullName = formatNameParts(nameParts);
   if (!fullName) {
-    setNewRelationPersonMessage('Укажите хотя бы часть ФИО.', 'error');
+    setNewRelationPersonMessage('Укажите хотя бы одно поле имени.', 'error');
     return;
   }
   if (!activeRelationCreateInput) {
@@ -743,7 +863,7 @@ function addPendingRelationPerson() {
   pendingNewPeople.set(personId, {
     id: personId,
     displayName,
-    payload: createPendingPersonPayload(personId, fullName),
+    payload: createPendingPersonPayload(personId, nameParts, activeRelationCreateInput),
   });
   optionValueToId.set(displayName, personId);
   personOptionEntries = [
@@ -818,6 +938,10 @@ function bindInlineCardEvents() {
       button.closest('.card-add-section-menu')?.removeAttribute('open');
       await startInlineSectionEdit(button.dataset.sectionKey, { addIfMissing: true });
     });
+  });
+
+  personBody.querySelector('[data-action="delete-person"]')?.addEventListener('click', async () => {
+    await deleteCurrentPerson();
   });
 
   if (!activeInlineSectionKey || !inlineDraft) {
@@ -968,6 +1092,56 @@ function cancelInlineSectionEdit() {
   resetInlineEditorState();
   showPerson(selectedPersonId, { force: true });
   return true;
+}
+
+async function deleteCurrentPerson() {
+  if (!selectedPersonId || inlineSavingSectionKey || inlineLoadingSectionKey) return;
+
+  const personId = selectedPersonId;
+  const personName = getDatasetPersonName(dataset, personId, personId);
+  const confirmed = window.confirm(`Удалить карточку "${personName}" (${personId})? Это действие нельзя отменить.`);
+  if (!confirmed) return;
+
+  try {
+    resetInlineEditorState();
+    const result = await deleteEditablePerson(personId);
+    dataset = await loadDataset();
+    refreshInlineEditorLookups();
+    renderGraphLayoutMenu();
+
+    currentRootId = dataset.people.has(currentRootId)
+      ? currentRootId
+      : dataset.people.keys().next().value;
+    selectedPersonId = null;
+
+    if (dataset.people.size) {
+      scheduleGraphRender();
+      renderTable();
+      showPerson(currentRootId, { force: true, keepStatus: true });
+      inlineStatusMessage = `Карточка ${personId} удалена из ${getDbLabel()}.`;
+      const synchronizedIds = Array.isArray(result?.synchronizedIds) ? result.synchronizedIds : [];
+      if (synchronizedIds.length) {
+        inlineStatusMessage += ` Синхронизированы карточки: ${synchronizedIds.join(', ')}.`;
+      }
+      inlineStatusTone = 'valid';
+      showPerson(currentRootId, { force: true, keepStatus: true });
+    } else {
+      if (network) {
+        network.destroy();
+        network = null;
+      }
+      currentRootId = null;
+      detailsContent.classList.add('hidden');
+      detailsEmpty.classList.remove('hidden');
+      personBody.innerHTML = '';
+      hideLoading();
+    }
+  } catch (error) {
+    console.error(error);
+    inlineStatusMessage = `Не удалось удалить карточку: ${error.message}`;
+    inlineStatusTone = 'error';
+    renderPersonCard(personId);
+  }
 }
 
 async function deleteInlineSection() {
@@ -1375,11 +1549,17 @@ function setupRootPersonDialog() {
 
 function setupNewRelationPersonDialog() {
   newRelationPersonCreateButton?.addEventListener('click', addPendingRelationPerson);
-  newRelationPersonNameInput?.addEventListener('input', () => setNewRelationPersonMessage('Карточка будет создана при сохранении секции.'));
-  newRelationPersonNameInput?.addEventListener('keydown', (event) => {
-    if (event.key !== 'Enter') return;
-    event.preventDefault();
-    addPendingRelationPerson();
+  [
+    newRelationPersonSurnameInput,
+    newRelationPersonFirstNameInput,
+    newRelationPersonPatronymicInput,
+  ].forEach((input) => {
+    input?.addEventListener('input', () => setNewRelationPersonMessage('Карточка будет создана при сохранении секции.'));
+    input?.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      addPendingRelationPerson();
+    });
   });
   newRelationPersonDialog?.addEventListener('click', (event) => {
     if (event.target === newRelationPersonDialog) {

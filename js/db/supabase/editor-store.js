@@ -433,3 +433,58 @@ export async function createEditablePerson(personId, payload) {
     requireExisting: false,
   });
 }
+
+export async function deleteEditablePerson(personId) {
+  const normalizedPersonId = String(personId || '').trim();
+  if (!normalizedPersonId) throw new Error('ID карточки обязателен для удаления.');
+
+  const current = await loadEditablePerson(normalizedPersonId);
+  if (!current) {
+    throw new Error(`Карточка ${normalizedPersonId} не найдена в Supabase.`);
+  }
+
+  const relatedIds = collectLinkedPersonIds(current);
+  const relatedRows = await loadYamlRowsByIds(relatedIds);
+  const changedRelatedIds = new Set();
+  const rowsToUpdate = [];
+
+  for (const row of relatedRows) {
+    const relatedId = String(row.id || '').trim();
+    if (!relatedId || relatedId === normalizedPersonId) continue;
+
+    const payload = normalizePersonPayload(relatedId, row.payload);
+    let changed = false;
+    for (const key of ['parents', 'children', 'siblings', 'spouses']) {
+      changed = setReciprocalEntry(payload, key, normalizedPersonId, null) || changed;
+    }
+    if (changed) {
+      changedRelatedIds.add(relatedId);
+      rowsToUpdate.push({ id: relatedId, payload: normalizePersonPayload(relatedId, payload) });
+    }
+  }
+
+  const schemaClient = await getSchemaClient();
+  if (rowsToUpdate.length) {
+    const { error: upsertError } = await schemaClient
+      .from(tables.yaml)
+      .upsert(rowsToUpdate, { onConflict: 'id' });
+    if (upsertError) throw new Error(upsertError.message);
+  }
+
+  const { error: yamlError } = await schemaClient
+    .from(tables.yaml)
+    .delete()
+    .eq('id', normalizedPersonId);
+  if (yamlError) throw new Error(yamlError.message);
+
+  const { error: peopleError } = await schemaClient
+    .from(tables.people)
+    .delete()
+    .eq('id', normalizedPersonId);
+  if (peopleError) throw new Error(peopleError.message);
+
+  return {
+    deletedId: normalizedPersonId,
+    synchronizedIds: Array.from(changedRelatedIds).sort(),
+  };
+}

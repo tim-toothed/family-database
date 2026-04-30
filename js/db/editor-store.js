@@ -21,3 +21,7 @@ export function saveEditablePerson(personId, payload) {
 export function createEditablePerson(personId, payload) {
   return getStore().createEditablePerson(personId, payload);
 }
+
+export function deleteEditablePerson(personId) {
+  return getStore().deleteEditablePerson(personId);
+}

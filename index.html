@@ -118,17 +118,20 @@
     <dialog id="newRelationPersonDialog" class="root-person-dialog">
       <form method="dialog" class="root-person-form">
         <h2>Новая карточка</h2>
-        <label class="side-menu-field">
-          <span>ФИО</span>
-          <input
-            id="newRelationPersonNameInput"
-            class="editor-person-jump"
-            type="text"
-            autocomplete="off"
-            placeholder="Фамилия Имя Отчество"
-            aria-label="ФИО новой карточки"
-          />
-        </label>
+        <div class="new-relation-name-grid">
+          <label class="side-menu-field">
+            <span>Фамилия</span>
+            <input id="newRelationPersonSurnameInput" class="editor-person-jump" type="text" autocomplete="off" aria-label="Фамилия новой карточки" />
+          </label>
+          <label class="side-menu-field">
+            <span>Имя</span>
+            <input id="newRelationPersonFirstNameInput" class="editor-person-jump" type="text" autocomplete="off" aria-label="Имя новой карточки" />
+          </label>
+          <label class="side-menu-field">
+            <span>Отчество</span>
+            <input id="newRelationPersonPatronymicInput" class="editor-person-jump" type="text" autocomplete="off" aria-label="Отчество новой карточки" />
+          </label>
+        </div>
         <div id="newRelationPersonMessage" class="root-person-message" aria-live="polite"></div>
         <div class="root-person-actions">
           <button value="cancel" class="toolbar-button toolbar-button-subtle" type="submit">Отмена</button>

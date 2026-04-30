@@ -617,6 +617,55 @@ async function upsertPerson(sql, personId, payload, { requireExisting }) {
   };
 }
 
+async function deletePerson(sql, personId) {
+  const normalizedPersonId = String(personId || '').trim();
+  assertId(normalizedPersonId, 'person id');
+
+  const currentRow = await getPerson(sql, normalizedPersonId);
+  if (!currentRow) {
+    const error = new Error('Not found');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const current = normalizePersonPayload(normalizedPersonId, currentRow.payload);
+  const relatedIds = collectLinkedPersonIds(current).filter((id) => id !== normalizedPersonId);
+  const relatedRows = await Promise.all(relatedIds.map((relatedId) => getPerson(sql, relatedId)));
+  const changedRelatedIds = new Set();
+  const timestamp = nowIso();
+
+  await sql.begin(async (tx) => {
+    for (const row of relatedRows) {
+      if (!row) continue;
+      const relatedId = String(row.id || '').trim();
+      const payload = normalizePersonPayload(relatedId, row.payload);
+      let changed = false;
+      for (const key of ['parents', 'children', 'siblings', 'spouses']) {
+        changed = setReciprocalEntry(payload, key, normalizedPersonId, null) || changed;
+      }
+      if (!changed) continue;
+
+      changedRelatedIds.add(relatedId);
+      await tx`
+        UPSERT INTO family_yaml (id, payload, created_at, updated_at)
+        VALUES (${relatedId}, ${await jsonValue(payload)}, ${row.created_at || timestamp}, ${timestamp})
+      `;
+      await tx`
+        UPSERT INTO family_people (id, display_name)
+        VALUES (${relatedId}, ${getDisplayName(payload, relatedId)})
+      `;
+    }
+
+    await tx`DELETE FROM family_yaml WHERE id = ${normalizedPersonId}`;
+    await tx`DELETE FROM family_people WHERE id = ${normalizedPersonId}`;
+  });
+
+  return {
+    deletedId: normalizedPersonId,
+    synchronizedIds: Array.from(changedRelatedIds).sort(),
+  };
+}
+
 async function listDocuments(sql) {
   const rows = unwrapRows(await sql`
     SELECT id, title, description, source_type, source_path, extractor, content_hash, generated_at, block_count, mention_count
@@ -747,6 +796,11 @@ async function route(event) {
       const payload = body?.payload || body;
       const row = await upsertPerson(sql, personId, payload, { requireExisting: method === 'PUT' });
       return jsonResponse(method === 'POST' ? 201 : 200, row);
+    }
+
+    if (method === 'DELETE') {
+      const result = await deletePerson(sql, personId);
+      return jsonResponse(200, result);
     }
   }
 
