@@ -8,8 +8,20 @@
     <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   </head>
   <body class="editor-page">
-    <header class="editor-topbar">
-      <div>
+    <header class="editor-topbar app-page-topbar">
+      <button
+        id="appMenuButton"
+        class="app-menu-button"
+        type="button"
+        aria-label="Открыть меню"
+        aria-controls="appSideMenu"
+        aria-expanded="false"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="topbar-title">
         <h1 id="editorTitle">Редактор карточки</h1>
         <p id="editorSubtitle" class="subtitle"></p>
       </div>

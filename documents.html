@@ -8,8 +8,20 @@
 
   </head>
   <body class="documents-page">
-    <header class="topbar documents-topbar">
-      <div>
+    <header class="topbar documents-topbar app-page-topbar">
+      <button
+        id="appMenuButton"
+        class="app-menu-button"
+        type="button"
+        aria-label="Открыть меню"
+        aria-controls="appSideMenu"
+        aria-expanded="false"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="topbar-title">
         <h1>Семейные документы</h1>
         <p class="subtitle">Чтение документов с оглавлением и NLP-подсветкой сущностей</p>
       </div>
@@ -17,7 +29,6 @@
         <select id="documentSelect" class="editor-person-jump" aria-label="Выбор документа">
           <option value="">Выберите документ...</option>
         </select>
-        <a class="toolbar-link" href="./index.html">К дереву</a>
       </div>
     </header>
 

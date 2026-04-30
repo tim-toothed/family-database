@@ -235,6 +235,27 @@ function renderScalarEditor(path, key, value, schemaNode, context) {
         : '';
 
   if (isSelectField) {
+    if (RELATION_FIELD_KEYS.has(key) && context.enableRelationPicker) {
+      return `
+        <label class="editor-field editor-relation-picker" data-relation-picker>
+          ${showInlineLabel ? `<span class="editor-label">${escapeHtml(label)}</span>` : ''}
+          <input
+            class="editor-input"
+            data-path="${encodedPath}"
+            data-relation-input
+            type="text"
+            value="${fieldValue}"
+            autocomplete="off"
+            placeholder="Выберите персону"
+            aria-expanded="false"
+            ${disabled}
+          />
+          <div class="editor-relation-suggestions" data-relation-suggestions role="listbox" hidden></div>
+          ${hint ? `<span class="editor-hint">${hint}</span>` : ''}
+        </label>
+      `;
+    }
+
     const selectOptions = RELATION_FIELD_KEYS.has(key)
       ? relationOptions.map((entry) => ({ value: entry.label, label: entry.label }))
       : enumOptions.map((option) => ({ value: option, label: option }));
@@ -289,16 +310,18 @@ function renderOtherInfoEditor(value, path, context) {
           const basePath = [...path, entryKey];
           return `
             <div class="editor-array-item editor-other-info-item">
-              <button
-                class="editor-array-remove"
-                type="button"
-                data-action="remove-other-info-entry"
-                data-other-info-path="${containerPath}"
-                data-other-info-index="${escapeHtml(entryKey)}"
-                aria-label="Удалить подпункт"
-                title="Удалить подпункт"
-                ${disabled}
-              >&times;</button>
+              <div class="editor-array-item-head">
+                <span class="editor-array-item-title">Запись ${index + 1}</span>
+                <button
+                  class="editor-array-remove"
+                  type="button"
+                  data-action="remove-other-info-entry"
+                  data-other-info-path="${containerPath}"
+                  data-other-info-index="${escapeHtml(entryKey)}"
+                  aria-label="Удалить запись ${index + 1}"
+                  ${disabled}
+                >Удалить</button>
+              </div>
               <div class="editor-grid">
                 ${renderScalarEditor([...basePath, 'label'], 'label', normalized.label, '', context)}
                 ${renderScalarEditor([...basePath, 'text'], 'text', normalized.text, '', context)}
@@ -307,7 +330,7 @@ function renderOtherInfoEditor(value, path, context) {
           `;
         }).join('')
         : ''}
-      <button class="editor-array-action" type="button" data-action="add-other-info-entry" data-other-info-path="${containerPath}"${disabled}>Добавить подпункт</button>
+      <button class="editor-array-action" type="button" data-action="add-other-info-entry" data-other-info-path="${containerPath}"${disabled}>+ Добавить запись</button>
     </div>
   `;
 }
@@ -379,12 +402,15 @@ function renderSpousesEditor(schemaNode, value, path, context) {
       ${items.length
         ? items.map((item, index) => `
             <div class="editor-array-item">
-              <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись" title="Удалить запись">&times;</button>
+              <div class="editor-array-item-head">
+                <span class="editor-array-item-title">Запись ${index + 1}</span>
+                <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись ${index + 1}">Удалить</button>
+              </div>
               ${renderSpouseItemEditor(schemaNode, item, [...path, index], context)}
             </div>
           `).join('')
         : ''}
-      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить ещё запись</button>
+      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">+ Добавить запись</button>
     </div>
   `;
 }
@@ -430,12 +456,15 @@ function renderArrayEditorClean(schemaNode, value, path, key, context) {
       ${items.length
         ? items.map((item, index) => `
             <div class="editor-array-item">
-              <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись" title="Удалить запись">&times;</button>
+              <div class="editor-array-item-head">
+                <span class="editor-array-item-title">Запись ${index + 1}</span>
+                <button class="editor-array-remove" type="button" data-action="remove-array-item" data-array-path="${arrayPath}" data-index="${index}" aria-label="Удалить запись ${index + 1}">Удалить</button>
+              </div>
               ${renderEditorNode(schemaNode, item, [...path, index], key, context)}
             </div>
           `).join('')
         : ''}
-      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">Добавить ещё запись</button>
+      <button class="editor-array-action" type="button" data-action="add-array-item" data-array-path="${arrayPath}">+ Добавить запись</button>
     </div>
   `;
 }
@@ -547,7 +576,7 @@ function normalizeDraftValue(value, schemaNode, path, options) {
 
   if (RELATION_FIELD_KEYS.has(key)) {
     const resolved = resolvePersonInput(value, options.peopleById, options.optionValueToId);
-    return resolved === '' ? '' : resolved;
+    return resolved === null ? value : resolved;
   }
 
   if (isDatePartKey(key)) {
@@ -716,6 +745,7 @@ function buildEditableSectionView(sectionKey, person, schema, descriptions = {},
         personOptionEntries: options.personOptionEntries,
         enumListIdPrefix: options.enumListIdPrefix,
         disableInputs: isSectionDisabled,
+        enableRelationPicker: options.enableRelationPicker,
       }),
   };
 }

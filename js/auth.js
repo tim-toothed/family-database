@@ -5,6 +5,7 @@ import {
   signOutFromSupabase,
 } from './db/supabase/client.js';
 import { getRemoteDataSource } from './db/source.js';
+import { ensureAppMenu } from './app-menu.js';
 
 let authSessionPromise = null;
 const SUPABASE_AUTH_STORAGE_KEY = 'family-database-auth';
@@ -71,6 +72,30 @@ function setAuthFormBusy(isBusy) {
   if (passwordInput) passwordInput.disabled = Boolean(isBusy);
 }
 
+function setupSharedAppMenu() {
+  ensureAppMenu();
+
+  const menuButton = document.getElementById('appMenuButton');
+  const closeButton = document.getElementById('appMenuCloseButton');
+  const sideMenu = document.getElementById('appSideMenu');
+  const overlay = document.getElementById('appMenuOverlay');
+  if (!menuButton || !sideMenu) return;
+
+  const setOpen = (isOpen) => {
+    sideMenu.classList.toggle('is-open', isOpen);
+    sideMenu.setAttribute('aria-hidden', String(!isOpen));
+    menuButton.setAttribute('aria-expanded', String(isOpen));
+    if (overlay) overlay.hidden = !isOpen;
+  };
+
+  menuButton.addEventListener('click', () => setOpen(true));
+  closeButton?.addEventListener('click', () => setOpen(false));
+  overlay?.addEventListener('click', () => setOpen(false));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') setOpen(false);
+  });
+}
+
 function renderAuthToolbar(session) {
   if (!CONFIG.requireAuth) return;
 
@@ -79,7 +104,9 @@ function renderAuthToolbar(session) {
     container = document.createElement('div');
     container.id = 'authToolbar';
     container.className = 'auth-toolbar';
-    const target = document.querySelector('.toolbar, .editor-actions') || document.body;
+    const target = document.getElementById('authToolbarSlot')
+      || document.querySelector('.toolbar, .editor-actions')
+      || document.body;
     target.append(container);
   }
 
@@ -126,6 +153,8 @@ async function waitForPasswordSignIn() {
 }
 
 export async function requireAuth() {
+  setupSharedAppMenu();
+
   if (!CONFIG.requireAuth) {
     return null;
   }

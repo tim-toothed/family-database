@@ -10,17 +10,34 @@
     <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
   </head>
   <body>
-    <header class="topbar">
-      <div>
+    <header class="topbar main-topbar">
+      <button
+        id="appMenuButton"
+        class="app-menu-button"
+        type="button"
+        aria-label="Открыть меню"
+        aria-controls="appSideMenu"
+        aria-expanded="false"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="topbar-title">
         <h1>Семейное древо</h1>
-        <p class="subtitle">made by P049 Шарифуллин Тимур Маратович</p>
       </div>
-      <div class="toolbar">
-        <select id="rootPersonSelect" class="editor-person-jump" aria-label="От кого строить дерево">
-          <option value="">От кого строить дерево...</option>
-        </select>
-        <button id="buildTreeButton" type="button">Построить дерево</button>
-        <a class="toolbar-link" href="./documents.html">Документы</a>
+      <div class="topbar-search">
+        <input
+          id="personSearchInput"
+          class="topbar-search-input"
+          type="search"
+          autocomplete="off"
+          placeholder="Поиск карточки..."
+          aria-label="Поиск карточки"
+          aria-expanded="false"
+          aria-controls="personSearchSuggestions"
+        />
+        <div id="personSearchSuggestions" class="person-search-suggestions" role="listbox" hidden></div>
       </div>
     </header>
 
@@ -44,7 +61,7 @@
               <div id="graphLayoutList" class="graph-layout-list"></div>
             </details>
             <div id="graph"></div>
-            <span id="modeHint" class="mode-hint"></span>
+            <button id="modeHint" class="mode-hint" type="button" aria-haspopup="dialog"></button>
           </div>
 
           <div id="tableView" class="view-content hidden">
@@ -76,6 +93,50 @@
       </section>
     </template>
 
+    <dialog id="rootPersonDialog" class="root-person-dialog">
+      <form method="dialog" class="root-person-form">
+        <h2>От кого строить дерево</h2>
+        <label class="side-menu-field">
+          <span>Человек</span>
+          <input
+            id="rootPersonInput"
+            class="editor-person-jump"
+            type="text"
+            list="mainPersonOptions"
+            autocomplete="off"
+            placeholder="Имя или ID..."
+            aria-label="От кого строить дерево"
+          />
+        </label>
+        <div id="rootPersonMessage" class="root-person-message" aria-live="polite"></div>
+        <div class="root-person-actions">
+          <button value="cancel" class="toolbar-button toolbar-button-subtle" type="submit">Отмена</button>
+          <button id="rootPersonApplyButton" class="save-yaml-button" type="button">Построить</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="newRelationPersonDialog" class="root-person-dialog">
+      <form method="dialog" class="root-person-form">
+        <h2>Новая карточка</h2>
+        <label class="side-menu-field">
+          <span>ФИО</span>
+          <input
+            id="newRelationPersonNameInput"
+            class="editor-person-jump"
+            type="text"
+            autocomplete="off"
+            placeholder="Фамилия Имя Отчество"
+            aria-label="ФИО новой карточки"
+          />
+        </label>
+        <div id="newRelationPersonMessage" class="root-person-message" aria-live="polite"></div>
+        <div class="root-person-actions">
+          <button value="cancel" class="toolbar-button toolbar-button-subtle" type="submit">Отмена</button>
+          <button id="newRelationPersonCreateButton" class="save-yaml-button" type="button">Добавить в связь</button>
+        </div>
+      </form>
+    </dialog>
+    <datalist id="mainPersonOptions"></datalist>
     <script type="module" src="./js/app.js"></script>
   </body>
 </html>

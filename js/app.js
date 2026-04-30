@@ -19,7 +19,7 @@ import {
   updateDraftValue,
   validateEditorPersonDraft,
 } from './editor/person-editor.js';
-import { loadEditablePerson, saveEditablePerson } from './db/editor-store.js';
+import { createEditablePerson, loadEditablePerson, saveEditablePerson } from './db/editor-store.js';
 import { getRemoteDataSource } from './db/source.js';
 import { personHasField } from './person/model.js';
 import { ensureDatasetTableData, loadDataset } from './render/data-loader.js';
@@ -44,12 +44,21 @@ function getDbLabel() {
   return getRemoteDataSource() === 'yandex' ? 'Yandex DB' : 'Supabase';
 }
 const personBody = document.getElementById('personBody');
-const rootPersonSelect = document.getElementById('rootPersonSelect');
-const buildTreeButton = document.getElementById('buildTreeButton');
 const modeHint = document.getElementById('modeHint');
 const graphLayoutMenu = document.getElementById('graphLayoutMenu');
 const graphLayoutTrigger = document.getElementById('graphLayoutTrigger');
 const graphLayoutList = document.getElementById('graphLayoutList');
+const personSearchInput = document.getElementById('personSearchInput');
+const personSearchSuggestions = document.getElementById('personSearchSuggestions');
+const mainPersonOptions = document.getElementById('mainPersonOptions');
+const rootPersonDialog = document.getElementById('rootPersonDialog');
+const rootPersonInput = document.getElementById('rootPersonInput');
+const rootPersonMessage = document.getElementById('rootPersonMessage');
+const rootPersonApplyButton = document.getElementById('rootPersonApplyButton');
+const newRelationPersonDialog = document.getElementById('newRelationPersonDialog');
+const newRelationPersonNameInput = document.getElementById('newRelationPersonNameInput');
+const newRelationPersonMessage = document.getElementById('newRelationPersonMessage');
+const newRelationPersonCreateButton = document.getElementById('newRelationPersonCreateButton');
 
 const LINK_MASK_URL_RE = /(https?:\/\/[^\s<>"']+|doc:\/\/[^\s<>"']+)/giu;
 
@@ -77,6 +86,8 @@ let inlineStatusTone = 'info';
 let inlineLoadingSectionKey = '';
 let inlineSavingSectionKey = '';
 let inlineEditRequestToken = 0;
+let pendingNewPeople = new Map();
+let activeRelationCreateInput = null;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -85,6 +96,83 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function resolvePersonLookupTarget(rawValue) {
+  const normalized = String(rawValue || '').trim();
+  if (!normalized) return '';
+  if (dataset?.indexById?.has(normalized)) return normalized;
+  if (optionValueToId.has(normalized)) return optionValueToId.get(normalized);
+
+  const match = normalized.match(/\[(P\d+)\]$/i) || normalized.match(/^(P\d+)$/i);
+  if (!match) return null;
+
+  const normalizedId = match[1].toUpperCase();
+  return dataset?.indexById?.has(normalizedId) ? normalizedId : null;
+}
+
+function formatPersonLookupValue(personId) {
+  if (!personId) return '';
+  const entry = personOptionEntries.find((item) => item.id === personId);
+  return entry?.label || getDatasetPersonName(dataset, personId, personId);
+}
+
+function getFilteredPersonOptions(rawValue, limit = 10) {
+  const query = String(rawValue || '').trim().toLocaleLowerCase('ru');
+  const entries = query
+    ? personOptionEntries.filter((entry) => {
+      const label = entry.label.toLocaleLowerCase('ru');
+      const id = entry.id.toLocaleLowerCase('ru');
+      return label.includes(query) || id.includes(query);
+    })
+    : personOptionEntries;
+
+  return entries.slice(0, limit);
+}
+
+function computeNextPersonId(extraIds = []) {
+  const ids = [
+    ...Array.from(dataset?.indexById?.keys?.() || []),
+    ...Array.from(pendingNewPeople.keys()),
+    ...extraIds,
+  ];
+  const numericIds = ids
+    .map((id) => String(id || '').trim().match(/^P(\d+)$/i))
+    .filter(Boolean)
+    .map((match) => Number(match[1]));
+
+  if (!numericIds.length) return 'P001';
+
+  const nextNumber = Math.max(...numericIds) + 1;
+  const width = Math.max(3, String(nextNumber).length);
+  return `P${String(nextNumber).padStart(width, '0')}`;
+}
+
+function parseFullNameParts(fullName) {
+  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean);
+  return {
+    surname: parts[0] || '',
+    first_name: parts[1] || '',
+    patronymic: parts.slice(2).join(' '),
+  };
+}
+
+function createPendingPersonPayload(personId, fullName) {
+  const draft = createDraftFromSchema(schema);
+  draft.id = personId;
+  draft.birth_name = {
+    ...(draft.birth_name && typeof draft.birth_name === 'object' ? draft.birth_name : {}),
+    ...parseFullNameParts(fullName),
+  };
+  return draft;
+}
+
+function getPeopleIndexWithPending() {
+  const peopleById = new Map(dataset?.indexById || []);
+  for (const [personId, item] of pendingNewPeople.entries()) {
+    peopleById.set(personId, item.displayName);
+  }
+  return peopleById;
 }
 
 function isVirtualNode(personId) {
@@ -131,12 +219,15 @@ function updateModeHint() {
   const name = getDatasetPersonName(dataset, currentRootId, currentRootId);
   const visualizationLabel = getGraphVisualizationLabel(currentGraphVisualization);
   modeHint.textContent = `${visualizationLabel} от ${name}`;
+  modeHint.title = 'Изменить человека, от которого строится дерево';
+  modeHint.setAttribute('aria-label', `Изменить корень дерева. Сейчас: ${visualizationLabel} от ${name}`);
 }
 
 function refreshInlineEditorLookups() {
   const { entries, optionValueToId: lookup } = buildPersonOptionEntries(dataset);
   personOptionEntries = entries;
   optionValueToId = lookup;
+  populatePersonLookupOptions();
 }
 
 function resetInlineEditorState(options = {}) {
@@ -146,6 +237,11 @@ function resetInlineEditorState(options = {}) {
   inlineLoadingSectionKey = '';
   inlineSavingSectionKey = '';
   inlineEditRequestToken += 1;
+  pendingNewPeople.clear();
+  activeRelationCreateInput = null;
+  if (dataset) {
+    refreshInlineEditorLookups();
+  }
 
   if (options.clearStatus !== false) {
     inlineStatusMessage = '';
@@ -304,6 +400,7 @@ function initializeLinkMaskedFields(root) {
 
 function renderInlineStatus() {
   if (!inlineStatusMessage) return '';
+  if (activeInlineSectionKey && inlineStatusTone === 'error') return '';
   return `
     <div class="details-inline-status is-${escapeHtml(inlineStatusTone)}">
       ${escapeHtml(inlineStatusMessage)}
@@ -350,13 +447,17 @@ function renderEditableSectionCard(sectionKey) {
   const section = renderEditablePersonSection(sectionKey, inlineDraft, schema, descriptions, {
     personOptionEntries,
     enumListIdPrefix: 'inlineEditorEnum',
+    enableRelationPicker: true,
   });
   if (!section) return '';
 
   const isSaving = inlineSavingSectionKey === sectionKey;
-  const dirtyLabel = hasInlineSectionUnsavedChanges()
-    ? 'Есть несохранённые изменения'
-    : 'Без несохранённых изменений';
+  const hasInlineError = inlineStatusTone === 'error' && Boolean(inlineStatusMessage);
+  const dirtyLabel = hasInlineError
+    ? inlineStatusMessage
+    : hasInlineSectionUnsavedChanges()
+      ? 'Есть несохранённые изменения'
+      : 'Без несохранённых изменений';
 
   return `
     <section
@@ -377,9 +478,9 @@ function renderEditableSectionCard(sectionKey) {
         <div class="card-section-action-row">
           <button type="button" class="card-section-action card-section-action-primary" data-action="save-inline-section" ${isSaving ? 'disabled' : ''}>${isSaving ? 'Сохранение...' : 'Сохранить'}</button>
           <button type="button" class="card-section-action" data-action="cancel-inline-section" ${isSaving ? 'disabled' : ''}>Отмена</button>
-          <button type="button" class="card-section-action card-section-action-danger" data-action="delete-inline-section" ${isSaving ? 'disabled' : ''}>Удалить секцию</button>
+          <button type="button" class="card-section-action card-section-action-danger" data-action="delete-inline-section" ${isSaving ? 'disabled' : ''}>Удалить всю секцию</button>
         </div>
-        <div class="card-section-dirty${hasInlineSectionUnsavedChanges() ? ' is-dirty' : ''}">
+        <div class="card-section-dirty${hasInlineSectionUnsavedChanges() ? ' is-dirty' : ''}${hasInlineError ? ' is-error' : ''}">
           ${escapeHtml(dirtyLabel)}
         </div>
       </div>
@@ -509,10 +610,200 @@ function syncInlineDirtyIndicator() {
   if (!dirtyBadge) return;
 
   const isDirty = hasInlineSectionUnsavedChanges();
+  const hasInlineError = inlineStatusTone === 'error' && Boolean(inlineStatusMessage);
   dirtyBadge.classList.toggle('is-dirty', isDirty);
-  dirtyBadge.textContent = isDirty
-    ? 'Есть несохранённые изменения'
-    : 'Без несохранённых изменений';
+  dirtyBadge.classList.toggle('is-error', hasInlineError);
+  dirtyBadge.textContent = hasInlineError
+    ? inlineStatusMessage
+    : isDirty
+      ? 'Есть несохранённые изменения'
+      : 'Без несохранённых изменений';
+}
+
+function closeRelationSuggestions(root = personBody) {
+  root.querySelectorAll('[data-relation-suggestions]').forEach((panel) => {
+    panel.hidden = true;
+  });
+  root.querySelectorAll('[data-relation-input]').forEach((input) => {
+    input.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function closeOtherRelationSuggestions(input) {
+  const currentPicker = input.closest('[data-relation-picker]');
+  personBody.querySelectorAll('[data-relation-picker]').forEach((picker) => {
+    if (picker === currentPicker) return;
+    const panel = picker.querySelector('[data-relation-suggestions]');
+    const pickerInput = picker.querySelector('[data-relation-input]');
+    if (panel) panel.hidden = true;
+    pickerInput?.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function isExactRelationValue(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return false;
+  return dataset?.indexById?.has(raw)
+    || optionValueToId.has(raw)
+    || personOptionEntries.some((entry) => entry.label === raw || entry.id === raw);
+}
+
+function openRelationSuggestions(input) {
+  if (isExactRelationValue(input.value)) {
+    closeRelationSuggestions(personBody);
+    return;
+  }
+
+  closeOtherRelationSuggestions(input);
+  renderRelationSuggestions(input);
+}
+
+function renderRelationSuggestions(input) {
+  const picker = input.closest('[data-relation-picker]');
+  const panel = picker?.querySelector('[data-relation-suggestions]');
+  if (!panel) return;
+
+  const query = String(input.value || '').trim().toLocaleLowerCase('ru');
+  const matches = (query
+    ? personOptionEntries.filter((entry) => (
+      entry.label.toLocaleLowerCase('ru').includes(query)
+      || entry.id.toLocaleLowerCase('ru').includes(query)
+    ))
+    : personOptionEntries
+  ).slice(0, 8);
+
+  panel.innerHTML = `
+    <button class="editor-relation-option is-create" type="button" data-action="create-relation-person">
+      + Создать новую карточку
+    </button>
+    ${matches.length
+      ? matches.map((entry) => `
+          <button class="editor-relation-option" type="button" data-relation-person="${escapeHtml(entry.label)}">
+            ${escapeHtml(entry.label)}
+          </button>
+        `).join('')
+      : '<div class="editor-relation-empty">Ничего не найдено</div>'}
+  `;
+  panel.hidden = false;
+  input.setAttribute('aria-expanded', 'true');
+}
+
+function setRelationInputValue(input, value) {
+  input.value = value;
+  updateDraftValue(inlineDraft, input.dataset.path, value);
+  refreshInlineHeaderPreview();
+  syncInlineDirtyIndicator();
+}
+
+function setNewRelationPersonMessage(message = '', tone = 'neutral') {
+  if (!newRelationPersonMessage) return;
+  newRelationPersonMessage.textContent = message;
+  newRelationPersonMessage.dataset.tone = tone;
+}
+
+function openNewRelationPersonDialog(input) {
+  if (!newRelationPersonDialog || !newRelationPersonNameInput) return;
+  activeRelationCreateInput = input;
+  newRelationPersonNameInput.value = '';
+  setNewRelationPersonMessage('Карточка будет создана при сохранении секции.', 'neutral');
+
+  if (typeof newRelationPersonDialog.showModal === 'function') {
+    newRelationPersonDialog.showModal();
+  } else {
+    newRelationPersonDialog.setAttribute('open', '');
+  }
+
+  requestAnimationFrame(() => newRelationPersonNameInput?.focus());
+}
+
+function closeNewRelationPersonDialog() {
+  activeRelationCreateInput = null;
+  if (!newRelationPersonDialog?.open) return;
+
+  if (typeof newRelationPersonDialog.close === 'function') {
+    newRelationPersonDialog.close();
+  } else {
+    newRelationPersonDialog.removeAttribute('open');
+  }
+}
+
+function addPendingRelationPerson() {
+  const fullName = String(newRelationPersonNameInput?.value || '').trim();
+  if (!fullName) {
+    setNewRelationPersonMessage('Укажите хотя бы часть ФИО.', 'error');
+    return;
+  }
+  if (!activeRelationCreateInput) {
+    closeNewRelationPersonDialog();
+    return;
+  }
+
+  const personId = computeNextPersonId();
+  const displayName = `${fullName} [${personId}]`;
+  pendingNewPeople.set(personId, {
+    id: personId,
+    displayName,
+    payload: createPendingPersonPayload(personId, fullName),
+  });
+  optionValueToId.set(displayName, personId);
+  personOptionEntries = [
+    ...personOptionEntries,
+    {
+      id: personId,
+      label: displayName,
+      sortName: fullName,
+      hasCustomName: true,
+    },
+  ].sort((left, right) => left.sortName.localeCompare(right.sortName, 'ru'));
+  populatePersonLookupOptions();
+  setRelationInputValue(activeRelationCreateInput, displayName);
+  closeRelationSuggestions(personBody);
+  closeNewRelationPersonDialog();
+}
+
+function initializeRelationPickers(root) {
+  root.querySelectorAll('[data-relation-picker]').forEach((picker) => {
+    const input = picker.querySelector('[data-relation-input]');
+    const panel = picker.querySelector('[data-relation-suggestions]');
+    if (!input || !panel) return;
+
+    input.addEventListener('click', () => {
+      openRelationSuggestions(input);
+    });
+    input.addEventListener('input', () => {
+      clearInlineErrorStatus();
+      updateDraftValue(inlineDraft, input.dataset.path, input.value);
+      syncInlineDirtyIndicator();
+      if (isExactRelationValue(input.value)) {
+        closeRelationSuggestions(root);
+        return;
+      }
+      closeOtherRelationSuggestions(input);
+      renderRelationSuggestions(input);
+    });
+    input.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      if (panel.hidden) return;
+      const firstOption = panel.querySelector('[data-relation-person]');
+      if (firstOption) {
+        setRelationInputValue(input, firstOption.dataset.relationPerson);
+        closeRelationSuggestions(root);
+      }
+    });
+    panel.addEventListener('click', (event) => {
+      const createButton = event.target.closest('[data-action="create-relation-person"]');
+      if (createButton) {
+        openNewRelationPersonDialog(input);
+        return;
+      }
+
+      const option = event.target.closest('[data-relation-person]');
+      if (!option) return;
+      setRelationInputValue(input, option.dataset.relationPerson);
+      closeRelationSuggestions(root);
+    });
+  });
 }
 
 function bindInlineCardEvents() {
@@ -555,6 +846,7 @@ function bindInlineCardEvents() {
   });
 
   initializeLinkMaskedFields(personBody);
+  initializeRelationPickers(personBody);
 
   personBody.querySelectorAll('[data-action="add-array-item"]').forEach((button) => {
     button.addEventListener('click', () => {
@@ -693,7 +985,6 @@ async function deleteInlineSection() {
 async function reloadDatasetAfterSave(personId) {
   dataset = await loadDataset();
   refreshInlineEditorLookups();
-  populateRootSuggestions();
   renderGraphLayoutMenu();
 
   if (!dataset.people.has(currentRootId)) {
@@ -719,15 +1010,15 @@ async function reloadDatasetAfterSave(personId) {
     keepStatus: true,
   });
 
-  if (rootPersonSelect) rootPersonSelect.value = '';
-  updateBuildTreeButtonState();
+  if (personSearchInput) personSearchInput.value = '';
+  if (rootPersonInput) rootPersonInput.value = formatPersonLookupValue(currentRootId);
 }
 
 async function saveInlineSection() {
   if (!inlineDraft || !schema || !selectedPersonId || !activeInlineSectionKey || inlineSavingSectionKey) return;
 
   const validation = validateEditorPersonDraft(inlineDraft, schema, {
-    peopleById: dataset.indexById,
+    peopleById: getPeopleIndexWithPending(),
     optionValueToId,
     requireNonIdContent: false,
   });
@@ -753,6 +1044,11 @@ async function saveInlineSection() {
   renderPersonCard(selectedPersonId);
 
   try {
+    const pendingPeopleToCreate = Array.from(pendingNewPeople.values());
+    for (const pendingPerson of pendingPeopleToCreate) {
+      await createEditablePerson(pendingPerson.id, pendingPerson.payload);
+    }
+
     const saveResult = await saveEditablePerson(selectedPersonId, validation.normalized);
     const synchronizedIds = Array.isArray(saveResult?.synchronizedIds) ? saveResult.synchronizedIds : [];
     const skippedIds = Array.isArray(saveResult?.skippedIds) ? saveResult.skippedIds : [];
@@ -762,8 +1058,11 @@ async function saveInlineSection() {
     const skippedMessage = skippedIds.length
       ? ` Не удалось обновить карточки: ${skippedIds.join(', ')}.`
       : '';
+    const createdMessage = pendingPeopleToCreate.length
+      ? ` Созданы карточки: ${pendingPeopleToCreate.map((item) => item.id).join(', ')}.`
+      : '';
 
-    inlineStatusMessage = `Изменения сохранены в ${getDbLabel()}.${syncMessage}${skippedMessage}`;
+    inlineStatusMessage = `Изменения сохранены в ${getDbLabel()}.${createdMessage}${syncMessage}${skippedMessage}`;
     inlineStatusTone = 'valid';
     resetInlineEditorState({ clearStatus: false });
     await reloadDatasetAfterSave(selectedPersonId);
@@ -776,33 +1075,12 @@ async function saveInlineSection() {
   }
 }
 
-function populateRootSuggestions() {
-  if (!rootPersonSelect) return;
+function populatePersonLookupOptions() {
+  if (!mainPersonOptions) return;
 
-  const entries = Array.from(dataset.indexById.entries());
-  const valid = [];
-  const invalid = [];
-
-  for (const [id, name] of entries) {
-    if (!name || name.includes('???')) {
-      invalid.push([id, name || '']);
-    } else {
-      valid.push([id, name]);
-    }
-  }
-
-  const sortedValid = valid.sort((a, b) => a[1].localeCompare(b[1], 'ru'));
-  const sortedInvalid = invalid.sort((a, b) => (a[1] || '').localeCompare(b[1] || '', 'ru'));
-
-  rootPersonSelect.innerHTML = [
-    '<option value="">От кого строить дерево...</option>',
-    ...[...sortedValid, ...sortedInvalid].map(([id, name]) => `<option value="${id}">${name || id}</option>`),
-  ].join('');
-}
-
-function updateBuildTreeButtonState() {
-  if (!buildTreeButton) return;
-  buildTreeButton.disabled = !rootPersonSelect?.value;
+  mainPersonOptions.innerHTML = personOptionEntries
+    .map((entry) => `<option value="${escapeHtml(entry.label)}"></option>`)
+    .join('');
 }
 
 function renderTable() {
@@ -990,14 +1268,10 @@ function setupGraphLayoutTrigger() {
 
 function setMainView(rootId) {
   if (!canDiscardInlineSectionChanges()) {
-    if (rootPersonSelect) rootPersonSelect.value = '';
-    updateBuildTreeButtonState();
     return false;
   }
 
   currentRootId = rootId;
-  if (rootPersonSelect) rootPersonSelect.value = '';
-  updateBuildTreeButtonState();
   scheduleGraphRender();
   showPerson(rootId, { force: true });
   return true;
@@ -1031,16 +1305,180 @@ function setActiveView(view) {
   }
 }
 
-function setupRootSelector() {
-  const buildTree = () => {
-    const personId = rootPersonSelect?.value || null;
-    if (!personId) return;
-    setMainView(personId);
+function showRootPersonMessage(message = '', tone = 'neutral') {
+  if (!rootPersonMessage) return;
+  rootPersonMessage.textContent = message;
+  rootPersonMessage.dataset.tone = tone;
+}
+
+function openRootPersonDialog() {
+  if (!rootPersonDialog || !rootPersonInput) return;
+  rootPersonInput.value = formatPersonLookupValue(currentRootId);
+  showRootPersonMessage('');
+
+  if (typeof rootPersonDialog.showModal === 'function') {
+    rootPersonDialog.showModal();
+  } else {
+    rootPersonDialog.setAttribute('open', '');
+  }
+
+  requestAnimationFrame(() => {
+    rootPersonInput?.focus();
+    rootPersonInput?.select();
+  });
+}
+
+function closeRootPersonDialog() {
+  if (!rootPersonDialog?.open) return;
+
+  if (typeof rootPersonDialog.close === 'function') {
+    rootPersonDialog.close();
+  } else {
+    rootPersonDialog.removeAttribute('open');
+  }
+}
+
+function setupRootPersonDialog() {
+  modeHint?.addEventListener('click', openRootPersonDialog);
+
+  const applyRootPerson = () => {
+    const rawValue = String(rootPersonInput?.value || '').trim();
+    const targetId = resolvePersonLookupTarget(rawValue);
+
+    if (targetId === '') {
+      showRootPersonMessage('Введите имя или ID карточки.', 'error');
+      return;
+    }
+    if (!targetId) {
+      showRootPersonMessage('Выберите существующую карточку из списка или введите ID в формате P123.', 'error');
+      return;
+    }
+
+    if (setMainView(targetId)) {
+      closeRootPersonDialog();
+    }
   };
 
-  buildTreeButton.addEventListener('click', buildTree);
-  rootPersonSelect?.addEventListener('change', updateBuildTreeButtonState);
-  updateBuildTreeButtonState();
+  rootPersonApplyButton?.addEventListener('click', applyRootPerson);
+  rootPersonInput?.addEventListener('input', () => showRootPersonMessage(''));
+  rootPersonInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    applyRootPerson();
+  });
+  rootPersonDialog?.addEventListener('click', (event) => {
+    if (event.target === rootPersonDialog) {
+      closeRootPersonDialog();
+    }
+  });
+}
+
+function setupNewRelationPersonDialog() {
+  newRelationPersonCreateButton?.addEventListener('click', addPendingRelationPerson);
+  newRelationPersonNameInput?.addEventListener('input', () => setNewRelationPersonMessage('Карточка будет создана при сохранении секции.'));
+  newRelationPersonNameInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    addPendingRelationPerson();
+  });
+  newRelationPersonDialog?.addEventListener('click', (event) => {
+    if (event.target === newRelationPersonDialog) {
+      closeNewRelationPersonDialog();
+    }
+  });
+}
+
+function setupInlineDismissHandlers() {
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeRelationSuggestions(personBody);
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (event.target.closest?.('[data-relation-picker]')) return;
+    closeRelationSuggestions(personBody);
+  });
+}
+
+function closePersonSearchSuggestions() {
+  if (!personSearchSuggestions) return;
+  personSearchSuggestions.hidden = true;
+  personSearchInput?.setAttribute('aria-expanded', 'false');
+}
+
+function renderPersonSearchSuggestions() {
+  if (!personSearchInput || !personSearchSuggestions) return;
+
+  const matches = getFilteredPersonOptions(personSearchInput.value);
+  if (!matches.length) {
+    personSearchSuggestions.innerHTML = '<div class="person-search-empty">Ничего не найдено</div>';
+  } else {
+    personSearchSuggestions.innerHTML = matches
+      .map((entry) => `
+        <button
+          class="person-search-option"
+          type="button"
+          role="option"
+          data-person-id="${escapeHtml(entry.id)}"
+        >
+          ${escapeHtml(entry.label)}
+        </button>
+      `)
+      .join('');
+  }
+
+  personSearchSuggestions.hidden = false;
+  personSearchInput.setAttribute('aria-expanded', 'true');
+}
+
+function setupPersonSearch() {
+  const openSearchedPerson = (forcedPersonId = null) => {
+    const rawValue = String(personSearchInput?.value || '').trim();
+    if (!forcedPersonId && !rawValue) return;
+
+    const targetId = forcedPersonId
+      || resolvePersonLookupTarget(rawValue)
+      || getFilteredPersonOptions(rawValue, 1)[0]?.id
+      || null;
+
+    if (!targetId) {
+      personSearchInput?.setCustomValidity('Выберите существующую карточку из списка или введите ID в формате P123.');
+      personSearchInput?.reportValidity();
+      return;
+    }
+
+    personSearchInput?.setCustomValidity('');
+    const didShow = showPerson(targetId);
+    if (!didShow) return;
+
+    if (currentView === 'graph' && isVisibleInGraph(targetId)) {
+      selectAndFocus(targetId);
+    }
+    syncTableSelection();
+    if (personSearchInput) personSearchInput.value = '';
+    closePersonSearchSuggestions();
+  };
+
+  personSearchInput?.addEventListener('input', () => {
+    personSearchInput.setCustomValidity('');
+    renderPersonSearchSuggestions();
+  });
+  personSearchInput?.addEventListener('focus', renderPersonSearchSuggestions);
+  personSearchInput?.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter') return;
+    event.preventDefault();
+    openSearchedPerson();
+  });
+  personSearchSuggestions?.addEventListener('click', (event) => {
+    const option = event.target.closest('[data-person-id]');
+    if (!option) return;
+    openSearchedPerson(option.dataset.personId);
+  });
+  document.addEventListener('click', (event) => {
+    if (personSearchInput?.contains(event.target) || personSearchSuggestions?.contains(event.target)) return;
+    closePersonSearchSuggestions();
+  });
 }
 
 function setupTabs() {
@@ -1077,16 +1515,16 @@ async function init() {
       ? 'P049'
       : dataset.people.keys().next().value;
 
-    populateRootSuggestions();
-    setupRootSelector();
+    setupInlineDismissHandlers();
+    setupPersonSearch();
+    setupRootPersonDialog();
+    setupNewRelationPersonDialog();
     setupTabs();
     renderGraphLayoutMenu();
 
     applyTabState(currentView);
     renderGraph();
     showPerson(currentRootId, { force: true });
-    if (rootPersonSelect) rootPersonSelect.value = '';
-    updateBuildTreeButtonState();
     hideLoading();
 
     if (dataset.peopleTable?.warnings?.length) {

@@ -614,7 +614,8 @@ export function getLifeYears(person) {
   const deathYear = getDateYear(deathValue);
   if (!birthYear && !deathYear) return '';
   if (birthYear && deathYear) return `${birthYear}-${deathYear}`;
-  return String(birthYear || deathYear || '');
+  if (deathYear) return `д.с. ${deathYear}`;
+  return String(birthYear || '');
 }
 
 export function getBirthYear(person) {
