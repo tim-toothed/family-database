@@ -37,6 +37,11 @@ export const YANDEX_DB_TOOLS_CONFIG = {
   apiToken: '',
 };
 
+export const YANDEX_AI_AGENT_CONFIG = {
+  apiUrl: 'https://functions.yandexcloud.net/d4ee371ghggntlst4p7b',
+  apiToken: '',
+};
+
 export const FIELD_LABELS = {
   id: 'ID',
   birth_name: 'Имя при рождении',

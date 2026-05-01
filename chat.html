@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ИИ-агент семейной базы</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="agent-page">
+    <header class="topbar agent-topbar app-page-topbar">
+      <button
+        id="appMenuButton"
+        class="app-menu-button"
+        type="button"
+        aria-label="Открыть меню"
+        aria-controls="appSideMenu"
+        aria-expanded="false"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="topbar-title">
+        <h1>ИИ-агент</h1>
+        <p class="subtitle">Чтение и редактирование карточек через инструменты базы</p>
+      </div>
+      <div id="agentStatus" class="editor-status" aria-live="polite"></div>
+    </header>
+
+    <main class="agent-layout">
+      <section class="agent-chat-panel" aria-label="Чат с ИИ-агентом">
+        <div class="agent-controlbar" aria-label="Настройки ИИ-агента">
+          <label>
+            <span>Провайдер</span>
+            <select id="agentProviderSelect" class="agent-select" aria-label="ИИ-провайдер"></select>
+          </label>
+          <label>
+            <span>Модель</span>
+            <select id="agentModelSelect" class="agent-select" aria-label="ИИ-модель"></select>
+          </label>
+          <label>
+            <span>Задача</span>
+            <select id="agentTaskSelect" class="agent-select" aria-label="Тип задачи"></select>
+          </label>
+          <label>
+            <span>Режим</span>
+            <select id="agentThinkingSelect" class="agent-select" aria-label="Режим обдумывания"></select>
+          </label>
+        </div>
+        <div id="agentMessages" class="agent-messages" aria-live="polite"></div>
+        <form id="agentForm" class="agent-composer">
+          <textarea
+            id="agentPrompt"
+            class="agent-prompt"
+            rows="3"
+            placeholder="Например: найди P123, добавь источник про запись из метрической книги и сохрани карточку."
+            aria-label="Сообщение агенту"
+          ></textarea>
+          <button id="agentSubmitButton" class="save-yaml-button" type="submit">Отправить</button>
+        </form>
+      </section>
+
+      <aside class="agent-history-panel" aria-label="История изменений">
+        <div class="agent-history-head">
+          <h2>Изменения</h2>
+          <span id="agentChangeCount" class="documents-side-badge">0</span>
+        </div>
+        <div id="agentChangeList" class="agent-change-list">
+          <div class="agent-empty-state agent-empty-state-compact">
+            Здесь появятся карточки, которые агент изменил в этой сессии.
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <script type="module" src="./js/agent/chat-page.js"></script>
+  </body>
+</html>

@@ -46,9 +46,16 @@ GET  /documents
 GET  /documents/{documentId}
 DELETE /documents/{documentId}
 GET  /documents/{documentId}/chunk?from=0&chunkSize=200
+GET  /agent/jobs?limit=20
+POST /agent/jobs
+GET  /agent/jobs/{jobId}
+POST /agent/jobs/{jobId}/status
+POST /agent/jobs/{jobId}/events
+POST /agent/jobs/{jobId}/changes
 ```
 
 `PUT /people/{personId}` обновляет существующую карточку. `POST /people/{personId}` создает или перезаписывает карточку.
+`/agent/*` хранит временную историю AI-задач, событий и AI-изменений карточек; ручные правки редактора туда не пишутся.
 
 ## Schema
 

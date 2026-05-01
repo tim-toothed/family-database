@@ -48,3 +48,43 @@ CREATE TABLE IF NOT EXISTS text_document_mentions (
   source Utf8 NOT NULL,
   PRIMARY KEY (document_id, block_index, mention_index)
 );
+
+CREATE TABLE IF NOT EXISTS agent_jobs (
+  id Utf8 NOT NULL,
+  status Utf8 NOT NULL,
+  provider Utf8 NOT NULL,
+  model Utf8 NOT NULL,
+  task_type Utf8 NOT NULL,
+  prompt Utf8 NOT NULL,
+  request_payload Json NOT NULL,
+  final_message Utf8,
+  error Utf8,
+  created_at Utf8 NOT NULL,
+  started_at Utf8,
+  finished_at Utf8,
+  updated_at Utf8 NOT NULL,
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE IF NOT EXISTS agent_events (
+  job_id Utf8 NOT NULL,
+  event_index Int64 NOT NULL,
+  kind Utf8 NOT NULL,
+  payload Json NOT NULL,
+  created_at Utf8 NOT NULL,
+  PRIMARY KEY (job_id, event_index)
+);
+
+CREATE TABLE IF NOT EXISTS agent_changes (
+  job_id Utf8 NOT NULL,
+  change_index Int64 NOT NULL,
+  person_id Utf8 NOT NULL,
+  action Utf8 NOT NULL,
+  display_name Utf8 NOT NULL,
+  changed_paths Json NOT NULL,
+  before_payload Json,
+  after_payload Json,
+  created_at Utf8 NOT NULL,
+  reverted_at Utf8,
+  PRIMARY KEY (job_id, change_index)
+);

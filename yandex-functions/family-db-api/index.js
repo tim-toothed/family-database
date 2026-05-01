@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('crypto');
+
 const DEFAULT_PAGE_SIZE = 1000;
 const MAX_PAGE_SIZE = 5000;
 const MAX_BODY_BYTES = 1024 * 1024;
@@ -402,6 +404,49 @@ function normalizeDocumentRow(row) {
   };
 }
 
+function normalizeAgentJobRow(row) {
+  return {
+    id: String(row.id || '').trim(),
+    status: String(row.status || ''),
+    provider: String(row.provider || ''),
+    model: String(row.model || ''),
+    task_type: String(row.task_type || ''),
+    prompt: String(row.prompt || ''),
+    request_payload: parseJsonColumn(row.request_payload, {}),
+    final_message: row.final_message == null || row.final_message === '' ? null : String(row.final_message),
+    error: row.error == null || row.error === '' ? null : String(row.error),
+    created_at: row.created_at == null ? null : String(row.created_at),
+    started_at: row.started_at == null || row.started_at === '' ? null : String(row.started_at),
+    finished_at: row.finished_at == null || row.finished_at === '' ? null : String(row.finished_at),
+    updated_at: row.updated_at == null ? null : String(row.updated_at),
+  };
+}
+
+function normalizeAgentEventRow(row) {
+  return {
+    job_id: String(row.job_id || '').trim(),
+    event_index: Number(row.event_index || 0),
+    kind: String(row.kind || ''),
+    payload: parseJsonColumn(row.payload, {}),
+    created_at: row.created_at == null ? null : String(row.created_at),
+  };
+}
+
+function normalizeAgentChangeRow(row) {
+  return {
+    job_id: String(row.job_id || '').trim(),
+    change_index: Number(row.change_index || 0),
+    person_id: String(row.person_id || '').trim(),
+    action: String(row.action || ''),
+    display_name: String(row.display_name || ''),
+    changed_paths: parseJsonColumn(row.changed_paths, []),
+    before_payload: parseJsonColumn(row.before_payload, null),
+    after_payload: parseJsonColumn(row.after_payload, null),
+    created_at: row.created_at == null ? null : String(row.created_at),
+    reverted_at: row.reverted_at == null ? null : String(row.reverted_at),
+  };
+}
+
 function unwrapRows(result) {
   if (!Array.isArray(result)) return [];
   return Array.isArray(result[0]) ? result[0] : result;
@@ -759,6 +804,246 @@ async function deleteDocument(sql, documentId) {
   return result.document;
 }
 
+async function getAgentJob(sql, jobId) {
+  const rows = unwrapRows(await sql`
+    SELECT id, status, provider, model, task_type, prompt, request_payload, final_message, error,
+           created_at, started_at, finished_at, updated_at
+    FROM agent_jobs
+    WHERE id = ${jobId}
+    LIMIT 1
+  `.idempotent(true));
+  return rows[0] ? normalizeAgentJobRow(rows[0]) : null;
+}
+
+async function listAgentJobs(sql, limit = 20) {
+  const normalizedLimit = Math.min(Math.max(Math.trunc(Number(limit) || 20), 1), 100);
+  const rows = unwrapRows(await sql`
+    SELECT id, status, provider, model, task_type, prompt, request_payload, final_message, error,
+           created_at, started_at, finished_at, updated_at
+    FROM agent_jobs
+    ORDER BY created_at DESC
+    LIMIT ${normalizedLimit}
+  `.idempotent(true));
+  return rows.map(normalizeAgentJobRow);
+}
+
+async function listAgentJobSnapshots(sql, limit = 20) {
+  const jobs = await listAgentJobs(sql, limit);
+  const snapshots = [];
+  for (const job of jobs) {
+    const [events, changes] = await Promise.all([
+      listAgentEvents(sql, job.id, -1),
+      listAgentChanges(sql, job.id),
+    ]);
+    snapshots.push({ job, events, changes });
+  }
+  return snapshots;
+}
+
+async function listAgentEvents(sql, jobId, sinceEventIndex = -1) {
+  const rows = unwrapRows(await sql`
+    SELECT job_id, event_index, kind, payload, created_at
+    FROM agent_events
+    WHERE job_id = ${jobId}
+      AND event_index > ${sinceEventIndex}
+    ORDER BY event_index
+    LIMIT ${MAX_PAGE_SIZE}
+  `.idempotent(true));
+  return rows.map(normalizeAgentEventRow);
+}
+
+async function listAgentChanges(sql, jobId) {
+  const rows = unwrapRows(await sql`
+    SELECT job_id, change_index, person_id, action, display_name, changed_paths,
+           before_payload, after_payload, created_at, reverted_at
+    FROM agent_changes
+    WHERE job_id = ${jobId}
+    ORDER BY change_index
+    LIMIT ${MAX_PAGE_SIZE}
+  `.idempotent(true));
+  return rows.map(normalizeAgentChangeRow);
+}
+
+async function getNextAgentIndex(sql, tableName, indexColumn, jobId) {
+  const rows = tableName === 'agent_events'
+    ? unwrapRows(await sql`
+      SELECT event_index
+      FROM agent_events
+      WHERE job_id = ${jobId}
+      ORDER BY event_index DESC
+      LIMIT 1
+    `.idempotent(true))
+    : unwrapRows(await sql`
+      SELECT change_index
+      FROM agent_changes
+      WHERE job_id = ${jobId}
+      ORDER BY change_index DESC
+      LIMIT 1
+    `.idempotent(true));
+  return rows.length ? Number(rows[0][indexColumn] || 0) + 1 : 1;
+}
+
+async function createAgentJob(sql, body) {
+  const requestPayload = body?.request_payload || body?.requestPayload || {};
+  assertPlainObject(requestPayload, 'request_payload');
+  const messages = Array.isArray(requestPayload.messages) ? requestPayload.messages : [];
+  const prompt = String(
+    body?.prompt
+    || [...messages].reverse().find((message) => message?.role === 'user')?.content
+    || ''
+  ).slice(0, 2000);
+  const timestamp = nowIso();
+  const job = {
+    id: crypto.randomUUID(),
+    status: 'queued',
+    provider: String(requestPayload.provider || body?.provider || ''),
+    model: String(requestPayload.model || body?.model || ''),
+    taskType: String(requestPayload.taskType || body?.task_type || body?.taskType || ''),
+    prompt,
+    requestPayload,
+    createdAt: timestamp,
+  };
+
+  await sql`
+    UPSERT INTO agent_jobs (
+      id, status, provider, model, task_type, prompt, request_payload,
+      final_message, error, created_at, started_at, finished_at, updated_at
+    )
+    VALUES (
+      ${job.id}, ${job.status}, ${job.provider}, ${job.model}, ${job.taskType}, ${job.prompt},
+      ${await jsonValue(job.requestPayload)}, NULL, NULL, ${timestamp}, NULL, NULL, ${timestamp}
+    )
+  `;
+
+  await addAgentEvent(sql, job.id, 'status', { status: 'queued' });
+  return getAgentJob(sql, job.id);
+}
+
+async function updateAgentJobStatus(sql, jobId, body) {
+  const current = await getAgentJob(sql, jobId);
+  if (!current) {
+    const error = new Error('Agent job was not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const status = String(body?.status || current.status || '').trim();
+  assertId(status, 'status');
+  const timestamp = nowIso();
+  const finalMessage = body?.final_message == null && body?.finalMessage == null
+    ? current.final_message
+    : String(body.final_message ?? body.finalMessage ?? '');
+  const errorMessage = body?.error == null ? current.error : String(body.error || '');
+  const startedAt = body?.started_at || body?.startedAt || current.started_at || (status === 'running' ? timestamp : null);
+  const finishedAt = body?.finished_at || body?.finishedAt || current.finished_at || (
+    ['completed', 'failed', 'timeout'].includes(status) ? timestamp : null
+  );
+
+  await sql`
+    UPSERT INTO agent_jobs (
+      id, status, provider, model, task_type, prompt, request_payload,
+      final_message, error, created_at, started_at, finished_at, updated_at
+    )
+    VALUES (
+      ${current.id}, ${status}, ${current.provider}, ${current.model}, ${current.task_type},
+      ${current.prompt}, ${await jsonValue(current.request_payload)}, ${finalMessage || ''},
+      ${errorMessage || ''}, ${current.created_at}, ${startedAt || ''}, ${finishedAt || ''}, ${timestamp}
+    )
+  `;
+
+  await addAgentEvent(sql, jobId, 'status', {
+    status,
+    ...(finalMessage ? { final_message: finalMessage } : {}),
+    ...(errorMessage ? { error: errorMessage } : {}),
+  });
+  return getAgentJob(sql, jobId);
+}
+
+async function addAgentEvent(sql, jobId, kind, payload) {
+  const normalizedJobId = String(jobId || '').trim();
+  const normalizedKind = String(kind || '').trim();
+  assertId(normalizedJobId, 'job id');
+  assertId(normalizedKind, 'event kind');
+  const eventIndex = await getNextAgentIndex(sql, 'agent_events', 'event_index', normalizedJobId);
+  const timestamp = nowIso();
+  const normalizedPayload = payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {};
+
+  await sql`
+    UPSERT INTO agent_events (job_id, event_index, kind, payload, created_at)
+    VALUES (${normalizedJobId}, ${eventIndex}, ${normalizedKind}, ${await jsonValue(normalizedPayload)}, ${timestamp})
+  `;
+  return {
+    job_id: normalizedJobId,
+    event_index: eventIndex,
+    kind: normalizedKind,
+    payload: normalizedPayload,
+    created_at: timestamp,
+  };
+}
+
+async function addAgentChange(sql, jobId, body) {
+  const normalizedJobId = String(jobId || '').trim();
+  assertId(normalizedJobId, 'job id');
+  const changeIndex = await getNextAgentIndex(sql, 'agent_changes', 'change_index', normalizedJobId);
+  const timestamp = nowIso();
+  const personId = String(body?.personId || body?.person_id || '').trim();
+  assertId(personId, 'person id');
+  const action = String(body?.action || '').trim() || (body?.beforePayload || body?.before_payload ? 'updated' : 'created');
+  const displayName = String(body?.displayName || body?.display_name || personId).trim();
+  const changedPaths = Array.isArray(body?.changedPaths)
+    ? body.changedPaths
+    : Array.isArray(body?.changed_paths)
+      ? body.changed_paths
+      : [];
+  const beforePayload = body?.beforePayload === undefined ? body?.before_payload ?? null : body.beforePayload;
+  const afterPayload = body?.afterPayload === undefined ? body?.after_payload ?? null : body.afterPayload;
+
+  await sql`
+    UPSERT INTO agent_changes (
+      job_id, change_index, person_id, action, display_name, changed_paths,
+      before_payload, after_payload, created_at, reverted_at
+    )
+    VALUES (
+      ${normalizedJobId}, ${changeIndex}, ${personId}, ${action}, ${displayName},
+      ${await jsonValue(changedPaths)}, ${await jsonValue(beforePayload)},
+      ${await jsonValue(afterPayload)}, ${timestamp}, ''
+    )
+  `;
+  await addAgentEvent(sql, normalizedJobId, 'change', {
+    change_index: changeIndex,
+    person_id: personId,
+    action,
+    display_name: displayName,
+    changed_paths: changedPaths,
+  });
+  return {
+    job_id: normalizedJobId,
+    change_index: changeIndex,
+    person_id: personId,
+    action,
+    display_name: displayName,
+    changed_paths: changedPaths,
+    before_payload: beforePayload,
+    after_payload: afterPayload,
+    created_at: timestamp,
+    reverted_at: null,
+  };
+}
+
+async function getAgentJobSnapshot(sql, jobId, sinceEventIndex = -1) {
+  const job = await getAgentJob(sql, jobId);
+  if (!job) {
+    const error = new Error('Agent job was not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+  const [events, changes] = await Promise.all([
+    listAgentEvents(sql, jobId, sinceEventIndex),
+    listAgentChanges(sql, jobId),
+  ]);
+  return { job, events, changes };
+}
+
 async function route(event) {
   const method = String(event?.httpMethod || 'GET').toUpperCase();
   if (method === 'OPTIONS') return emptyResponse(204);
@@ -779,6 +1064,40 @@ async function route(event) {
 
   if (method === 'GET' && path === '/people-index') {
     return jsonResponse(200, { rows: await listPeopleIndex(sql) });
+  }
+
+  if (segments[0] === 'agent' && segments[1] === 'jobs') {
+    if (method === 'GET' && segments.length === 2) {
+      const limit = getQueryNumber(event, 'limit', 20, { min: 1, max: 100 });
+      return jsonResponse(200, { jobs: await listAgentJobSnapshots(sql, limit) });
+    }
+
+    if (method === 'POST' && segments.length === 2) {
+      return jsonResponse(201, { job: await createAgentJob(sql, parseBody(event) || {}) });
+    }
+
+    if (segments.length >= 3) {
+      const jobId = segments[2];
+      assertId(jobId, 'job id');
+
+      if (method === 'GET' && segments.length === 3) {
+        const sinceEventIndex = getQueryNumber(event, 'sinceEventIndex', -1, { min: -1 });
+        return jsonResponse(200, await getAgentJobSnapshot(sql, jobId, sinceEventIndex));
+      }
+
+      if (method === 'POST' && segments[3] === 'status') {
+        return jsonResponse(200, { job: await updateAgentJobStatus(sql, jobId, parseBody(event) || {}) });
+      }
+
+      if (method === 'POST' && segments[3] === 'events') {
+        const body = parseBody(event) || {};
+        return jsonResponse(201, { event: await addAgentEvent(sql, jobId, body.kind, body.payload || {}) });
+      }
+
+      if (method === 'POST' && segments[3] === 'changes') {
+        return jsonResponse(201, { change: await addAgentChange(sql, jobId, parseBody(event) || {}) });
+      }
+    }
   }
 
   if (segments[0] === 'people' && segments.length === 2) {

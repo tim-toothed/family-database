@@ -9,6 +9,7 @@ const APP_MENU_HTML = `
       <a href="./index.html">Визуализация</a>
       <a href="./documents.html">Документы</a>
       <a href="./edit.html">Редактор</a>
+      <a href="./chat.html">ИИ-агент</a>
     </nav>
     <div id="authToolbarSlot" class="side-menu-auth"></div>
   </aside>
