@@ -24,6 +24,12 @@ function isThinkingEnabled(context = {}) {
   return String(process.env.DEEPSEEK_ENABLE_THINKING || 'true').toLowerCase() !== 'false';
 }
 
+function buildThinkingOption(thinkingMode) {
+  return {
+    type: isThinkingEnabled({ thinkingMode }) ? 'enabled' : 'disabled',
+  };
+}
+
 function getPositiveIntegerEnv(name, fallback, { min = 1, max = Number.MAX_SAFE_INTEGER } = {}) {
   const number = Number(process.env[name]);
   if (!Number.isFinite(number)) return fallback;
@@ -69,7 +75,7 @@ function appendToolCallDelta(map, deltaToolCall) {
   map.set(index, current);
 }
 
-async function parseStreamingChatCompletion(response) {
+async function parseStreamingChatCompletion(response, callbacks = {}) {
   const reader = response.body?.getReader();
   if (!reader) throw new Error('DeepSeek response body is not readable.');
 
@@ -102,7 +108,10 @@ async function parseStreamingChatCompletion(response) {
       }
 
       const delta = event?.choices?.[0]?.delta || {};
-      if (typeof delta.content === 'string') content += delta.content;
+      if (typeof delta.content === 'string') {
+        content += delta.content;
+        if (callbacks.onContent) await callbacks.onContent(content);
+      }
       if (typeof delta.reasoning_content === 'string') reasoning += delta.reasoning_content;
       if (typeof delta.reasoning === 'string') reasoning += delta.reasoning;
       if (Array.isArray(delta.tool_calls)) {
@@ -123,7 +132,7 @@ async function parseStreamingChatCompletion(response) {
   };
 }
 
-async function createStreamingChatCompletion({ model, messages, timeoutMs, thinkingMode }) {
+async function createStreamingChatCompletion({ model, messages, timeoutMs, thinkingMode, onContent }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -139,7 +148,7 @@ async function createStreamingChatCompletion({ model, messages, timeoutMs, think
         tools: AGENT_TOOLS,
         tool_choice: 'auto',
         stream: true,
-        enable_thinking: isThinkingEnabled({ thinkingMode }),
+        thinking: buildThinkingOption(thinkingMode),
       }),
       signal: controller.signal,
     });
@@ -149,7 +158,7 @@ async function createStreamingChatCompletion({ model, messages, timeoutMs, think
       throw new Error(`DeepSeek API returned ${response.status}: ${text.slice(0, 500)}`);
     }
 
-    return await parseStreamingChatCompletion(response);
+    return await parseStreamingChatCompletion(response, { onContent });
   } finally {
     clearTimeout(timeout);
   }
@@ -184,6 +193,31 @@ async function safeAddAgentChange(context, change) {
   }
 }
 
+function createPartialMessageEmitter(context, round) {
+  let lastSentAt = 0;
+  let lastSentLength = 0;
+
+  async function emit(content, { force = false } = {}) {
+    if (!context?.jobId) return;
+    const normalizedContent = String(content || '');
+    if (!normalizedContent.trim()) return;
+
+    const now = Date.now();
+    const didGrowEnough = normalizedContent.length - lastSentLength >= 300;
+    const didWaitEnough = now - lastSentAt >= 1500;
+    if (!force && !didGrowEnough && !didWaitEnough) return;
+
+    lastSentAt = now;
+    lastSentLength = normalizedContent.length;
+    await safeAddAgentEvent(context, 'partial_message', {
+      round,
+      content: normalizedContent,
+    });
+  }
+
+  return { emit };
+}
+
 async function runDeepSeekAgent({ model, messages, context }) {
   const deadlineAt = Date.now() + getAgentTimeoutMs(context);
   const maxToolRounds = getMaxToolRounds();
@@ -213,12 +247,15 @@ async function runDeepSeekAgent({ model, messages, context }) {
     let assistantMessage;
     try {
       await safeAddAgentEvent(context, 'model_request', { round: round + 1, model });
+      const partialMessageEmitter = createPartialMessageEmitter(context, round + 1);
       assistantMessage = await createStreamingChatCompletion({
         model,
         messages: chatMessages,
         timeoutMs: Math.max(1000, Math.min(getDeepSeekTimeoutMs(), remainingMs - 2500)),
         thinkingMode: context?.thinkingMode,
+        onContent: (content) => partialMessageEmitter.emit(content),
       });
+      await partialMessageEmitter.emit(assistantMessage.content, { force: true });
     } catch (error) {
       if (error?.name === 'AbortError') {
         const timeoutResult = {
@@ -233,11 +270,13 @@ async function runDeepSeekAgent({ model, messages, context }) {
       }
       throw error;
     }
-    lastReasoning = assistantMessage.reasoning || lastReasoning;
+    const shouldKeepReasoning = isThinkingEnabled(context);
+    lastReasoning = shouldKeepReasoning && assistantMessage.reasoning ? assistantMessage.reasoning : lastReasoning;
 
     const rawToolCalls = Array.isArray(assistantMessage.tool_calls) ? assistantMessage.tool_calls : [];
     if (!rawToolCalls.length) {
       await safeAddAgentEvent(context, 'assistant_message', {
+        round: round + 1,
         content: assistantMessage.content || 'Готово.',
         reasoning: lastReasoning,
       });
@@ -258,16 +297,22 @@ async function runDeepSeekAgent({ model, messages, context }) {
       content: assistantMessage.content || '',
       tool_calls: assistantToolCalls,
     };
-    if (assistantMessage.reasoning) {
+    if (shouldKeepReasoning && assistantMessage.reasoning) {
       nextAssistantMessage.reasoning_content = assistantMessage.reasoning;
     }
     chatMessages.push(nextAssistantMessage);
+    if (assistantMessage.content) {
+      await safeAddAgentEvent(context, 'assistant_message_segment', {
+        round: round + 1,
+        content: assistantMessage.content,
+      });
+    }
 
     for (const toolCall of assistantToolCalls) {
       const name = toolCall.function.name;
       const args = toolCall.function.arguments || '{}';
       let result;
-      await safeAddAgentEvent(context, 'tool_call', { name, arguments: args });
+      await safeAddAgentEvent(context, 'tool_call', { round: round + 1, name, arguments: args });
       try {
         result = await executeToolCall({ name, arguments: args });
       } catch (error) {
@@ -276,6 +321,7 @@ async function runDeepSeekAgent({ model, messages, context }) {
 
       toolCalls.push({ name, arguments: args, result });
       await safeAddAgentEvent(context, result?.error ? 'tool_error' : 'tool_result', {
+        round: round + 1,
         name,
         result: result?.error ? { error: result.error } : result?.result || result,
       });

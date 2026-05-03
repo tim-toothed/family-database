@@ -3,10 +3,10 @@
 const MAX_MESSAGES = 6;
 const DEFAULT_PROVIDER = 'deepseek';
 const DEFAULT_MODEL_BY_PROVIDER = {
-  deepseek: 'DeepSeek-V4-Flash',
+  deepseek: 'deepseek-v4-flash',
 };
 const ALLOWED_MODELS_BY_PROVIDER = {
-  deepseek: new Set(['DeepSeek-V4-Flash', 'deepseek-v4-pro']),
+  deepseek: new Set(['deepseek-v4-flash', 'deepseek-v4-pro']),
 };
 const ALLOWED_TASK_TYPES = new Set(['person_editing']);
 const ALLOWED_THINKING_MODES = new Set(['thinking', 'non_thinking']);
@@ -63,14 +63,19 @@ const AGENT_TOOLS = [
     type: 'function',
     function: {
       name: 'update_person_payload',
-      description: 'Save the full updated payload of an existing person card. Use only after reading the card and only when the user explicitly asks to change/save data. The payload_json value must be the complete updated person payload as a JSON object string, preserving unrelated fields.',
+      description: 'Save the full updated payload of an existing person card. Use only after reading the card and only when the user explicitly asks to change/save data. The payload_json value must be the complete updated person payload as a JSON object string, preserving unrelated fields. expected_changed_paths must list every intended changed field path; the tool rejects unexpected extra changes.',
       parameters: {
         type: 'object',
         properties: {
           person_id: { type: 'string' },
           payload_json: { type: 'string' },
+          expected_changed_paths: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Field paths that are intentionally changed, for example ["class_title"] or ["siblings"].',
+          },
         },
-        required: ['person_id', 'payload_json'],
+        required: ['person_id', 'payload_json', 'expected_changed_paths'],
         additionalProperties: false,
       },
     },

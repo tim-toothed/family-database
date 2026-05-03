@@ -48,11 +48,11 @@ deepseek
 Разрешенные модели:
 
 ```text
-DeepSeek-V4-Flash
+deepseek-v4-flash
 deepseek-v4-pro
 ```
 
-Запросы к DeepSeek отправляются с `stream: true` и `enable_thinking: true`, если `DEEPSEEK_ENABLE_THINKING` явно не равен `false`.
+Запросы к DeepSeek отправляются с `stream: true` и `thinking.type` (`enabled` или `disabled`) по пользовательской настройке `thinkingMode`.
 Стрим сейчас читается внутри функции и собирается в финальный JSON-ответ. Для защиты от platform timeout функция использует `context.getRemainingTimeInMillis()`, soft-timeout `FAMILY_AI_AGENT_TIMEOUT_MS`, timeout одного DeepSeek-вызова `DEEPSEEK_TIMEOUT_MS` и env-настройку tool loop `FAMILY_AI_AGENT_MAX_TOOL_ROUNDS`.
 
 ## Endpoints
@@ -73,7 +73,7 @@ POST /chat/jobs/{jobId}/run
 ```json
 {
   "provider": "deepseek",
-  "model": "DeepSeek-V4-Flash",
+  "model": "deepseek-v4-flash",
   "taskType": "person_editing",
   "thinkingMode": "thinking",
   "messages": [
@@ -87,7 +87,7 @@ POST /chat/jobs/{jobId}/run
 ```json
 {
   "provider": "deepseek",
-  "model": "DeepSeek-V4-Flash",
+  "model": "deepseek-v4-flash",
   "taskType": "person_editing",
   "message": "Готово: ...",
   "toolCalls": [

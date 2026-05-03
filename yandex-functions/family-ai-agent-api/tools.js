@@ -20,6 +20,40 @@ function normalizeLimit(value, fallback = 20) {
   return Math.min(Math.max(Math.trunc(number), 1), 50);
 }
 
+function normalizeChangedPaths(value) {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((path) => String(path || '').trim())
+    .filter(Boolean);
+}
+
+function isPathCoveredByExpected(actualPath, expectedPath) {
+  const actual = String(actualPath || '').trim();
+  const expected = String(expectedPath || '').trim();
+  if (!actual || !expected) return false;
+  if (actual === expected) return true;
+  if (actual.startsWith(`${expected}.`)) return true;
+  if (expected.startsWith(`${actual}.`)) return true;
+  return actual.split('.')[0] === expected.split('.')[0];
+}
+
+function assertOnlyExpectedChanges(changedPaths, expectedChangedPaths) {
+  if (!expectedChangedPaths.length) {
+    throw new Error('expected_changed_paths must list the fields that are intentionally changed.');
+  }
+
+  const unexpectedPaths = changedPaths.filter((actualPath) => (
+    !expectedChangedPaths.some((expectedPath) => isPathCoveredByExpected(actualPath, expectedPath))
+  ));
+
+  if (unexpectedPaths.length) {
+    throw new Error(
+      `Refusing to save unexpected changes outside expected_changed_paths: ${unexpectedPaths.join(', ')}. `
+      + `Expected only: ${expectedChangedPaths.join(', ')}. Re-read the card and retry with unrelated fields unchanged.`
+    );
+  }
+}
+
 async function toolSearchPeople(args) {
   const query = String(args.query || '').trim().toLowerCase();
   const limit = normalizeLimit(args.limit);
@@ -98,6 +132,10 @@ async function toolUpdatePersonPayload(args) {
   }
   afterPayloadInput.id = afterPayloadInput.id || personId;
 
+  const expectedChangedPaths = normalizeChangedPaths(args.expected_changed_paths);
+  const requestedChangedPaths = collectChangedPaths(beforePayload, afterPayloadInput);
+  assertOnlyExpectedChanges(requestedChangedPaths, expectedChangedPaths);
+
   const row = await updatePerson(personId, afterPayloadInput);
   const afterPayload = cloneJson(row.payload || afterPayloadInput);
   const changedPaths = collectChangedPaths(beforePayload, afterPayload);
@@ -106,6 +144,7 @@ async function toolUpdatePersonPayload(args) {
     result: {
       id: row.id || personId,
       display_name: getPersonDisplayName(afterPayload, personId),
+      changedPaths,
       synchronizedIds: row.synchronizedIds || [],
       skippedIds: row.skippedIds || [],
     },

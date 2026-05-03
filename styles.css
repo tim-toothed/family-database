@@ -26,7 +26,9 @@ body.editor-page {
 }
 
 body.agent-page {
+  height: 100dvh;
   min-height: 100dvh;
+  overflow: hidden;
 }
 
 .topbar {
@@ -3306,12 +3308,15 @@ body.documents-page {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
   gap: 18px;
-  min-height: calc(100dvh - 86px);
+  height: calc(100dvh - 86px);
+  min-height: 0;
   padding: 18px;
+  overflow: hidden;
 }
 
 .agent-history-panel,
 .agent-chat-panel {
+  min-height: 0;
   border: 1px solid var(--line);
   border-radius: 18px;
   background: #ffffff;
@@ -3321,10 +3326,11 @@ body.documents-page {
 .agent-history-panel {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  align-content: start;
   gap: 16px;
   padding: 18px;
   overflow: hidden;
+  min-height: 0;
+  height: 100%;
 }
 
 .agent-history-head {
@@ -3342,9 +3348,11 @@ body.documents-page {
 .agent-change-list {
   min-height: 0;
   overflow-y: auto;
-  display: grid;
-  align-content: start;
-  gap: 8px;
+  padding-right: 4px;
+}
+
+.agent-change-list > * + * {
+  margin-top: 8px;
 }
 
 .agent-chat-panel {
@@ -3356,7 +3364,7 @@ body.documents-page {
 
 .agent-controlbar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   padding: 14px;
   border-bottom: 1px solid var(--line);
@@ -3393,6 +3401,7 @@ body.documents-page {
 
 .agent-messages {
   min-height: 0;
+  height: 100%;
   overflow-y: auto;
   padding: 18px;
 }
@@ -3464,6 +3473,106 @@ body.documents-page {
   overflow-wrap: anywhere;
 }
 
+.agent-message-body p {
+  margin: 0 0 10px;
+}
+
+.agent-message-body p:last-child {
+  margin-bottom: 0;
+}
+
+.agent-message-body h3,
+.agent-message-body h4,
+.agent-message-body h5,
+.agent-message-body h6 {
+  margin: 16px 0 8px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.agent-message-body h3 {
+  font-size: 18px;
+}
+
+.agent-message-body h4,
+.agent-message-body h5,
+.agent-message-body h6 {
+  font-size: 15px;
+}
+
+.agent-message-body ul,
+.agent-message-body ol {
+  margin: 8px 0 12px;
+  padding-left: 24px;
+}
+
+.agent-message-body li + li {
+  margin-top: 4px;
+}
+
+.agent-message-body hr {
+  border: 0;
+  border-top: 1px solid #d8e3f3;
+  margin: 16px 0;
+}
+
+.agent-message-body del {
+  color: var(--muted);
+}
+
+.agent-message-body code,
+.agent-reasoning code {
+  border: 1px solid #d8e3f3;
+  border-radius: 6px;
+  padding: 1px 5px;
+  background: #ffffff;
+  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  font-size: 0.92em;
+}
+
+.agent-message-body pre,
+.agent-reasoning pre {
+  overflow: auto;
+  margin: 10px 0;
+  border: 1px solid #d8e3f3;
+  border-radius: 10px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.agent-message-body pre code,
+.agent-reasoning pre code {
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.agent-markdown-table-wrap {
+  max-width: 100%;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+
+.agent-markdown-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.agent-markdown-table th,
+.agent-markdown-table td {
+  border: 1px solid #d8e3f3;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.agent-markdown-table th {
+  background: #eef4ff;
+  font-weight: 700;
+}
+
 .agent-reasoning {
   margin-top: 12px;
   border-top: 1px solid #dce5f0;
@@ -3483,6 +3592,10 @@ body.documents-page {
   overflow: auto;
   line-height: 1.5;
   white-space: normal;
+}
+
+.agent-reasoning p {
+  margin: 0 0 8px;
 }
 
 .agent-tool-trace {
@@ -3572,29 +3685,78 @@ body.documents-page {
   gap: 8px;
 }
 
-.agent-change-json-grid {
+.agent-diff-list {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
-.agent-change-json-grid h3 {
-  margin: 0 0 6px;
-  color: var(--muted);
-  font-size: 12px;
-  text-transform: uppercase;
+.agent-section-diff {
+  padding-right: 0;
 }
 
-.agent-change-json-grid pre {
-  max-height: 260px;
-  margin: 0;
-  overflow: auto;
+.agent-section-diff .field-title {
+  margin: 0 0 10px;
+}
+
+.agent-section-subdiff + .agent-section-subdiff {
+  margin-top: 14px;
+}
+
+.agent-section-subtitle {
+  margin-bottom: 8px;
+  color: #32415c;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.agent-compact-diff {
+  display: grid;
+  gap: 8px;
+}
+
+.agent-compact-diff-row {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  border: 1px solid #d8e3f3;
+  border-radius: 12px;
   padding: 10px;
-  border: 1px solid #dbe5f2;
-  border-radius: 10px;
-  background: #ffffff;
-  color: #233044;
-  font: 12px/1.45 ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  white-space: pre-wrap;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.agent-compact-diff-row > span {
+  font-weight: 900;
+}
+
+.agent-compact-diff-row.is-removed {
+  border-color: #f1c4c4;
+  background: #fff6f6;
+  color: #842f2f;
+}
+
+.agent-compact-diff-row.is-added {
+  border-color: #bddfc6;
+  background: #f4fbf5;
+  color: #245c36;
+}
+
+.agent-compact-diff-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.agent-relation-id {
+  font-weight: 700;
+}
+
+.agent-item-label {
+  font-weight: 700;
+}
+
+.agent-empty-value {
+  color: var(--muted);
+  font-style: italic;
 }
 
 @media (max-width: 1100px) {

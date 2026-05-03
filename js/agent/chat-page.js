@@ -1,4 +1,5 @@
 import { requireAuth } from '../auth.js';
+import { FIELD_LABELS } from '../config.js';
 import { deleteEditablePerson, saveEditablePerson } from '../db/editor-store.js';
 import { createAgentJob, getAgentJob, listAgentJobs, runAgentJob } from '../db/yandex/agent-client.js';
 import {
@@ -28,6 +29,9 @@ let changeHistory = [];
 let isSending = false;
 let nextMessageId = 1;
 const jobReasoningById = new Map();
+const jobAssistantMessageIdById = new Map();
+const jobPartialSegmentsById = new Map();
+const jobToolCallRoundsById = new Map();
 const AGENT_SETTINGS_STORAGE_KEY = 'family-agent-settings';
 const MAX_CONTEXT_MESSAGES = 3;
 const JOB_POLL_INTERVAL_MS = 5000;
@@ -94,8 +98,166 @@ function syncSendingState() {
   agentSubmitButton.textContent = isSending ? 'Думаю...' : 'Отправить';
 }
 
-function formatMessageText(text) {
-  return escapeHtml(text).replace(/\r\n/g, '\n').replace(/\n/g, '<br>');
+function formatInlineMarkdown(text) {
+  const placeholders = [];
+  const protect = (html) => {
+    const token = `@@INLINE_${placeholders.length}@@`;
+    placeholders.push([token, html]);
+    return token;
+  };
+
+  let html = escapeHtml(text);
+  html = html.replace(/`([^`]+)`/g, (_, code) => protect(`<code>${code}</code>`));
+  html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  html = html.replace(/(^|[\s(])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  html = html.replace(/(^|[\s(])_([^_\n]+)_/g, '$1<em>$2</em>');
+  for (const [token, value] of placeholders) html = html.replaceAll(token, value);
+  return html;
+}
+
+function parseMarkdownTable(lines, startIndex) {
+  const header = lines[startIndex];
+  const separator = lines[startIndex + 1];
+  if (!header?.trim().startsWith('|') || !separator?.trim().startsWith('|')) return null;
+
+  const separatorCells = separator
+    .trim()
+    .replace(/^\||\|$/g, '')
+    .split('|')
+    .map((cell) => cell.trim());
+  const isSeparator = separatorCells.length > 0 && separatorCells.every((cell) => /^:?-{3,}:?$/.test(cell));
+  if (!isSeparator) return null;
+
+  const rows = [];
+  let index = startIndex;
+  while (index < lines.length && lines[index].trim().startsWith('|')) {
+    rows.push(
+      lines[index]
+        .trim()
+        .replace(/^\||\|$/g, '')
+        .split('|')
+        .map((cell) => cell.trim())
+    );
+    index += 1;
+  }
+
+  if (rows.length < 2) return null;
+  const [head, , ...body] = rows;
+  const table = `
+    <div class="agent-markdown-table-wrap">
+      <table class="agent-markdown-table">
+        <thead>
+          <tr>${head.map((cell) => `<th>${formatInlineMarkdown(cell)}</th>`).join('')}</tr>
+        </thead>
+        <tbody>
+          ${body.map((row) => `<tr>${row.map((cell) => `<td>${formatInlineMarkdown(cell)}</td>`).join('')}</tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  return { html: table, nextIndex: index };
+}
+
+function formatMarkdown(text) {
+  const lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
+  const blocks = [];
+  let paragraph = [];
+  let inCodeBlock = false;
+  let codeLines = [];
+
+  const flushParagraph = () => {
+    if (!paragraph.length) return;
+    blocks.push(`<p>${formatInlineMarkdown(paragraph.join('\n')).replace(/\n/g, '<br>')}</p>`);
+    paragraph = [];
+  };
+
+  const parseList = (startIndex) => {
+    const first = lines[startIndex]?.trim() || '';
+    const ordered = /^\d+\.\s+/.test(first);
+    const unordered = /^[-*]\s+/.test(first);
+    if (!ordered && !unordered) return null;
+
+    const items = [];
+    let index = startIndex;
+    const pattern = ordered ? /^\d+\.\s+(.+)$/ : /^[-*]\s+(.+)$/;
+    while (index < lines.length) {
+      const match = (lines[index]?.trim() || '').match(pattern);
+      if (!match) break;
+      items.push(match[1]);
+      index += 1;
+    }
+
+    const tag = ordered ? 'ol' : 'ul';
+    return {
+      html: `<${tag}>${items.map((item) => `<li>${formatInlineMarkdown(item)}</li>`).join('')}</${tag}>`,
+      nextIndex: index,
+    };
+  };
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const trimmed = line.trim();
+
+    if (trimmed.startsWith('```')) {
+      if (inCodeBlock) {
+        blocks.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
+        codeLines = [];
+        inCodeBlock = false;
+      } else {
+        flushParagraph();
+        inCodeBlock = true;
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeLines.push(line);
+      continue;
+    }
+
+    const table = parseMarkdownTable(lines, index);
+    if (table) {
+      flushParagraph();
+      blocks.push(table.html);
+      index = table.nextIndex - 1;
+      continue;
+    }
+
+    if (!trimmed) {
+      flushParagraph();
+      continue;
+    }
+
+    if (/^---+$/.test(trimmed)) {
+      flushParagraph();
+      blocks.push('<hr>');
+      continue;
+    }
+
+    const heading = trimmed.match(/^(#{1,4})\s+(.+)$/);
+    if (heading) {
+      flushParagraph();
+      const level = Math.min(heading[1].length + 2, 6);
+      blocks.push(`<h${level}>${formatInlineMarkdown(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    const list = parseList(index);
+    if (list) {
+      flushParagraph();
+      blocks.push(list.html);
+      index = list.nextIndex - 1;
+      continue;
+    }
+
+    paragraph.push(line);
+  }
+
+  if (inCodeBlock) blocks.push(`<pre><code>${escapeHtml(codeLines.join('\n'))}</code></pre>`);
+  flushParagraph();
+  return blocks.join('');
 }
 
 function renderMessages() {
@@ -129,14 +291,14 @@ function renderMessages() {
       ? `
         <details class="agent-reasoning">
           <summary>Обдумывание</summary>
-          <div>${formatMessageText(reasoning)}</div>
+          <div>${formatMarkdown(reasoning)}</div>
         </details>
       `
       : '';
     return `
       <article class="agent-message agent-message-${message.role}${toneClass}">
         <div class="agent-message-role">${roleLabel}</div>
-        <div class="agent-message-body">${formatMessageText(message.content)}</div>
+        <div class="agent-message-body">${formatMarkdown(message.content)}</div>
         ${reasoningBlock}
         ${toolCalls}
       </article>
@@ -208,10 +370,112 @@ function getLastUserMessage(snapshot) {
 }
 
 function getAssistantReasoning(snapshot) {
+  if (snapshot?.job?.request_payload?.thinkingMode === 'non_thinking') return '';
   const event = [...(Array.isArray(snapshot?.events) ? snapshot.events : [])]
     .reverse()
     .find((item) => item.kind === 'assistant_message' && item.payload?.reasoning);
   return String(event?.payload?.reasoning || '').trim();
+}
+
+function getSortedJobSegments(jobId) {
+  const segments = jobPartialSegmentsById.get(jobId);
+  if (!segments) return [];
+  return getSortedJobSegmentEntries(jobId)
+    .map(([, content]) => String(content || '').trim())
+    .filter(Boolean);
+}
+
+function getSortedJobSegmentEntries(jobId) {
+  const segments = jobPartialSegmentsById.get(jobId);
+  if (!segments) return [];
+  return Array.from(segments.entries())
+    .sort(([left], [right]) => Number(left) - Number(right))
+    .map(([round, content]) => [Number(round), String(content || '').trim()])
+    .filter(([, content]) => Boolean(content));
+}
+
+function normalizeTranscriptText(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function mergeTranscriptParts(parts) {
+  const merged = [];
+  for (const part of parts.map((item) => String(item || '').trim()).filter(Boolean)) {
+    const normalizedPart = normalizeTranscriptText(part);
+    if (merged.some((existing) => normalizeTranscriptText(existing) === normalizedPart)) continue;
+    if (merged.length && normalizedPart.startsWith(normalizeTranscriptText(merged[merged.length - 1]))) {
+      merged[merged.length - 1] = part;
+      continue;
+    }
+    if (merged.length && normalizeTranscriptText(merged[merged.length - 1]).startsWith(normalizedPart)) continue;
+    merged.push(part);
+  }
+  return merged.join('\n\n');
+}
+
+function dedupeTranscriptBlocks(text) {
+  const blocks = String(text || '').trim().split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+  const deduped = [];
+  for (const block of blocks) {
+    const normalizedBlock = normalizeTranscriptText(block);
+    if (deduped.some((existing) => normalizeTranscriptText(existing) === normalizedBlock)) continue;
+    deduped.push(block);
+  }
+  return deduped.join('\n\n');
+}
+
+function rememberToolCallRound(jobId, round) {
+  if (!jobId) return;
+  if (!Number.isFinite(Number(round))) return;
+  const normalizedRound = Number(round);
+  const rounds = jobToolCallRoundsById.get(jobId) || new Set();
+  rounds.add(normalizedRound);
+  jobToolCallRoundsById.set(jobId, rounds);
+}
+
+function setJobSegment(jobId, round, content) {
+  if (!jobId) return '';
+  const normalizedRound = Number.isFinite(Number(round)) ? Number(round) : 0;
+  const segments = jobPartialSegmentsById.get(jobId) || new Map();
+  segments.set(normalizedRound, String(content || ''));
+  jobPartialSegmentsById.set(jobId, segments);
+  return getSortedJobSegments(jobId).join('\n\n');
+}
+
+function getVisibleJobTranscript(job) {
+  const jobId = job?.id || '';
+  const finalMessage = dedupeTranscriptBlocks(job?.final_message || '');
+  if (job?.request_payload?.thinkingMode === 'non_thinking') {
+    return finalMessage || getSortedJobSegments(jobId).at(-1) || '';
+  }
+
+  const toolCallRounds = jobToolCallRoundsById.get(jobId) || new Set();
+  const segments = (jobPartialSegmentsById.get(jobId) ? Array.from(jobPartialSegmentsById.get(jobId).entries()) : [])
+    .sort(([left], [right]) => Number(left) - Number(right))
+    .filter(([round]) => !toolCallRounds.has(Number(round)))
+    .map(([, content]) => content);
+  return mergeTranscriptParts([...segments, finalMessage]);
+}
+
+function getJobWorkNotes(jobId) {
+  const toolCallRounds = jobToolCallRoundsById.get(jobId) || new Set();
+  if (!toolCallRounds.size) return '';
+  const segments = getSortedJobSegmentEntries(jobId)
+    .filter(([round]) => toolCallRounds.has(Number(round)))
+    .map(([, content]) => content);
+  const notes = mergeTranscriptParts(segments);
+  return notes ? `Ход выполнения:\n\n${notes}` : '';
+}
+
+function getFinalJobReasoning(job, snapshotReasoning = '') {
+  const jobId = job?.id || '';
+  const modelReasoning = job?.request_payload?.thinkingMode === 'non_thinking'
+    ? ''
+    : (jobReasoningById.get(jobId) || snapshotReasoning || '');
+  return mergeTranscriptParts([
+    modelReasoning,
+    getJobWorkNotes(jobId),
+  ]);
 }
 
 function restoreMessagesFromJobs(snapshots) {
@@ -233,12 +497,29 @@ function restoreMessagesFromJobs(snapshots) {
     }
 
     const job = snapshot?.job || {};
+    const jobId = job.id || '';
+    for (const event of (Array.isArray(snapshot?.events) ? snapshot.events : [])) {
+      if (event.kind === 'tool_call' || event.kind === 'tool_result' || event.kind === 'tool_error') {
+        rememberToolCallRound(jobId, event.payload?.round);
+      }
+      if (event.kind === 'assistant_message_segment' && event.payload?.content) {
+        rememberToolCallRound(jobId, event.payload?.round);
+        setJobSegment(jobId, event.payload.round, event.payload.content);
+      }
+      if (event.kind === 'partial_message' && event.payload?.content) {
+        setJobSegment(jobId, event.payload.round, event.payload.content);
+      }
+      if (event.kind === 'assistant_message' && event.payload?.reasoning) {
+        jobReasoningById.set(jobId, String(event.payload.reasoning || ''));
+      }
+    }
+
     if (job.status === 'completed') {
       restoredMessages.push({
         id: nextMessageId,
         role: 'assistant',
-        content: String(job.final_message || '').trim() || 'Готово.',
-        reasoning: getAssistantReasoning(snapshot),
+        content: getVisibleJobTranscript(job) || 'Готово.',
+        reasoning: getFinalJobReasoning(job, getAssistantReasoning(snapshot)),
       });
       nextMessageId += 1;
     } else if (job.status === 'failed' || job.status === 'timeout') {
@@ -286,6 +567,7 @@ function formatEventStatus(event) {
   if (event.kind === 'run_requested') return 'Запуск задачи отправлен на сервер...';
   if (event.kind === 'run_started') return 'Задача запущена на сервере.';
   if (event.kind === 'model_request') return `Запрос к модели, шаг ${payload.round || '?'}`;
+  if (event.kind === 'partial_message') return '';
   if (event.kind === 'assistant_message') return 'Финальный ответ получен.';
   if (event.kind === 'timeout') return payload.message || 'Задача остановлена по timeout.';
   if (event.kind === 'max_rounds') return payload.message || 'Достигнут лимит шагов.';
@@ -307,8 +589,35 @@ function applyJobSnapshot(snapshot, statusMessageId, lastEventIndex) {
   const events = Array.isArray(snapshot?.events) ? snapshot.events : [];
   for (const event of events) {
     nextLastEventIndex = Math.max(nextLastEventIndex, Number(event.event_index || nextLastEventIndex));
+    if (event.kind === 'tool_call' || event.kind === 'tool_result' || event.kind === 'tool_error') {
+      rememberToolCallRound(jobId, event.payload?.round);
+    }
+    if (event.kind === 'partial_message' && event.payload?.content) {
+      setJobSegment(jobId, event.payload.round, event.payload.content);
+      const content = getVisibleJobTranscript(snapshot?.job || { id: jobId });
+      const existingMessageId = jobAssistantMessageIdById.get(jobId);
+      if (existingMessageId) {
+        updateMessage(existingMessageId, { content });
+      } else {
+        const messageId = pushMessage({
+          role: 'assistant',
+          content,
+          isPartial: true,
+        });
+        jobAssistantMessageIdById.set(jobId, messageId);
+      }
+    }
+    if (event.kind === 'assistant_message_segment' && event.payload?.content) {
+      rememberToolCallRound(jobId, event.payload?.round);
+      setJobSegment(jobId, event.payload.round, event.payload.content);
+      const content = getVisibleJobTranscript(snapshot?.job || { id: jobId });
+      const existingMessageId = jobAssistantMessageIdById.get(jobId);
+      if (existingMessageId) updateMessage(existingMessageId, { content });
+    }
     if (event.kind === 'assistant_message' && event.payload?.reasoning) {
-      jobReasoningById.set(jobId, String(event.payload.reasoning || ''));
+      if (snapshot?.job?.request_payload?.thinkingMode !== 'non_thinking') {
+        jobReasoningById.set(jobId, String(event.payload.reasoning || ''));
+      }
     }
     const status = formatEventStatus(event);
     if (status) updateMessage(statusMessageId, { content: status, tone: event.kind === 'tool_error' ? 'error' : 'info' });
@@ -317,11 +626,19 @@ function applyJobSnapshot(snapshot, statusMessageId, lastEventIndex) {
   const job = snapshot?.job || {};
   if (job.status === 'completed') {
     removeMessage(statusMessageId);
-    pushMessage({
+    const existingMessageId = jobAssistantMessageIdById.get(job.id);
+    const content = getVisibleJobTranscript(job);
+    const finalMessage = {
       role: 'assistant',
-      content: String(job.final_message || '').trim() || 'Готово.',
-      reasoning: jobReasoningById.get(job.id) || '',
-    });
+      content: content || 'Готово.',
+      reasoning: getFinalJobReasoning(job),
+      isPartial: false,
+    };
+    if (existingMessageId) {
+      updateMessage(existingMessageId, finalMessage);
+    } else {
+      pushMessage(finalMessage);
+    }
   } else if (job.status === 'failed') {
     updateMessage(statusMessageId, {
       tone: 'error',
@@ -452,9 +769,238 @@ function initializeAgentSettings() {
   agentThinkingSelect.addEventListener('change', saveAgentSettings);
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function formatRelationItem(item) {
+  if (!isPlainObject(item)) return formatSectionValue(item);
+  const parts = [
+    item.person_id ? `<span class="agent-relation-id">ID: ${escapeHtml(item.person_id)}</span>` : '',
+    item.relation_type ? `<span class="badge family-role-badge role-neutral">${escapeHtml(item.relation_type)}</span>` : '',
+  ].filter(Boolean);
+  return parts.length ? parts.join(' ') : escapeHtml(JSON.stringify(item));
+}
+
+function getSingleTextValue(item) {
+  if (!isPlainObject(item)) return '';
+  const preferredKeys = [
+    'text',
+    'source',
+    'achievement',
+    'job',
+    'education_info',
+    'residence_info',
+    'service_info',
+    'war',
+    'media',
+    'description',
+    'hobby',
+    'character',
+    'appearance',
+    'health',
+  ];
+  for (const key of preferredKeys) {
+    const value = item[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  const stringEntries = Object.entries(item).filter(([, value]) => typeof value === 'string' && value.trim());
+  return stringEntries.length === 1 ? stringEntries[0][1].trim() : '';
+}
+
+function formatArrayItem(item) {
+  if (!isPlainObject(item)) return formatSectionValue(item);
+  if (item.person_id) return formatRelationItem(item);
+
+  const label = String(item.label || item.title || '').trim();
+  const nestedText = String(item.text || item.value || '').trim();
+  if (label && nestedText) {
+    return `<span class="agent-item-label">${escapeHtml(label)}:</span> ${escapeHtml(nestedText)}`;
+  }
+
+  const text = getSingleTextValue(item);
+  if (text) return escapeHtml(text);
+
+  return formatSectionValue(item);
+}
+
+function formatNameObject(value) {
+  return [value.surname, value.first_name, value.patronymic]
+    .map((part) => String(part || '').trim())
+    .filter(Boolean)
+    .join(' ');
+}
+
+function formatDateObject(value) {
+  const day = value.day ? String(value.day).padStart(2, '0') : '';
+  const month = value.month ? String(value.month).padStart(2, '0') : '';
+  const year = value.year ? String(value.year) : '';
+  return [day, month, year].filter(Boolean).join('.');
+}
+
+function getValueAtPath(payload, path) {
+  if (!path) return payload;
+  return String(path)
+    .split('.')
+    .filter(Boolean)
+    .reduce((current, key) => (current == null ? undefined : current[key]), payload);
+}
+
+function formatSectionValue(value) {
+  if (value === undefined) return '<span class="agent-empty-value">не было</span>';
+  if (value === null || value === '') return '<span class="agent-empty-value">пусто</span>';
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return escapeHtml(value);
+  if (Array.isArray(value)) {
+    if (!value.length) return '<span class="agent-empty-value">пустой список</span>';
+    return `<ul>${value.map((item) => `<li>${formatArrayItem(item)}</li>`).join('')}</ul>`;
+  }
+  if (isPlainObject(value)) {
+    const name = formatNameObject(value);
+    if (name) return escapeHtml(name);
+    const date = formatDateObject(value);
+    if (date) return escapeHtml(date);
+    return `
+      <div class="kv-list">
+        ${Object.entries(value).map(([key, nested]) => `
+          <div class="kv-label">${escapeHtml(key)}</div>
+          <div>${formatSectionValue(nested)}</div>
+        `).join('')}
+      </div>
+    `;
+  }
+  return escapeHtml(String(value));
+}
+
+function formatDiffLineValue(value) {
+  const html = formatSectionValue(value);
+  return html.replace(/^<ul>|<\/ul>$/g, '');
+}
+
+function buildCompactDiffRows(beforeValue, afterValue) {
+  if (Array.isArray(beforeValue) || Array.isArray(afterValue)) {
+    const beforeItems = Array.isArray(beforeValue) ? beforeValue : [];
+    const afterItems = Array.isArray(afterValue) ? afterValue : [];
+    const maxLength = Math.max(beforeItems.length, afterItems.length);
+    const rows = [];
+    for (let index = 0; index < maxLength; index += 1) {
+      const beforeItem = beforeItems[index];
+      const afterItem = afterItems[index];
+      if (JSON.stringify(beforeItem) === JSON.stringify(afterItem)) continue;
+      if (beforeItem !== undefined) rows.push({ tone: 'removed', html: formatArrayItem(beforeItem) });
+      if (afterItem !== undefined) rows.push({ tone: 'added', html: formatArrayItem(afterItem) });
+    }
+    return rows;
+  }
+
+  if (JSON.stringify(beforeValue) === JSON.stringify(afterValue)) return [];
+  return [
+    ...(beforeValue !== undefined ? [{ tone: 'removed', html: formatDiffLineValue(beforeValue) }] : []),
+    ...(afterValue !== undefined ? [{ tone: 'added', html: formatDiffLineValue(afterValue) }] : []),
+  ];
+}
+
+function renderCompactDiffRows(beforeValue, afterValue) {
+  const rows = buildCompactDiffRows(beforeValue, afterValue);
+  if (!rows.length) return '<div class="agent-compact-diff-empty">Нет отображаемых изменений.</div>';
+  return `
+    <div class="agent-compact-diff">
+      ${rows.map((row) => `
+        <div class="agent-compact-diff-row is-${row.tone}">
+          <span>${row.tone === 'removed' ? '−' : '+'}</span>
+          <div>${row.html}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function getChangedSectionKeys(change) {
+  const paths = Array.isArray(change.changedPaths) ? change.changedPaths : [];
+  const keys = paths
+    .map((path) => String(path || '').split('.')[0])
+    .filter(Boolean);
+  if (keys.length) return [...new Set(keys)];
+  if (!change.beforePayload && change.afterPayload) return Object.keys(change.afterPayload);
+  return [];
+}
+
+function getRelativeChangedPaths(change, sectionKey) {
+  const paths = Array.isArray(change.changedPaths) ? change.changedPaths : [];
+  return paths
+    .filter((path) => String(path || '').split('.')[0] === sectionKey)
+    .map((path) => String(path).split('.').slice(1).join('.'))
+    .filter(Boolean);
+}
+
+function getSectionDiffEntries(change, sectionKey) {
+  const beforeSection = change.beforePayload ? change.beforePayload[sectionKey] : undefined;
+  const afterSection = change.afterPayload ? change.afterPayload[sectionKey] : undefined;
+  const relativePaths = getRelativeChangedPaths(change, sectionKey);
+
+  if (!relativePaths.length) {
+    return [{ label: FIELD_LABELS[sectionKey] || sectionKey, beforeValue: beforeSection, afterValue: afterSection }];
+  }
+
+  const entries = [];
+  const seen = new Set();
+  for (const relativePath of relativePaths) {
+    const parts = relativePath.split('.').filter(Boolean);
+    let entryPath = relativePath;
+    if (Array.isArray(beforeSection) || Array.isArray(afterSection)) {
+      entryPath = parts[0] || relativePath;
+    } else if (parts.length > 1 && isPlainObject(beforeSection?.[parts[0]]) && isPlainObject(afterSection?.[parts[0]])) {
+      entryPath = parts[0];
+    }
+
+    if (seen.has(entryPath)) continue;
+    seen.add(entryPath);
+    entries.push({
+      label: entryPath,
+      beforeValue: getValueAtPath(beforeSection, entryPath),
+      afterValue: getValueAtPath(afterSection, entryPath),
+    });
+  }
+
+  return entries.length ? entries : [{ label: FIELD_LABELS[sectionKey] || sectionKey, beforeValue: beforeSection, afterValue: afterSection }];
+}
+
+function renderChangedSectionCard(change, sectionKey) {
+  const label = FIELD_LABELS[sectionKey] || sectionKey;
+  const entries = getSectionDiffEntries(change, sectionKey);
+
+  return `
+    <section class="field-block person-card-section agent-section-diff" data-section-key="${escapeHtml(sectionKey)}">
+      <h3 class="field-title">${escapeHtml(label)}</h3>
+      ${entries.map((entry) => `
+        <div class="agent-section-subdiff">
+          ${entries.length > 1 ? `<div class="agent-section-subtitle">${escapeHtml(entry.label)}</div>` : ''}
+          ${renderCompactDiffRows(entry.beforeValue, entry.afterValue)}
+        </div>
+      `).join('')}
+    </section>
+  `;
+}
+
+function renderChangeDiff(change) {
+  const sections = getChangedSectionKeys(change);
+  if (!sections.length) {
+    return `
+      <section class="field-block person-card-section agent-section-diff">
+        <h3 class="field-title">Изменение</h3>
+        ${renderCompactDiffRows(change.beforePayload, change.afterPayload)}
+      </section>
+    `;
+  }
+
+  return sections.map((sectionKey) => renderChangedSectionCard(change, sectionKey)).join('');
+}
+
 function formatChangeSummary(change) {
   const paths = Array.isArray(change.changedPaths) ? change.changedPaths : [];
-  return paths.length ? paths.join(', ') : 'Payload изменен.';
+  const sections = [...new Set(paths.map((path) => String(path || '').split('.')[0]).filter(Boolean))];
+  return sections.length
+    ? sections.map((sectionKey) => FIELD_LABELS[sectionKey] || sectionKey).join(', ')
+    : 'Карточка изменена.';
 }
 
 function renderChangeHistory() {
@@ -474,8 +1020,7 @@ function renderChangeHistory() {
       ? `${escapeHtml(change.displayName)} [${escapeHtml(change.personId)}]`
       : escapeHtml(change.personId);
     const summary = escapeHtml(formatChangeSummary(change));
-    const previousJson = escapeHtml(JSON.stringify(change.beforePayload || {}, null, 2));
-    const nextJson = escapeHtml(JSON.stringify(change.afterPayload || {}, null, 2));
+    const diff = renderChangeDiff(change);
     const disabled = change.reverted ? ' disabled' : '';
 
     return `
@@ -485,21 +1030,11 @@ function renderChangeHistory() {
           <small>${change.reverted ? 'отменено' : summary}</small>
         </summary>
         <div class="agent-change-body">
-          <div class="agent-change-summary">${summary}</div>
           <div class="agent-change-actions">
             <a class="toolbar-link toolbar-link-subtle" href="./edit.html?id=${encodeURIComponent(change.personId)}">Открыть в редакторе</a>
             <button class="toolbar-button toolbar-button-subtle" type="button" data-revert-change="${index}"${disabled}>${change.beforePayload ? 'Откатить' : 'Удалить созданную'}</button>
           </div>
-          <div class="agent-change-json-grid">
-            <section>
-              <h3>До</h3>
-              <pre>${previousJson}</pre>
-            </section>
-            <section>
-              <h3>После</h3>
-              <pre>${nextJson}</pre>
-            </section>
-          </div>
+          <div class="agent-diff-list">${diff}</div>
         </div>
       </details>
     `;
