@@ -1,7 +1,8 @@
 import { requireAuth } from '../auth.js';
 import { FIELD_LABELS } from '../config.js';
 import { deleteEditablePerson, saveEditablePerson } from '../db/editor-store.js';
-import { createAgentJob, getAgentJob, listAgentJobs, runAgentJob } from '../db/yandex/agent-client.js';
+import { cancelAgentJob, createAgentJob, getAgentJob, listAgentJobs, runAgentJob } from '../db/yandex/agent-client.js';
+import { renderField } from '../render/renderers.js';
 import {
   AGENT_PROVIDER_OPTIONS,
   AGENT_THINKING_MODES,
@@ -27,6 +28,10 @@ const agentChangeList = document.getElementById('agentChangeList');
 let messages = [];
 let changeHistory = [];
 let isSending = false;
+let isStopping = false;
+let activeJobId = '';
+let activeRunAbortController = null;
+let editingMessageId = null;
 let nextMessageId = 1;
 const jobReasoningById = new Map();
 const jobAssistantMessageIdById = new Map();
@@ -45,6 +50,21 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function iconSvg(name) {
+  const paths = {
+    send: '<path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path>',
+    stop: '<rect width="14" height="14" x="5" y="5" rx="2"></rect>',
+    edit: '<path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2"></rect><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"></path>',
+    retry: '<path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 3v6h-6"></path>',
+  };
+  return `
+    <svg class="agent-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      ${paths[name] || ''}
+    </svg>
+  `;
 }
 
 function setStatus(message = '', tone = 'info') {
@@ -89,13 +109,17 @@ function delay(ms) {
 }
 
 function syncSendingState() {
-  agentSubmitButton.disabled = isSending;
+  agentSubmitButton.disabled = isStopping;
   agentPrompt.disabled = isSending;
   agentProviderSelect.disabled = isSending;
   agentModelSelect.disabled = isSending;
   agentTaskSelect.disabled = isSending;
   agentThinkingSelect.disabled = isSending;
-  agentSubmitButton.textContent = isSending ? 'Думаю...' : 'Отправить';
+  agentSubmitButton.classList.toggle('agent-submit-button', true);
+  agentSubmitButton.classList.toggle('is-stop', isSending);
+  agentSubmitButton.innerHTML = isSending ? iconSvg('stop') : iconSvg('send');
+  agentSubmitButton.setAttribute('aria-label', isSending ? 'Остановить запрос' : 'Отправить сообщение');
+  agentSubmitButton.title = isSending ? 'Остановить' : 'Отправить';
 }
 
 function formatInlineMarkdown(text) {
@@ -270,6 +294,7 @@ function renderMessages() {
     return;
   }
 
+  const lastUserMessageId = [...messages].reverse().find((message) => message.role === 'user')?.id ?? null;
   agentMessages.innerHTML = messages.map((message) => {
     const roleLabel = message.role === 'user'
       ? 'Вы'
@@ -295,9 +320,37 @@ function renderMessages() {
         </details>
       `
       : '';
+    const actions = [];
+    if (message.role === 'user' && message.id === lastUserMessageId && !isSending) {
+      actions.push(`
+        <button class="agent-message-action" type="button" data-edit-message="${message.id}" title="Редактировать" aria-label="Редактировать сообщение">
+          ${iconSvg('edit')}
+        </button>
+      `);
+    }
+    if (message.role === 'assistant' && !message.isPartial && !isSending) {
+      actions.push(`
+        <button class="agent-message-action" type="button" data-retry-message="${message.id}" title="Повторить запрос" aria-label="Повторить запрос">
+          ${iconSvg('retry')}
+        </button>
+      `);
+    }
+    if ((message.role === 'user' || message.role === 'assistant') && String(message.content || '').trim()) {
+      actions.push(`
+        <button class="agent-message-action" type="button" data-copy-message="${message.id}" title="Скопировать" aria-label="Скопировать сообщение">
+          ${iconSvg('copy')}
+        </button>
+      `);
+    }
+    const actionBlock = actions.length
+      ? `<div class="agent-message-actions">${actions.join('')}</div>`
+      : '';
     return `
       <article class="agent-message agent-message-${message.role}${toneClass}">
-        <div class="agent-message-role">${roleLabel}</div>
+        <div class="agent-message-head">
+          <div class="agent-message-role">${roleLabel}</div>
+          ${actionBlock}
+        </div>
         <div class="agent-message-body">${formatMarkdown(message.content)}</div>
         ${reasoningBlock}
         ${toolCalls}
@@ -325,6 +378,38 @@ function buildConversationPayload() {
     thinkingMode: agentThinkingSelect.value,
     context: {},
   };
+}
+
+function truncateMessagesAfter(messageId) {
+  const index = messages.findIndex((message) => message.id === messageId);
+  if (index < 0) return;
+  messages = messages.slice(0, index + 1);
+  renderMessages();
+}
+
+function findPreviousUserMessageIndex(messageIndex) {
+  for (let index = messageIndex - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === 'user') return index;
+  }
+  return -1;
+}
+
+async function copyTextToClipboard(text) {
+  const value = String(text || '');
+  if (!value) return;
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.left = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  textarea.remove();
 }
 
 function normalizeJobChange(change) {
@@ -570,6 +655,8 @@ function formatEventStatus(event) {
   if (event.kind === 'partial_message') return '';
   if (event.kind === 'assistant_message') return 'Финальный ответ получен.';
   if (event.kind === 'timeout') return payload.message || 'Задача остановлена по timeout.';
+  if (event.kind === 'cancel_requested') return 'Останавливаю запрос...';
+  if (event.kind === 'cancelled') return payload.message || 'Запрос остановлен пользователем.';
   if (event.kind === 'max_rounds') return payload.message || 'Достигнут лимит шагов.';
   if (event.kind === 'status') {
     if (payload.status === 'queued') return 'Задача ожидает запуска...';
@@ -577,6 +664,7 @@ function formatEventStatus(event) {
     if (payload.status === 'completed') return 'Задача завершена.';
     if (payload.status === 'failed') return payload.error || 'Задача завершилась ошибкой.';
     if (payload.status === 'timeout') return payload.final_message || 'Задача остановлена по timeout.';
+    if (payload.status === 'cancelled') return payload.final_message || 'Запрос остановлен пользователем.';
   }
   return '';
 }
@@ -649,6 +737,11 @@ function applyJobSnapshot(snapshot, statusMessageId, lastEventIndex) {
       tone: 'error',
       content: job.final_message || 'Задача остановлена по timeout.',
     });
+  } else if (job.status === 'cancelled') {
+    updateMessage(statusMessageId, {
+      tone: 'info',
+      content: job.final_message || 'Запрос остановлен пользователем.',
+    });
   }
 
   return nextLastEventIndex;
@@ -664,7 +757,7 @@ async function pollAgentJob(jobId, statusMessageId, getRunError) {
     const snapshot = await getAgentJob(jobId, lastEventIndex);
     lastEventIndex = applyJobSnapshot(snapshot, statusMessageId, lastEventIndex);
     const status = snapshot?.job?.status;
-    if (status === 'completed' || status === 'failed' || status === 'timeout') return snapshot;
+    if (status === 'completed' || status === 'failed' || status === 'timeout' || status === 'cancelled') return snapshot;
     if (!Array.isArray(snapshot?.events) || !snapshot.events.length) {
       updateMessage(statusMessageId, {
         content: `Задача ${status || 'создана'}; новых событий пока нет. Следующая проверка через ${JOB_POLL_INTERVAL_MS / 1000} сек.`,
@@ -871,12 +964,34 @@ function formatSectionValue(value) {
   return escapeHtml(String(value));
 }
 
-function formatDiffLineValue(value) {
-  const html = formatSectionValue(value);
+function createDiffDataset(change) {
+  const people = new Map();
+  const indexById = new Map();
+  for (const payload of [change.beforePayload, change.afterPayload]) {
+    if (!payload?.id) continue;
+    people.set(payload.id, payload);
+    indexById.set(payload.id, change.displayName || payload.id);
+  }
+  return {
+    people,
+    indexById,
+    availableIds: new Set(indexById.keys()),
+  };
+}
+
+function renderSharedFieldValue(sectionKey, value, change) {
+  if (value === undefined) return '<span class="agent-empty-value">не было</span>';
+  if (value === null || value === '') return '<span class="agent-empty-value">пусто</span>';
+  const rendered = renderField(sectionKey, value, createDiffDataset(change));
+  return rendered || formatSectionValue(value);
+}
+
+function formatDiffLineValue(sectionKey, value, change) {
+  const html = renderSharedFieldValue(sectionKey, value, change);
   return html.replace(/^<ul>|<\/ul>$/g, '');
 }
 
-function buildCompactDiffRows(beforeValue, afterValue) {
+function buildCompactDiffRows(sectionKey, beforeValue, afterValue, change) {
   if (Array.isArray(beforeValue) || Array.isArray(afterValue)) {
     const beforeItems = Array.isArray(beforeValue) ? beforeValue : [];
     const afterItems = Array.isArray(afterValue) ? afterValue : [];
@@ -886,21 +1001,21 @@ function buildCompactDiffRows(beforeValue, afterValue) {
       const beforeItem = beforeItems[index];
       const afterItem = afterItems[index];
       if (JSON.stringify(beforeItem) === JSON.stringify(afterItem)) continue;
-      if (beforeItem !== undefined) rows.push({ tone: 'removed', html: formatArrayItem(beforeItem) });
-      if (afterItem !== undefined) rows.push({ tone: 'added', html: formatArrayItem(afterItem) });
+      if (beforeItem !== undefined) rows.push({ tone: 'removed', html: formatDiffLineValue(sectionKey, [beforeItem], change) });
+      if (afterItem !== undefined) rows.push({ tone: 'added', html: formatDiffLineValue(sectionKey, [afterItem], change) });
     }
     return rows;
   }
 
   if (JSON.stringify(beforeValue) === JSON.stringify(afterValue)) return [];
   return [
-    ...(beforeValue !== undefined ? [{ tone: 'removed', html: formatDiffLineValue(beforeValue) }] : []),
-    ...(afterValue !== undefined ? [{ tone: 'added', html: formatDiffLineValue(afterValue) }] : []),
+    ...(beforeValue !== undefined ? [{ tone: 'removed', html: formatDiffLineValue(sectionKey, beforeValue, change) }] : []),
+    ...(afterValue !== undefined ? [{ tone: 'added', html: formatDiffLineValue(sectionKey, afterValue, change) }] : []),
   ];
 }
 
-function renderCompactDiffRows(beforeValue, afterValue) {
-  const rows = buildCompactDiffRows(beforeValue, afterValue);
+function renderCompactDiffRows(sectionKey, beforeValue, afterValue, change) {
+  const rows = buildCompactDiffRows(sectionKey, beforeValue, afterValue, change);
   if (!rows.length) return '<div class="agent-compact-diff-empty">Нет отображаемых изменений.</div>';
   return `
     <div class="agent-compact-diff">
@@ -974,7 +1089,7 @@ function renderChangedSectionCard(change, sectionKey) {
       ${entries.map((entry) => `
         <div class="agent-section-subdiff">
           ${entries.length > 1 ? `<div class="agent-section-subtitle">${escapeHtml(entry.label)}</div>` : ''}
-          ${renderCompactDiffRows(entry.beforeValue, entry.afterValue)}
+          ${renderCompactDiffRows(sectionKey, entry.beforeValue, entry.afterValue, change)}
         </div>
       `).join('')}
     </section>
@@ -987,7 +1102,7 @@ function renderChangeDiff(change) {
     return `
       <section class="field-block person-card-section agent-section-diff">
         <h3 class="field-title">Изменение</h3>
-        ${renderCompactDiffRows(change.beforePayload, change.afterPayload)}
+        ${renderCompactDiffRows('payload', change.beforePayload, change.afterPayload, change)}
       </section>
     `;
   }
@@ -1082,17 +1197,41 @@ async function revertChange(index) {
   }
 }
 
-async function handleSubmit(event) {
-  event.preventDefault();
-  if (isSending) return;
+async function stopActiveJob() {
+  if (!isSending || isStopping) return;
+  isStopping = true;
+  syncSendingState();
+  try {
+    if (activeJobId) await cancelAgentJob(activeJobId);
+    activeRunAbortController?.abort();
+  } catch (error) {
+    console.error(error);
+    pushMessage({
+      role: 'status',
+      tone: 'error',
+      content: `Не удалось остановить запрос: ${error.message}`,
+      isTechnical: true,
+    });
+  }
+}
 
-  const prompt = String(agentPrompt.value || '').trim();
-  if (!prompt) return;
+async function sendPromptToAgent(prompt, { replaceUserMessageId = null } = {}) {
+  const normalizedPrompt = String(prompt || '').trim();
+  if (!normalizedPrompt) return;
 
-  pushMessage({ role: 'user', content: prompt });
+  if (replaceUserMessageId) {
+    updateMessage(replaceUserMessageId, { content: normalizedPrompt });
+    truncateMessagesAfter(replaceUserMessageId);
+  } else {
+    pushMessage({ role: 'user', content: normalizedPrompt });
+  }
   agentPrompt.value = '';
+  editingMessageId = null;
 
   isSending = true;
+  isStopping = false;
+  activeJobId = '';
+  activeRunAbortController = null;
   syncSendingState();
   setStatus('');
   const statusMessageId = pushMessage({
@@ -1106,17 +1245,20 @@ async function handleSubmit(event) {
     const created = await createAgentJob(buildConversationPayload());
     const jobId = created?.job?.id;
     if (!jobId) throw new Error('AI job не был создан.');
+    activeJobId = jobId;
     updateMessage(statusMessageId, {
       content: `Задача создана: ${jobId}`,
     });
 
     let runError = null;
-    const runPromise = runAgentJob(jobId).catch((error) => {
+    activeRunAbortController = new AbortController();
+    const runPromise = runAgentJob(jobId, { signal: activeRunAbortController.signal }).catch((error) => {
+      if (error?.name === 'AbortError') return { aborted: true };
       runError = error;
       return { runError: error };
     });
     const snapshot = await pollAgentJob(jobId, statusMessageId, () => runError);
-    if (['completed', 'failed', 'timeout'].includes(snapshot?.job?.status)) {
+    if (['completed', 'failed', 'timeout', 'cancelled'].includes(snapshot?.job?.status)) {
       const runResult = await runPromise;
       if (runResult?.runError && snapshot.job.status !== 'failed') throw runResult.runError;
     }
@@ -1129,8 +1271,23 @@ async function handleSubmit(event) {
     });
   } finally {
     isSending = false;
+    isStopping = false;
+    activeJobId = '';
+    activeRunAbortController = null;
     syncSendingState();
   }
+}
+
+async function handleSubmit(event) {
+  event.preventDefault();
+  if (isSending) {
+    await stopActiveJob();
+    return;
+  }
+
+  const prompt = String(agentPrompt.value || '').trim();
+  if (!prompt) return;
+  await sendPromptToAgent(prompt, { replaceUserMessageId: editingMessageId });
 }
 
 async function init() {
@@ -1142,6 +1299,37 @@ async function init() {
     renderChangeHistory();
     syncSendingState();
     agentForm.addEventListener('submit', handleSubmit);
+    agentMessages.addEventListener('click', async (event) => {
+      const editButton = event.target.closest('[data-edit-message]');
+      const copyButton = event.target.closest('[data-copy-message]');
+      const retryButton = event.target.closest('[data-retry-message]');
+
+      if (editButton) {
+        const message = messages.find((item) => item.id === Number(editButton.dataset.editMessage));
+        if (!message || message.role !== 'user' || isSending) return;
+        editingMessageId = message.id;
+        agentPrompt.value = message.content || '';
+        agentPrompt.focus();
+        return;
+      }
+
+      if (copyButton) {
+        const message = messages.find((item) => item.id === Number(copyButton.dataset.copyMessage));
+        if (!message) return;
+        await copyTextToClipboard(message.content || '');
+        return;
+      }
+
+      if (retryButton) {
+        if (isSending) return;
+        const messageIndex = messages.findIndex((item) => item.id === Number(retryButton.dataset.retryMessage));
+        if (messageIndex < 0) return;
+        const userMessageIndex = findPreviousUserMessageIndex(messageIndex);
+        if (userMessageIndex < 0) return;
+        const userMessage = messages[userMessageIndex];
+        await sendPromptToAgent(userMessage.content, { replaceUserMessageId: userMessage.id });
+      }
+    });
     agentChangeList.addEventListener('click', (event) => {
       const button = event.target.closest('[data-revert-change]');
       if (!button) return;

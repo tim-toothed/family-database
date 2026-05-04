@@ -277,7 +277,7 @@ function renderArrayField(key, items, dataset) {
   }
 }
 
-function renderField(key, value, dataset) {
+export function renderField(key, value, dataset) {
   if (value === undefined || value === null || value === '') return '';
 
   if (key === 'birth' || key === 'death') {

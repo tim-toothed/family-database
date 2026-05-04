@@ -38,6 +38,7 @@ async function fetchAgentRoute(route, options = {}) {
     method: options.method || 'GET',
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
+    signal: options.signal,
   });
 
   const body = await response.json().catch(() => null);
@@ -74,8 +75,16 @@ export function listAgentJobs(limit = 20) {
   });
 }
 
-export function runAgentJob(jobId) {
+export function runAgentJob(jobId, options = {}) {
   return fetchAgentRoute(`/chat/jobs/${encodeURIComponent(jobId)}/run`, {
+    method: 'POST',
+    body: {},
+    signal: options.signal,
+  });
+}
+
+export function cancelAgentJob(jobId) {
+  return fetchAgentRoute(`/chat/jobs/${encodeURIComponent(jobId)}/cancel`, {
     method: 'POST',
     body: {},
   });

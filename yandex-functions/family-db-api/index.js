@@ -936,7 +936,7 @@ async function updateAgentJobStatus(sql, jobId, body) {
   const errorMessage = body?.error == null ? current.error : String(body.error || '');
   const startedAt = body?.started_at || body?.startedAt || current.started_at || (status === 'running' ? timestamp : null);
   const finishedAt = body?.finished_at || body?.finishedAt || current.finished_at || (
-    ['completed', 'failed', 'timeout'].includes(status) ? timestamp : null
+    ['completed', 'failed', 'timeout', 'cancelled'].includes(status) ? timestamp : null
   );
 
   await sql`

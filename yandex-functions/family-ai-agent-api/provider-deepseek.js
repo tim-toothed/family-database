@@ -1,12 +1,19 @@
 'use strict';
 
 const { AGENT_TOOLS } = require('./constants');
-const { addAgentChange, addAgentEvent } = require('./family-db');
+const { addAgentChange, addAgentEvent, getAgentJob } = require('./family-db');
 const { buildInstructions } = require('./prompts');
 const { executeToolCall } = require('./tools');
 
 const DEFAULT_AGENT_TIMEOUT_MS = 540000;
 const DEFAULT_DEEPSEEK_TIMEOUT_MS = 300000;
+
+class AgentCancelledError extends Error {
+  constructor() {
+    super('Agent job was cancelled.');
+    this.name = 'AgentCancelledError';
+  }
+}
 
 function getDeepSeekApiUrl() {
   return String(process.env.DEEPSEEK_API_URL || 'https://api.deepseek.com/chat/completions').trim();
@@ -85,39 +92,47 @@ async function parseStreamingChatCompletion(response, callbacks = {}) {
   let reasoning = '';
   const toolCallsByIndex = new Map();
 
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split(/\r?\n/);
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed.startsWith('data:')) continue;
-
-      const data = trimmed.slice(5).trim();
-      if (!data || data === '[DONE]') continue;
-
-      let event;
-      try {
-        event = JSON.parse(data);
-      } catch {
-        continue;
+  try {
+    while (true) {
+      if (callbacks.shouldCancel && await callbacks.shouldCancel()) {
+        throw new AgentCancelledError();
       }
+      const { done, value } = await reader.read();
+      if (done) break;
 
-      const delta = event?.choices?.[0]?.delta || {};
-      if (typeof delta.content === 'string') {
-        content += delta.content;
-        if (callbacks.onContent) await callbacks.onContent(content);
-      }
-      if (typeof delta.reasoning_content === 'string') reasoning += delta.reasoning_content;
-      if (typeof delta.reasoning === 'string') reasoning += delta.reasoning;
-      if (Array.isArray(delta.tool_calls)) {
-        for (const toolCall of delta.tool_calls) appendToolCallDelta(toolCallsByIndex, toolCall);
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+
+        const data = trimmed.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+
+        let event;
+        try {
+          event = JSON.parse(data);
+        } catch {
+          continue;
+        }
+
+        const delta = event?.choices?.[0]?.delta || {};
+        if (typeof delta.content === 'string') {
+          content += delta.content;
+          if (callbacks.onContent) await callbacks.onContent(content);
+        }
+        if (typeof delta.reasoning_content === 'string') reasoning += delta.reasoning_content;
+        if (typeof delta.reasoning === 'string') reasoning += delta.reasoning;
+        if (Array.isArray(delta.tool_calls)) {
+          for (const toolCall of delta.tool_calls) appendToolCallDelta(toolCallsByIndex, toolCall);
+        }
       }
     }
+  } catch (error) {
+    await reader.cancel().catch(() => {});
+    throw error;
   }
 
   return {
@@ -132,7 +147,7 @@ async function parseStreamingChatCompletion(response, callbacks = {}) {
   };
 }
 
-async function createStreamingChatCompletion({ model, messages, timeoutMs, thinkingMode, onContent }) {
+async function createStreamingChatCompletion({ model, messages, timeoutMs, thinkingMode, onContent, shouldCancel }) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -158,7 +173,7 @@ async function createStreamingChatCompletion({ model, messages, timeoutMs, think
       throw new Error(`DeepSeek API returned ${response.status}: ${text.slice(0, 500)}`);
     }
 
-    return await parseStreamingChatCompletion(response, { onContent });
+    return await parseStreamingChatCompletion(response, { onContent, shouldCancel });
   } finally {
     clearTimeout(timeout);
   }
@@ -191,6 +206,21 @@ async function safeAddAgentChange(context, change) {
   } catch (error) {
     console.error('Failed to write agent change', error);
   }
+}
+
+async function isAgentJobCancelled(context) {
+  if (!context?.jobId) return false;
+  try {
+    const snapshot = await getAgentJob(context.jobId);
+    return snapshot?.job?.status === 'cancelled';
+  } catch (error) {
+    console.error('Failed to check agent cancellation', error);
+    return false;
+  }
+}
+
+async function assertNotCancelled(context) {
+  if (await isAgentJobCancelled(context)) throw new AgentCancelledError();
 }
 
 function createPartialMessageEmitter(context, round) {
@@ -231,6 +261,7 @@ async function runDeepSeekAgent({ model, messages, context }) {
   await safeAddAgentEvent(context, 'status', { status: 'running' });
 
   for (let round = 0; round < maxToolRounds; round += 1) {
+    await assertNotCancelled(context);
     const remainingMs = deadlineAt - Date.now();
     if (remainingMs < 5000) {
       const timeoutResult = {
@@ -254,9 +285,21 @@ async function runDeepSeekAgent({ model, messages, context }) {
         timeoutMs: Math.max(1000, Math.min(getDeepSeekTimeoutMs(), remainingMs - 2500)),
         thinkingMode: context?.thinkingMode,
         onContent: (content) => partialMessageEmitter.emit(content),
+        shouldCancel: () => isAgentJobCancelled(context),
       });
       await partialMessageEmitter.emit(assistantMessage.content, { force: true });
     } catch (error) {
+      if (error?.name === 'AgentCancelledError') {
+        const cancelledResult = {
+          message: 'Запрос остановлен пользователем.',
+          reasoning: lastReasoning,
+          toolCalls,
+          changes,
+          cancelled: true,
+        };
+        await safeAddAgentEvent(context, 'cancelled', { message: cancelledResult.message });
+        return cancelledResult;
+      }
       if (error?.name === 'AbortError') {
         const timeoutResult = {
           message: 'DeepSeek не успел ответить до лимита времени. Уже выполненные изменения показаны в истории; попробуйте разбить задачу на меньшие шаги.',
@@ -309,6 +352,7 @@ async function runDeepSeekAgent({ model, messages, context }) {
     }
 
     for (const toolCall of assistantToolCalls) {
+      await assertNotCancelled(context);
       const name = toolCall.function.name;
       const args = toolCall.function.arguments || '{}';
       let result;
@@ -326,6 +370,7 @@ async function runDeepSeekAgent({ model, messages, context }) {
         result: result?.error ? { error: result.error } : result?.result || result,
       });
       if (result?.change) {
+        await assertNotCancelled(context);
         changes.push(result.change);
         await safeAddAgentChange(context, result.change);
       }

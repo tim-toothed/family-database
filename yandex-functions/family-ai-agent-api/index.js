@@ -60,6 +60,7 @@ async function route(event, context) {
       if (method === 'POST' && segments[3] === 'run') {
         const snapshot = await getAgentJob(jobId);
         if (snapshot.job.status === 'completed') return jsonResponse(200, snapshot);
+        if (snapshot.job.status === 'cancelled') return jsonResponse(200, snapshot);
         await addAgentEvent(jobId, 'run_requested', {});
         await updateAgentJobStatus(jobId, { status: 'running' });
         await addAgentEvent(jobId, 'run_started', {});
@@ -70,21 +71,49 @@ async function route(event, context) {
               ? context.getRemainingTimeInMillis()
               : null,
           });
-          await updateAgentJobStatus(jobId, {
-            status: result.incomplete ? 'timeout' : 'completed',
-            final_message: result.message,
-          });
+          const latest = await getAgentJob(jobId);
+          if (latest.job.status === 'cancelled' || result.cancelled) {
+            if (latest.job.status !== 'cancelled') {
+              await updateAgentJobStatus(jobId, {
+                status: 'cancelled',
+                final_message: result.message || 'Запрос остановлен пользователем.',
+              });
+            }
+          } else {
+            await updateAgentJobStatus(jobId, {
+              status: result.incomplete ? 'timeout' : 'completed',
+              final_message: result.message,
+            });
+          }
           return jsonResponse(200, {
             ...(await getAgentJob(jobId)),
             result,
           });
         } catch (error) {
+          const latest = await getAgentJob(jobId).catch(() => null);
+          if (latest?.job?.status === 'cancelled') {
+            await addAgentEvent(jobId, 'cancelled', { message: latest.job.final_message || 'Запрос остановлен пользователем.' }).catch((eventError) => console.error(eventError));
+            return jsonResponse(200, latest);
+          }
           await updateAgentJobStatus(jobId, {
             status: 'failed',
             error: error.message,
           }).catch((statusError) => console.error(statusError));
           throw error;
         }
+      }
+
+      if (method === 'POST' && segments[3] === 'cancel') {
+        await addAgentEvent(jobId, 'cancel_requested', {});
+        const snapshot = await getAgentJob(jobId);
+        if (['completed', 'failed', 'timeout', 'cancelled'].includes(snapshot.job.status)) {
+          return jsonResponse(200, snapshot);
+        }
+        await updateAgentJobStatus(jobId, {
+          status: 'cancelled',
+          final_message: 'Запрос остановлен пользователем.',
+        });
+        return jsonResponse(200, await getAgentJob(jobId));
       }
     }
   }

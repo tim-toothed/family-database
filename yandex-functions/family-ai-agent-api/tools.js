@@ -54,6 +54,123 @@ function assertOnlyExpectedChanges(changedPaths, expectedChangedPaths) {
   }
 }
 
+const TEXT_LIST_FIELD_KEY = {
+  education: 'education_info',
+  jobs: 'job',
+  military_service: 'service_info',
+  war_participation: 'war',
+  achievements: 'achievement',
+  residences: 'residence_info',
+  sources: 'source',
+};
+
+const SCALAR_TEXT_FIELDS = new Set([
+  'class_title',
+  'religion',
+  'nationality',
+  'hobbies',
+  'character',
+  'appearance',
+  'health',
+]);
+
+function getTopLevelPaths(paths) {
+  return [...new Set(paths.map((path) => String(path || '').split('.')[0]).filter(Boolean))];
+}
+
+function looksLikeJsonMarkup(value) {
+  const text = String(value || '').trim();
+  if (!text || !['{', '['].includes(text[0])) return false;
+  try {
+    const parsed = JSON.parse(text);
+    return parsed && typeof parsed === 'object';
+  } catch {
+    return false;
+  }
+}
+
+function assertTextValue(value, path) {
+  if (typeof value !== 'string') {
+    throw new Error(`${path} must be a plain string, not nested JSON/object markup.`);
+  }
+  if (looksLikeJsonMarkup(value)) {
+    throw new Error(`${path} must be plain text, not a JSON string.`);
+  }
+}
+
+function assertPlainObjectArray(value, section) {
+  if (!Array.isArray(value)) {
+    throw new Error(`${section} must be an array.`);
+  }
+  value.forEach((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new Error(`${section}[${index}] must be an object.`);
+    }
+  });
+}
+
+function assertTextListSection(payload, section, key) {
+  if (payload[section] === undefined) return;
+  assertPlainObjectArray(payload[section], section);
+  payload[section].forEach((item, index) => {
+    const keys = Object.keys(item);
+    if (!keys.includes(key)) {
+      throw new Error(`${section}[${index}] must use ${key}, not ${keys.join(', ') || 'empty object'}.`);
+    }
+    for (const itemKey of keys) {
+      if (itemKey !== key) throw new Error(`${section}[${index}] has unsupported field ${itemKey}; expected only ${key}.`);
+    }
+    assertTextValue(item[key], `${section}[${index}].${key}`);
+  });
+}
+
+function assertOtherInfoSection(payload) {
+  if (payload.other_info === undefined) return;
+  assertPlainObjectArray(payload.other_info, 'other_info');
+  payload.other_info.forEach((item, index) => {
+    const keys = Object.keys(item);
+    for (const key of keys) {
+      if (!['label', 'text'].includes(key)) {
+        throw new Error(`other_info[${index}] has unsupported field ${key}; expected label/text.`);
+      }
+    }
+    if (!keys.includes('text')) throw new Error(`other_info[${index}] must include text.`);
+    if (item.label !== undefined) assertTextValue(item.label, `other_info[${index}].label`);
+    assertTextValue(item.text, `other_info[${index}].text`);
+  });
+}
+
+function assertMediaSection(payload) {
+  if (payload.media === undefined) return;
+  assertPlainObjectArray(payload.media, 'media');
+  payload.media.forEach((item, index) => {
+    const keys = Object.keys(item);
+    for (const key of keys) {
+      if (!['description', 'link'].includes(key)) {
+        throw new Error(`media[${index}] has unsupported field ${key}; expected description/link.`);
+      }
+      assertTextValue(item[key], `media[${index}].${key}`);
+    }
+  });
+}
+
+function assertScalarTextSection(payload, section) {
+  if (payload[section] === undefined || payload[section] === null || payload[section] === '') return;
+  assertTextValue(payload[section], section);
+}
+
+function validatePersonPayloadShape(payload, sections = Object.keys(payload || {})) {
+  const sectionSet = new Set(sections);
+  for (const [section, key] of Object.entries(TEXT_LIST_FIELD_KEY)) {
+    if (sectionSet.has(section)) assertTextListSection(payload, section, key);
+  }
+  for (const section of SCALAR_TEXT_FIELDS) {
+    if (sectionSet.has(section)) assertScalarTextSection(payload, section);
+  }
+  if (sectionSet.has('other_info')) assertOtherInfoSection(payload);
+  if (sectionSet.has('media')) assertMediaSection(payload);
+}
+
 async function toolSearchPeople(args) {
   const query = String(args.query || '').trim().toLowerCase();
   const limit = normalizeLimit(args.limit);
@@ -100,6 +217,7 @@ async function toolCreatePersonPayload(args) {
     throw new Error(`payload.id must match ${personId}.`);
   }
   payload.id = personId;
+  validatePersonPayloadShape(payload);
 
   const row = await createPerson(personId, payload);
   const afterPayload = cloneJson(row.payload || payload);
@@ -135,6 +253,7 @@ async function toolUpdatePersonPayload(args) {
   const expectedChangedPaths = normalizeChangedPaths(args.expected_changed_paths);
   const requestedChangedPaths = collectChangedPaths(beforePayload, afterPayloadInput);
   assertOnlyExpectedChanges(requestedChangedPaths, expectedChangedPaths);
+  validatePersonPayloadShape(afterPayloadInput, getTopLevelPaths(requestedChangedPaths));
 
   const row = await updatePerson(personId, afterPayloadInput);
   const afterPayload = cloneJson(row.payload || afterPayloadInput);
