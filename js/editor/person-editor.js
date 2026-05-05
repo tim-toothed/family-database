@@ -1,136 +1,27 @@
-import { FIELD_LABELS } from '../config.js';
-import { getPersonDisplayName } from '../render/person-name.js';
-import { getLifeEvent, migratePersonSchema } from '../person/model.js';
-import { getYamlLibrary, parseYaml } from '../lib/yaml.js';
-
-const NESTED_FIELD_LABELS = {
-  surname: 'Фамилия',
-  first_name: 'Имя',
-  patronymic: 'Отчество',
-  name: 'Фамилия Имя Отчество',
-  date: 'Дата',
-  day: 'День',
-  month: 'Месяц',
-  year: 'Год',
-  date_raw: 'Дата в свободной форме',
-  place: 'Место',
-  reason: 'Причина',
-  cause: 'Причина',
-  burial_place: 'Место захоронения',
-  person_id: 'Персона',
-  relation_type: 'Тип связи',
-  marriage: 'Брак',
-  divorce: 'Развод',
-  education_info: 'Информация',
-  title: 'Название',
-  job: 'Работа / деятельность',
-  jobs: 'Работа',
-  service_info: 'Запись о службе',
-  war: 'Событие / конфликт',
-  achievement: 'Достижение / награда',
-  residence_info: 'Место проживания',
-  source: 'Источник',
-  description: 'Описание',
-  link: 'Ссылка',
-  other: 'Примечание',
-  military_service: 'Военная служба',
-  war_participation: 'Участие в конфликтах и военные годы',
-  achievements: 'Достижения и награды',
-  label: 'Название подпункта',
-  text: 'Текст',
-};
+import { getLifeEvent, getPersonDisplayName, migratePersonSchema } from '../person/model.js';
+import { parseYaml } from '../lib/yaml.js';
+import { escapeHtml, isPlainObject as isObject } from '../utils/normalize.js';
+import {
+  createEmptyValue,
+  ensureEditorPathContainer,
+  extractSchemaOptions,
+  formatPersonOption,
+  getEditorFieldLabel,
+  getSchemaNode,
+  isDatePartKey,
+  isDateSchemaNode,
+  isGenericSchemaHint,
+  normalizeDatePartValue,
+  parseEditorPath,
+  resolvePersonInput,
+} from './utils.js';
 
 const RELATION_FIELD_KEYS = new Set(['person_id']);
 const ENUM_FIELD_KEYS = new Set(['relation_type', 'sex', 'reason']);
-const DATE_PART_KEYS = new Set(['day', 'month', 'year']);
 let schemaBundlePromise;
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
 
 function encodePath(path) {
   return path.join('.');
-}
-
-function parsePath(path) {
-  return String(path || '')
-    .split('.')
-    .filter(Boolean)
-    .map((part) => (/^\d+$/.test(part) ? Number(part) : part));
-}
-
-function getFieldLabel(key) {
-  return FIELD_LABELS[key] || NESTED_FIELD_LABELS[key] || key.replaceAll('_', ' ');
-}
-
-function isObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
-function isDateSchema(schemaNode) {
-  if (!isObject(schemaNode)) return false;
-  const keys = Object.keys(schemaNode);
-  return keys.length > 0 && keys.every((key) => DATE_PART_KEYS.has(key));
-}
-
-function isDatePartKey(key) {
-  return DATE_PART_KEYS.has(key);
-}
-
-function normalizeDatePartValue(key, value) {
-  const normalized = String(value ?? '').trim();
-  if (!normalized) return '';
-  const numeric = Number(normalized);
-  if (!Number.isInteger(numeric)) return normalized;
-
-  if (key === 'day' && (numeric < 1 || numeric > 31)) return normalized;
-  if (key === 'month' && (numeric < 1 || numeric > 12)) return normalized;
-  if (key === 'year' && numeric < 0) return normalized;
-  return numeric;
-}
-
-function isGenericSchemaHint(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  return !normalized || normalized === 'text';
-}
-
-function extractSchemaOptions(schemaNode) {
-  if (typeof schemaNode !== 'string') return [];
-  const match = schemaNode.match(/\(([^()]+)\)\s*$/);
-  if (!match) return [];
-  return match[1]
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function createEmptyValue(schemaNode) {
-  if (Array.isArray(schemaNode)) return [];
-  if (isObject(schemaNode)) {
-    return Object.fromEntries(
-      Object.keys(schemaNode).map((key) => [key, createEmptyValue(schemaNode[key])])
-    );
-  }
-  return '';
-}
-
-function getSchemaNode(schemaNode, path) {
-  let current = schemaNode;
-  for (const segment of path) {
-    if (Array.isArray(current)) {
-      current = current[0];
-      continue;
-    }
-    if (!isObject(current)) return undefined;
-    current = current[segment];
-  }
-  return current;
 }
 
 function isNameChangeItemPath(path) {
@@ -139,46 +30,6 @@ function isNameChangeItemPath(path) {
 
 function getEditorSectionAnchorId(key) {
   return `editor-section-${String(key || '').trim()}`;
-}
-
-function ensureContainer(target, path) {
-  let current = target;
-  for (let index = 0; index < path.length - 1; index += 1) {
-    const segment = path[index];
-    const next = path[index + 1];
-
-    if (typeof segment === 'number') {
-      if (current[segment] === undefined || current[segment] === null) {
-        current[segment] = typeof next === 'number' ? [] : {};
-      }
-      current = current[segment];
-      continue;
-    }
-
-    if (current[segment] === undefined || current[segment] === null) {
-      current[segment] = typeof next === 'number' ? [] : {};
-    }
-    current = current[segment];
-  }
-  return current;
-}
-
-function formatPersonOption(personId, peopleById) {
-  const name = peopleById?.get(personId);
-  if (!name || name === personId) return personId;
-  return `${name} [${personId}]`;
-}
-
-function resolvePersonInput(value, peopleById, optionValueToId) {
-  const normalized = String(value || '').trim();
-  if (!normalized) return '';
-  if (peopleById?.has(normalized)) return normalized;
-  if (optionValueToId?.has(normalized)) return optionValueToId.get(normalized);
-  const match = normalized.match(/\[(P\d+)\]$/i);
-  if (match && peopleById?.has(match[1].toUpperCase())) {
-    return match[1].toUpperCase();
-  }
-  return null;
 }
 
 function hydrateDraftValue(value, schemaNode, path, peopleById) {
@@ -206,7 +57,7 @@ function hydrateDraftValue(value, schemaNode, path, peopleById) {
 }
 
 function renderScalarEditor(path, key, value, schemaNode, context) {
-  const label = getFieldLabel(key);
+  const label = getEditorFieldLabel(key);
   const encodedPath = escapeHtml(encodePath(path));
   const fieldValue = value === null ? '' : escapeHtml(value ?? '');
   const rawValue = value === null ? '' : String(value ?? '');
@@ -438,7 +289,7 @@ function renderObjectEditor(schemaNode, value, path, context) {
 
         return `
           <div class="editor-subsection">
-            <div class="editor-subsection-title">${escapeHtml(getFieldLabel(key))}</div>
+            <div class="editor-subsection-title">${escapeHtml(getEditorFieldLabel(key))}</div>
             ${childContent}
           </div>
         `;
@@ -479,7 +330,7 @@ function renderEditorNode(schemaNode, value, path, key, context) {
   if (Array.isArray(schemaNode)) {
     return renderArrayEditorClean(schemaNode[0], value, path, key, context);
   }
-  if (isDateSchema(schemaNode)) {
+  if (isDateSchemaNode(schemaNode)) {
     return renderDateObjectEditor(schemaNode, value, path, context);
   }
   if (isObject(schemaNode)) {
@@ -543,7 +394,7 @@ async function loadEditorSchemaBundle() {
 function normalizeDraftValue(value, schemaNode, path, options) {
   const key = path[path.length - 1];
 
-  if (isDateSchema(schemaNode)) {
+  if (isDateSchemaNode(schemaNode)) {
     if (value === null) return null;
     const objectValue = isObject(value) ? value : {};
     const result = {};
@@ -586,20 +437,16 @@ function normalizeDraftValue(value, schemaNode, path, options) {
   return value;
 }
 
-export function normalizePersonDraft(draft, schema, options = {}) {
-  return pruneBySchema(normalizeDraftValue(draft, schema, [], options), schema) || {};
-}
-
 function validateDraftNode(value, schemaNode, path, errors, options) {
   const key = path[path.length - 1];
 
-  if (isDateSchema(schemaNode)) {
+  if (isDateSchemaNode(schemaNode)) {
     if (value === null) {
       return;
     }
 
     if (!isObject(value)) {
-      errors.push(`Поле "${getFieldLabel(key)}" должно содержать подполя day, month и year.`);
+      errors.push(`Поле "${getEditorFieldLabel(key)}" должно содержать подполя day, month и year.`);
       return;
     }
 
@@ -622,7 +469,7 @@ function validateDraftNode(value, schemaNode, path, errors, options) {
   if (RELATION_FIELD_KEYS.has(key)) {
     const raw = String(value || '').trim();
     if (raw && resolvePersonInput(raw, options.peopleById, options.optionValueToId) === null) {
-      errors.push(`Поле "${getFieldLabel(key)}" должно ссылаться на существующую персону.`);
+      errors.push(`Поле "${getEditorFieldLabel(key)}" должно ссылаться на существующую персону.`);
     }
   }
 
@@ -630,7 +477,7 @@ function validateDraftNode(value, schemaNode, path, errors, options) {
     const raw = String(value || '').trim();
     const optionsList = extractSchemaOptions(schemaNode);
     if (raw && optionsList.length && !optionsList.includes(raw)) {
-      errors.push(`Поле "${getFieldLabel(key)}" должно содержать одно из предложенных значений.`);
+      errors.push(`Поле "${getEditorFieldLabel(key)}" должно содержать одно из предложенных значений.`);
     }
   }
 
@@ -648,7 +495,7 @@ function validateDraftNode(value, schemaNode, path, errors, options) {
 }
 
 function pruneBySchema(value, schemaNode, path = []) {
-  if (isDateSchema(schemaNode)) {
+  if (isDateSchemaNode(schemaNode)) {
     if (value === null) {
       if (path.join('.') === 'death.date') return null;
       return undefined;
@@ -716,14 +563,14 @@ export function createDraftFromSchema(schema) {
   return createEmptyValue(schema);
 }
 
-function buildEditableSectionView(sectionKey, person, schema, descriptions = {}, options = {}) {
+export function renderEditablePersonSection(sectionKey, person, schema, descriptions = {}, options = {}) {
   const schemaNode = schema?.[sectionKey];
   if (schemaNode === undefined) return null;
 
   const isAlive = sectionKey === 'death' && getLifeEvent(person, 'death').isAlive;
   const isSectionCollapsed = sectionKey === 'death' && isAlive;
   const isSectionDisabled = sectionKey === 'id';
-  const sectionLabel = getFieldLabel(sectionKey);
+  const sectionLabel = getEditorFieldLabel(sectionKey);
 
   return {
     key: sectionKey,
@@ -750,39 +597,16 @@ function buildEditableSectionView(sectionKey, person, schema, descriptions = {},
   };
 }
 
-export function renderEditablePersonSection(sectionKey, person, schema, descriptions = {}, options = {}) {
-  return buildEditableSectionView(sectionKey, person, schema, descriptions, options);
-}
-
-export function buildPersonOptionEntries(dataset) {
-  const entries = Array.from(dataset.indexById.entries())
-    .map(([personId, name]) => ({
-      id: personId,
-      label: formatPersonOption(personId, dataset.indexById),
-      sortName: String(name || personId),
-      hasCustomName: Boolean(name && name !== personId),
-    }))
-    .sort((left, right) => {
-      if (left.hasCustomName !== right.hasCustomName) {
-        return left.hasCustomName ? -1 : 1;
-      }
-      return left.sortName.localeCompare(right.sortName, 'ru');
-    });
-
-  const optionValueToId = new Map(entries.map((entry) => [entry.label, entry.id]));
-  return { entries, optionValueToId };
-}
-
 export function updateDraftValue(draft, pathString, value) {
-  const path = parsePath(pathString);
+  const path = parseEditorPath(pathString);
   if (!path.length) return;
-  const container = ensureContainer(draft, path);
+  const container = ensureEditorPathContainer(draft, path);
   container[path[path.length - 1]] = value;
 }
 
 export function addDraftArrayItem(draft, schema, arrayPathString) {
-  const path = parsePath(arrayPathString);
-  const container = ensureContainer(draft, path);
+  const path = parseEditorPath(arrayPathString);
+  const container = ensureEditorPathContainer(draft, path);
   const leaf = path[path.length - 1];
   if (!Array.isArray(container[leaf])) container[leaf] = [];
   const itemSchema = getSchemaNode(schema, path);
@@ -791,10 +615,10 @@ export function addDraftArrayItem(draft, schema, arrayPathString) {
 }
 
 export function addOtherInfoEntry(draft, pathString) {
-  const path = parsePath(pathString);
+  const path = parseEditorPath(pathString);
   if (!path.length) return;
 
-  const container = ensureContainer(draft, path);
+  const container = ensureEditorPathContainer(draft, path);
   const leaf = path[path.length - 1];
   if (!Array.isArray(container[leaf])) {
     container[leaf] = isObject(container[leaf])
@@ -811,10 +635,10 @@ export function addOtherInfoEntry(draft, pathString) {
 }
 
 export function removeOtherInfoEntry(draft, pathString, entryIndex) {
-  const path = parsePath(pathString);
+  const path = parseEditorPath(pathString);
   if (!path.length) return;
 
-  const container = ensureContainer(draft, path);
+  const container = ensureEditorPathContainer(draft, path);
   const leaf = path[path.length - 1];
   if (Array.isArray(container[leaf])) {
     container[leaf].splice(Number(entryIndex), 1);
@@ -827,8 +651,8 @@ export function removeOtherInfoEntry(draft, pathString, entryIndex) {
 }
 
 export function removeDraftArrayItem(draft, arrayPathString, index) {
-  const path = parsePath(arrayPathString);
-  const container = ensureContainer(draft, path);
+  const path = parseEditorPath(arrayPathString);
+  const container = ensureEditorPathContainer(draft, path);
   const leaf = path[path.length - 1];
   if (!Array.isArray(container[leaf])) return;
   container[leaf].splice(index, 1);
@@ -840,10 +664,10 @@ export function setAliveState(draft, isAlive) {
 }
 
 export function setDivorcedState(draft, pathString, isDivorced) {
-  const path = parsePath(pathString);
+  const path = parseEditorPath(pathString);
   if (!path.length) return;
 
-  const container = ensureContainer(draft, path);
+  const container = ensureEditorPathContainer(draft, path);
   const leaf = path[path.length - 1];
 
   if (isDivorced) {
@@ -857,10 +681,10 @@ export function setDivorcedState(draft, pathString, isDivorced) {
 }
 
 export function syncNameChangeDateField(draft, reasonPathString, reasonValue) {
-  const path = parsePath(reasonPathString);
+  const path = parseEditorPath(reasonPathString);
   if (!path.length) return;
 
-  const container = ensureContainer(draft, path);
+  const container = ensureEditorPathContainer(draft, path);
   const leaf = path[path.length - 1];
   container[leaf] = reasonValue;
 
@@ -880,7 +704,7 @@ export function renderEditablePersonDetails(personId, person, schema, descriptio
 
   const title = getPersonDisplayName(person, personId);
   const sections = Object.keys(schema).map((key) => {
-    const section = buildEditableSectionView(key, person, schema, descriptions, options);
+    const section = renderEditablePersonSection(key, person, schema, descriptions, options);
     if (!section) return '';
 
     return `
@@ -909,30 +733,6 @@ export function renderEditablePersonDetails(personId, person, schema, descriptio
     title,
     subtitle: buildSubtitle(personId, person),
     html: sections.join(''),
-  };
-}
-
-export function validatePersonDraft(draft, schema, options = {}) {
-  const errors = [];
-  const normalizedDraft = normalizeDraftValue(draft, schema, [], options);
-  const normalized = pruneBySchema(normalizedDraft, schema) || {};
-
-  const idValue = String(normalized?.id || '').trim();
-  if (!idValue) errors.push('Поле "ID" обязательно для заполнения.');
-
-  const birthName = normalized?.birth_name || {};
-  const hasBirthName = ['surname', 'first_name', 'patronymic'].some((key) => String(birthName?.[key] || '').trim());
-  if (!hasBirthName) errors.push('Нужно заполнить хотя бы одно поле в блоке "Имя при рождении".');
-
-  const sexValue = String(normalized?.sex || '').trim();
-  if (!sexValue) errors.push('Поле "Пол" обязательно для заполнения.');
-
-  validateDraftNode(normalizedDraft, schema, [], errors, options);
-
-  return {
-    valid: errors.length === 0,
-    errors,
-    normalized,
   };
 }
 
@@ -984,13 +784,4 @@ export function validateEditorPersonDraft(draft, schema, options = {}) {
     errors,
     normalized,
   };
-}
-
-export function renderPersonYaml(person, schema) {
-  const normalized = pruneBySchema(person, schema);
-  return `${getYamlLibrary().dump(normalized || {}, {
-    noRefs: true,
-    lineWidth: -1,
-    sortKeys: false,
-  })}`;
 }

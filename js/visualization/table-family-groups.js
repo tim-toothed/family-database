@@ -1,48 +1,30 @@
-import { getDatasetPersonName } from '../render/person-name.js';
 import { buildFamilyColorTheme } from './family-colors.js';
 import {
   getBirthNameParts,
   getBirthYear,
+  getDatasetPersonName,
+  getExistingRelationPersonIds,
+  hasUnknownSurname,
+  isPersonIdFallbackName,
   getPersonSex,
   getRelationEntries,
 } from '../person/model.js';
-
-const PERSON_ID_NAME_RE = /^P\d{3}$/i;
-
-function normalizeText(value) {
-  return String(value ?? '').trim().toLowerCase();
-}
+import { normalizeText } from '../utils/normalize.js';
 
 function getSexLabel(person) {
   return getPersonSex(person);
 }
 
-function uniqueRelationIds(items, people) {
-  const seen = new Set();
-  const ids = [];
-
-  for (const item of items || []) {
-    const personId = item?.personId ?? item?.person_id;
-    if (!personId || personId === '???' || seen.has(personId) || !people.has(personId)) {
-      continue;
-    }
-    seen.add(personId);
-    ids.push(personId);
-  }
-
-  return ids;
-}
-
 function getChildIds(person, people) {
-  return uniqueRelationIds(getRelationEntries(person, 'children'), people);
+  return getExistingRelationPersonIds(person, 'children', people);
 }
 
 function getParentIds(person, people) {
-  return uniqueRelationIds(getRelationEntries(person, 'parents'), people);
+  return getExistingRelationPersonIds(person, 'parents', people);
 }
 
 function getSpouseIds(person, people) {
-  return uniqueRelationIds(getRelationEntries(person, 'spouses'), people);
+  return getExistingRelationPersonIds(person, 'spouses', people);
 }
 
 function compareStringsAsc(left, right) {
@@ -50,11 +32,10 @@ function compareStringsAsc(left, right) {
 }
 
 function getPersonNameTailSortBucket(personId, person, dataset) {
-  const birthName = getBirthNameParts(person);
   const displayName = getDatasetPersonName(dataset, personId, personId);
 
-  if (PERSON_ID_NAME_RE.test(String(displayName).trim())) return 2;
-  if (String(birthName.surname || '').trim().startsWith('???')) return 1;
+  if (isPersonIdFallbackName(displayName)) return 2;
+  if (hasUnknownSurname(person)) return 1;
   return 0;
 }
 

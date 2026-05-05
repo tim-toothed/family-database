@@ -2,9 +2,8 @@ import { CONFIG } from '../config.js';
 import { fetchRemotePeopleRows } from '../db/people-store.js';
 import { getRequestedDataSource, getRemoteDataSource } from '../db/source.js';
 import { buildFamilyGroups } from '../visualization/table-family-groups.js';
-import { getPersonDisplayName } from './person-name.js';
 import { buildPeopleTableData } from '../visualization/table-view.js';
-import { normalizeLoadedPerson } from '../person/model.js';
+import { getPersonDisplayName, normalizeLoadedPerson } from '../person/model.js';
 import { parseYaml } from '../lib/yaml.js';
 
 async function fetchText(path) {

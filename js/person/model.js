@@ -1,18 +1,11 @@
-function isObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
+import {
+  asArray,
+  asObject,
+  asTrimmedString,
+  isPlainObject,
+} from '../utils/normalize.js';
 
-function asObject(value) {
-  return isObject(value) ? value : {};
-}
-
-function asArray(value) {
-  return Array.isArray(value) ? value : [];
-}
-
-function asTrimmedString(value) {
-  return String(value ?? '').trim();
-}
+const PERSON_ID_NAME_RE = /^P\d{3}$/i;
 
 function hasOwnValue(value) {
   return value !== undefined && value !== null && asTrimmedString(value) !== '';
@@ -107,7 +100,7 @@ export function getDateParts(value) {
     };
   }
 
-  if (isObject(value)) {
+  if (isPlainObject(value)) {
     const normalized = normalizeDateObject(value);
     if (normalized) {
       return {
@@ -200,9 +193,47 @@ export function getPersonDisplayName(person, fallback = '') {
   return formatBirthName(person?.birth_name) || String(fallback ?? '').trim();
 }
 
+export function getDatasetPersonName(dataset, personId, fallback = null) {
+  if (!personId) return String(fallback ?? '');
+
+  return dataset?.indexById?.get(personId)
+    || getPersonDisplayName(dataset?.people?.get(personId), fallback ?? personId);
+}
+
+export function getCompactPersonDisplayName(person, fallback = '') {
+  const birthName = getBirthNameParts(person);
+  const surname = birthName.surname;
+  const firstName = birthName.firstName;
+  const patronymic = birthName.patronymic;
+
+  if (!surname || (!firstName && !patronymic)) {
+    return getPersonDisplayName(person, fallback);
+  }
+
+  const initials = [firstName, patronymic]
+    .filter(Boolean)
+    .map((value) => `${value[0]}.`)
+    .join('');
+
+  return initials ? `${surname} ${initials}` : surname;
+}
+
+export function getDatasetCompactPersonName(dataset, personId, fallback = null) {
+  if (!personId) return String(fallback ?? '');
+  return getCompactPersonDisplayName(dataset?.people?.get(personId), fallback ?? getDatasetPersonName(dataset, personId, personId));
+}
+
+export function isPersonIdFallbackName(value) {
+  return PERSON_ID_NAME_RE.test(asTrimmedString(value));
+}
+
+export function hasUnknownSurname(person) {
+  return getBirthNameParts(person).surname.startsWith('???');
+}
+
 export function migrateDateValue(value) {
   if (value === null) return null;
-  if (isObject(value)) {
+  if (isPlainObject(value)) {
     const day = normalizeNumericPart(value.day);
     const month = normalizeNumericPart(value.month);
     const year = normalizeNumericPart(value.year);
@@ -229,7 +260,7 @@ export function migrateDateValue(value) {
 }
 
 function migrateLifeEventBlock(block) {
-  if (!isObject(block)) {
+  if (!isPlainObject(block)) {
     return block;
   }
 
@@ -241,7 +272,7 @@ function migrateLifeEventBlock(block) {
 }
 
 function migrateDateEntryBlock(block, key = 'date') {
-  if (!isObject(block)) {
+  if (!isPlainObject(block)) {
     return block;
   }
 
@@ -253,7 +284,7 @@ function migrateDateEntryBlock(block, key = 'date') {
 }
 
 function migrateChildRelationBlock(block) {
-  if (!isObject(block)) {
+  if (!isPlainObject(block)) {
     return block;
   }
 
@@ -266,7 +297,7 @@ function migrateChildRelationBlock(block) {
 function migrateEventList(value, legacyDateValue, detailKey) {
   const sourceItems = Array.isArray(value)
     ? value
-    : isObject(value)
+    : isPlainObject(value)
       ? [value]
       : [];
   const migratedItems = sourceItems
@@ -318,7 +349,7 @@ function normalizeOtherInfoValue(value) {
           return entryText ? { text: entryText } : null;
         }
 
-        if (!isObject(item)) return null;
+        if (!isPlainObject(item)) return null;
         const textValue = asTrimmedString(item.text || item.value || item.content);
         const label = asTrimmedString(item.label);
         if (!textValue) return null;
@@ -330,7 +361,7 @@ function normalizeOtherInfoValue(value) {
       .filter(Boolean);
   }
 
-  if (!isObject(value)) {
+  if (!isPlainObject(value)) {
     return [];
   }
 
@@ -347,7 +378,7 @@ function normalizeOtherInfoValue(value) {
       continue;
     }
 
-    if (!isObject(rawValue)) continue;
+    if (!isPlainObject(rawValue)) continue;
     const textValue = asTrimmedString(rawValue.text || rawValue.value || rawValue.content);
     if (!textValue) continue;
     entries.push({
@@ -366,7 +397,7 @@ function normalizeOtherInfoValue(value) {
 function migrateTextEntryList(value, key, fallbackKeys = []) {
   const sourceItems = Array.isArray(value)
     ? value
-    : isObject(value)
+    : isPlainObject(value)
       ? [value]
       : [];
 
@@ -407,11 +438,11 @@ export function migratePersonSchema(payload, fallbackId = '') {
     id: asTrimmedString(object.id || fallbackId),
   };
 
-  if (isObject(migrated.birth)) {
+  if (isPlainObject(migrated.birth)) {
     migrated.birth = migrateLifeEventBlock(migrated.birth);
   }
 
-  if (isObject(migrated.death)) {
+  if (isPlainObject(migrated.death)) {
     migrated.death = migrateLifeEventBlock(migrated.death);
   }
 
@@ -548,7 +579,7 @@ function normalizeEventEntry(item, detailKey = 'other') {
 function normalizeEventList(value, legacyDateValue, detailKey) {
   const sourceItems = Array.isArray(value)
     ? value
-    : isObject(value)
+    : isPlainObject(value)
       ? [value]
       : [];
   const items = sourceItems
@@ -595,6 +626,22 @@ export function getRelationPersonIds(person, key) {
   return getRelationEntries(person, key)
     .map((entry) => entry.personId)
     .filter(Boolean);
+}
+
+export function getExistingRelationPersonIds(person, key, people) {
+  const ids = [];
+  const seen = new Set();
+
+  for (const personId of getRelationPersonIds(person, key)) {
+    if (personId === '???' || seen.has(personId) || (people && !people.has(personId))) {
+      continue;
+    }
+
+    seen.add(personId);
+    ids.push(personId);
+  }
+
+  return ids;
 }
 
 export function getPersonSex(person) {
@@ -646,7 +693,7 @@ export function getNamedTextEntries(value, options = {}) {
           };
         }
 
-        if (!isObject(item)) return null;
+        if (!isPlainObject(item)) return null;
         const text = asTrimmedString(item.text || item.value || item.content);
         if (!text) return null;
         return {
@@ -658,7 +705,7 @@ export function getNamedTextEntries(value, options = {}) {
       .filter(Boolean);
   }
 
-  if (isObject(value)) {
+  if (isPlainObject(value)) {
     return Object.entries(value)
       .map(([key, item], index) => {
         if (typeof item === 'string') {
@@ -671,7 +718,7 @@ export function getNamedTextEntries(value, options = {}) {
           };
         }
 
-        if (isObject(item)) {
+        if (isPlainObject(item)) {
           const text = asTrimmedString(item.text || item.value || item.content);
           if (!text) return null;
           return {

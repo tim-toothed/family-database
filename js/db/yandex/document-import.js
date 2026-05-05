@@ -1,20 +1,16 @@
 import { YANDEX_DB_CONFIG, YANDEX_DOC_IMPORT_CONFIG } from '../../config.js';
+import {
+  buildFunctionRouteUrl,
+  getConfiguredApiToken,
+  getConfiguredApiUrl,
+} from './http-utils.js';
 
 function getImportApiUrl() {
-  const apiUrl = String(YANDEX_DOC_IMPORT_CONFIG?.apiUrl || '').trim().replace(/\/+$/, '');
-  if (!apiUrl) {
-    throw new Error('Yandex document import API URL не настроен в js/config.js.');
-  }
-  return apiUrl;
+  return getConfiguredApiUrl(YANDEX_DOC_IMPORT_CONFIG, 'Yandex document import API URL не настроен в js/config.js.');
 }
 
 function getApiToken() {
-  return String(
-    YANDEX_DOC_IMPORT_CONFIG?.apiToken
-    || YANDEX_DB_CONFIG?.apiToken
-    || globalThis.localStorage?.getItem('family-db-api-token')
-    || ''
-  ).trim();
+  return getConfiguredApiToken([YANDEX_DOC_IMPORT_CONFIG, YANDEX_DB_CONFIG]);
 }
 
 function arrayBufferToBase64(buffer) {
@@ -30,10 +26,7 @@ function arrayBufferToBase64(buffer) {
 }
 
 async function fetchYandexDocImportApi(path, body) {
-  const normalizedPath = String(path || '').startsWith('/') ? path : `/${path}`;
-  const url = new URL(getImportApiUrl());
-  const routeUrl = new URL(normalizedPath, 'https://family-doc-import.local');
-  url.searchParams.set('route', routeUrl.pathname);
+  const url = buildFunctionRouteUrl(getImportApiUrl(), path, 'https://family-doc-import.local');
 
   const headers = {
     Accept: 'application/json',

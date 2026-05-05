@@ -19,3 +19,7 @@ export function getRequestedDataSource() {
 export function getRemoteDataSource(source = getRequestedDataSource()) {
   return source === 'yandex' ? 'yandex' : 'supabase';
 }
+
+export function getRemoteDataSourceLabel(source = getRequestedDataSource()) {
+  return getRemoteDataSource(source) === 'yandex' ? 'Yandex DB' : 'Supabase';
+}

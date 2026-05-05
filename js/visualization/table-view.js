@@ -1,8 +1,12 @@
-import { getDatasetPersonName } from '../render/person-name.js';
 import { sortFamilyGroups } from './table-family-groups.js';
-import { getBirthNameParts, getRelationEntries } from '../person/model.js';
-
-const PERSON_ID_NAME_RE = /^P\d{3}$/i;
+import {
+  getBirthNameParts,
+  getDatasetPersonName,
+  getRelationEntries,
+  hasUnknownSurname,
+  isPersonIdFallbackName,
+} from '../person/model.js';
+import { escapeHtml } from '../utils/normalize.js';
 
 const DEFAULT_ANCHOR_ID = 'P049';
 const SURNAME_CLEAN_RE = /[^A-Za-zА-Яа-яЁё-]+/g;
@@ -13,15 +17,6 @@ const TABLE_SORTS = {
   ALPHABET_ASC: 'alphabet-asc',
   ALPHABET_DESC: 'alphabet-desc',
 };
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
 
 function sanitizeSurname(surname) {
   return String(surname ?? '')
@@ -441,8 +436,8 @@ export function buildPeopleTableData(dataset, options = {}) {
       familyId: familyIdByPerson.get(personId),
       generationId: generationByPerson.get(personId) ?? null,
       fullName,
-      hasUnknownSurname: String(birthName.surname || '').trim().startsWith('???'),
-      hasIdFallbackName: PERSON_ID_NAME_RE.test(String(fullName).trim()),
+      hasUnknownSurname: hasUnknownSurname(person),
+      hasIdFallbackName: isPersonIdFallbackName(fullName),
       firstName: String(birthName.firstName || ''),
       patronymic: String(birthName.patronymic || ''),
     };

@@ -1,8 +1,9 @@
 import { requireAuth } from '../auth.js';
-import { FIELD_LABELS } from '../config.js';
 import { deleteEditablePerson, saveEditablePerson } from '../db/editor-store.js';
 import { cancelAgentJob, createAgentJob, getAgentJob, listAgentJobs, runAgentJob } from '../db/yandex/agent-client.js';
+import { getPersonFieldLabel } from '../person/labels.js';
 import { renderField } from '../render/renderers.js';
+import { escapeHtml, isPlainObject } from '../utils/normalize.js';
 import {
   AGENT_PROVIDER_OPTIONS,
   AGENT_THINKING_MODES,
@@ -42,15 +43,6 @@ const MAX_CONTEXT_MESSAGES = 3;
 const JOB_POLL_INTERVAL_MS = 5000;
 const MAX_JOB_POLL_MS = 15 * 60 * 1000;
 const RESTORED_JOB_LIMIT = 20;
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
 
 function iconSvg(name) {
   const paths = {
@@ -862,10 +854,6 @@ function initializeAgentSettings() {
   agentThinkingSelect.addEventListener('change', saveAgentSettings);
 }
 
-function isPlainObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
-}
-
 function formatRelationItem(item) {
   if (!isPlainObject(item)) return formatSectionValue(item);
   const parts = [
@@ -1053,7 +1041,7 @@ function getSectionDiffEntries(change, sectionKey) {
   const relativePaths = getRelativeChangedPaths(change, sectionKey);
 
   if (!relativePaths.length) {
-    return [{ label: FIELD_LABELS[sectionKey] || sectionKey, beforeValue: beforeSection, afterValue: afterSection }];
+    return [{ label: getPersonFieldLabel(sectionKey), beforeValue: beforeSection, afterValue: afterSection }];
   }
 
   const entries = [];
@@ -1076,11 +1064,11 @@ function getSectionDiffEntries(change, sectionKey) {
     });
   }
 
-  return entries.length ? entries : [{ label: FIELD_LABELS[sectionKey] || sectionKey, beforeValue: beforeSection, afterValue: afterSection }];
+  return entries.length ? entries : [{ label: getPersonFieldLabel(sectionKey), beforeValue: beforeSection, afterValue: afterSection }];
 }
 
 function renderChangedSectionCard(change, sectionKey) {
-  const label = FIELD_LABELS[sectionKey] || sectionKey;
+  const label = getPersonFieldLabel(sectionKey);
   const entries = getSectionDiffEntries(change, sectionKey);
 
   return `
@@ -1114,7 +1102,7 @@ function formatChangeSummary(change) {
   const paths = Array.isArray(change.changedPaths) ? change.changedPaths : [];
   const sections = [...new Set(paths.map((path) => String(path || '').split('.')[0]).filter(Boolean))];
   return sections.length
-    ? sections.map((sectionKey) => FIELD_LABELS[sectionKey] || sectionKey).join(', ')
+    ? sections.map((sectionKey) => getPersonFieldLabel(sectionKey)).join(', ')
     : 'Карточка изменена.';
 }
 

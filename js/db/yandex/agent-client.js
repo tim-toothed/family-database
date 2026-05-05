@@ -1,19 +1,15 @@
 import { YANDEX_AI_AGENT_CONFIG } from '../../config.js';
+import {
+  getConfiguredApiToken,
+  getConfiguredApiUrl,
+} from './http-utils.js';
 
 function getAgentApiUrl() {
-  const apiUrl = String(YANDEX_AI_AGENT_CONFIG?.apiUrl || '').trim().replace(/\/+$/, '');
-  if (!apiUrl) {
-    throw new Error('Yandex AI Agent API URL не настроен в js/config.js.');
-  }
-  return apiUrl;
+  return getConfiguredApiUrl(YANDEX_AI_AGENT_CONFIG, 'Yandex AI Agent API URL не настроен в js/config.js.');
 }
 
 function getAgentApiToken() {
-  return String(
-    YANDEX_AI_AGENT_CONFIG?.apiToken
-    || globalThis.localStorage?.getItem('family-ai-agent-api-token')
-    || ''
-  ).trim();
+  return getConfiguredApiToken([YANDEX_AI_AGENT_CONFIG], 'family-ai-agent-api-token');
 }
 
 async function fetchAgentRoute(route, options = {}) {

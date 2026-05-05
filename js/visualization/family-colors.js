@@ -1,3 +1,5 @@
+import { getPersonSex } from '../person/model.js';
+
 const BRANCH_BASE_PALETTE = [
   { h: 198, s: 78, l: 58 },
   { h: 186, s: 74, l: 55 },
@@ -122,17 +124,13 @@ function buildBranchBase(branchId) {
   };
 }
 
-function normalizeSex(value) {
-  return String(value ?? '').trim().toLowerCase();
-}
-
 export function pickBranchPersonId(dataset, personIds = []) {
   const ids = Array.from(new Set(personIds)).filter(Boolean);
 
-  const maleId = ids.find((personId) => normalizeSex(dataset?.people?.get(personId)?.sex) === '\u043c');
+  const maleId = ids.find((personId) => getPersonSex(dataset?.people?.get(personId)) === '\u043c');
   if (maleId) return maleId;
 
-  const femaleId = ids.find((personId) => normalizeSex(dataset?.people?.get(personId)?.sex) === '\u0436');
+  const femaleId = ids.find((personId) => getPersonSex(dataset?.people?.get(personId)) === '\u0436');
   if (femaleId) return femaleId;
 
   return ids[0] || null;

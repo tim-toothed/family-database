@@ -1,6 +1,13 @@
 import { SUPABASE_CONFIG } from '../../config.js';
 import { getSchemaClient } from './client.js';
 import { normalizeLoadedPerson } from '../../person/model.js';
+import { clonePlainValue, normalizeIdList } from '../../utils/normalize.js';
+import {
+  buildChildRelationTypeFromParent,
+  buildParentRelationTypeFromChild,
+  canonicalSiblingRelationType,
+  inferSiblingRelationType,
+} from '../../utils/person-utils.js';
 
 const { url, publishableKey, tables } = SUPABASE_CONFIG;
 
@@ -16,17 +23,9 @@ function normalizePersonPayload(personId, payload) {
   return normalizeLoadedPerson(payload, personId);
 }
 
-function normalizeText(value) {
-  return String(value || '').trim().toLowerCase();
-}
-
 function getRelationIds(person, key) {
   return Array.isArray(person?.[key])
-    ? [...new Set(
-      person[key]
-        .map((item) => String(item?.person_id || '').trim())
-        .filter(Boolean)
-    )]
+    ? normalizeIdList(person[key].map((item) => item?.person_id))
     : [];
 }
 
@@ -37,18 +36,6 @@ function collectLinkedPersonIds(person) {
     ...getRelationIds(person, 'children'),
     ...getRelationIds(person, 'spouses'),
   ];
-}
-
-function clonePlainValue(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => clonePlainValue(item));
-  }
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, nested]) => [key, clonePlainValue(nested)])
-    );
-  }
-  return value;
 }
 
 function normalizeComparableValue(value) {
@@ -69,61 +56,6 @@ function normalizeComparableValue(value) {
 
 function areEntriesEqual(left, right) {
   return JSON.stringify(normalizeComparableValue(left)) === JSON.stringify(normalizeComparableValue(right));
-}
-
-function buildChildRelationTypeFromParent(relationType) {
-  const normalized = normalizeText(relationType);
-  if (!normalized) return '';
-  if (normalized.includes('приемн')) return 'приемный';
-  if (normalized.includes('мачех') || normalized.includes('отчим')) return 'сводный';
-  if (normalized.includes('мать') || normalized.includes('отец')) return 'биологический';
-  return '';
-}
-
-function buildParentRelationTypeFromChild(childRelationType, personSex) {
-  const normalizedRelation = normalizeText(childRelationType);
-  const normalizedSex = normalizeText(personSex);
-  const isMale = normalizedSex === 'м';
-  const isFemale = normalizedSex === 'ж';
-
-  if (!isMale && !isFemale) return '';
-
-  if (normalizedRelation.includes('приемн')) {
-    return isMale ? 'приемный отец' : 'приемная мать';
-  }
-
-  if (normalizedRelation.includes('сводн')) {
-    return isMale ? 'отчим' : 'мачеха';
-  }
-
-  return isMale ? 'отец' : 'мать';
-}
-
-function canonicalSiblingRelationType(relationType) {
-  const normalized = normalizeText(relationType);
-  if (!normalized) return '';
-  if (normalized === 'биологический') return 'биологический';
-  if (normalized === 'приемный') return 'приемный';
-  if (normalized === 'сводный по отцу') return 'сводный по отцу';
-  if (normalized === 'сводный по матери') return 'сводный по матери';
-  return String(relationType || '').trim();
-}
-
-function inferSiblingRelationType(leftRelationType, rightRelationType) {
-  const left = canonicalSiblingRelationType(leftRelationType);
-  const right = canonicalSiblingRelationType(rightRelationType);
-
-  if (!left) return right;
-  if (!right) return left;
-  if (left === right) return left;
-
-  const pair = new Set([left, right]);
-  if (pair.has('биологический') && pair.has('сводный по отцу')) return 'сводный по отцу';
-  if (pair.has('биологический') && pair.has('сводный по матери')) return 'сводный по матери';
-  if (pair.has('биологический') && pair.has('приемный')) return 'приемный';
-  if (pair.has('приемный')) return 'приемный';
-
-  return '';
 }
 
 function buildArrayEntry(personId, relationType = '') {
@@ -189,9 +121,7 @@ function setReciprocalEntry(person, key, relatedPersonId, entry) {
 }
 
 async function loadYamlRowsByIds(ids) {
-  const normalizedIds = [...new Set(
-    (ids || []).map((id) => String(id || '').trim()).filter(Boolean)
-  )];
+  const normalizedIds = normalizeIdList(ids);
   if (!normalizedIds.length) return [];
 
   const schemaClient = await getSchemaClient();

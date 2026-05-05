@@ -1,27 +1,20 @@
 import { YANDEX_DB_CONFIG, YANDEX_DB_TOOLS_CONFIG } from '../../config.js';
+import {
+  buildFunctionRouteUrl,
+  getConfiguredApiToken,
+  getConfiguredApiUrl,
+} from './http-utils.js';
 
 function getToolsApiUrl() {
-  const apiUrl = String(YANDEX_DB_TOOLS_CONFIG?.apiUrl || '').trim().replace(/\/+$/, '');
-  if (!apiUrl) {
-    throw new Error('Yandex DB tools API URL не настроен в js/config.js.');
-  }
-  return apiUrl;
+  return getConfiguredApiUrl(YANDEX_DB_TOOLS_CONFIG, 'Yandex DB tools API URL не настроен в js/config.js.');
 }
 
 function getApiToken() {
-  return String(
-    YANDEX_DB_TOOLS_CONFIG?.apiToken
-    || YANDEX_DB_CONFIG?.apiToken
-    || globalThis.localStorage?.getItem('family-db-api-token')
-    || ''
-  ).trim();
+  return getConfiguredApiToken([YANDEX_DB_TOOLS_CONFIG, YANDEX_DB_CONFIG]);
 }
 
 async function fetchYandexDbToolsApi(path, body = {}) {
-  const normalizedPath = String(path || '').startsWith('/') ? path : `/${path}`;
-  const url = new URL(getToolsApiUrl());
-  const routeUrl = new URL(normalizedPath, 'https://family-db-tools.local');
-  url.searchParams.set('route', routeUrl.pathname);
+  const url = buildFunctionRouteUrl(getToolsApiUrl(), path, 'https://family-db-tools.local');
 
   const headers = {
     Accept: 'application/json',

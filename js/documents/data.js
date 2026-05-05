@@ -4,7 +4,7 @@ import {
   normalizeDocumentEntry,
 } from './config.js';
 import { cacheDocumentManifest, cacheDocumentPayload, getCachedDocumentManifest, getCachedDocumentPayload } from './cache.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml } from '../utils/normalize.js';
 import {
   fetchRemoteDocumentChunkRows,
   fetchRemoteDocumentManifestRows,

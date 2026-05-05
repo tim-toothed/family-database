@@ -1,7 +1,7 @@
 import { HEADING_SELECTOR, LINKABLE_TEXT_SKIP_SELECTOR, SELECTION_QUOTE_LIMIT } from './config.js';
 import { state, elements, getDocumentRoot } from './context.js';
 import { buildDocumentSnippet } from './deeplinks.js';
-import { normalizeWhitespace } from './utils.js';
+import { normalizeWhitespace } from '../utils/normalize.js';
 
 let selectionLinkBubbleStateTimer = 0;
 

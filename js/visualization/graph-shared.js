@@ -1,11 +1,12 @@
-import { getDatasetPersonName } from '../render/person-name.js';
 import {
   getBirthYear,
+  getDatasetPersonName,
   getDateYear,
   getLifeYears as getPersonLifeYears,
   getPersonSex,
   getRelationEntries,
 } from '../person/model.js';
+import { normalizeText } from '../utils/normalize.js';
 
 export const EDGE_COLORS = {
   parent: '#94a3b8',
@@ -44,10 +45,6 @@ export function getD3() {
   }
 
   return globalThis.d3;
-}
-
-export function normalizeText(value) {
-  return String(value ?? '').trim().toLowerCase();
 }
 
 export function getSexLabel(sex) {

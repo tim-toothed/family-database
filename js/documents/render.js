@@ -1,7 +1,7 @@
 import { ENTITY_BLOCK_SELECTOR, ENTITY_SKIP_SELECTOR, HEADING_SELECTOR } from './config.js';
 import { resetDocumentViewState, state, elements, getDocumentRoot } from './context.js';
 import { applyRequestedSelection, clearShareSelection } from './selection.js';
-import { escapeHtml, normalizeForMatch, normalizeWhitespace } from './utils.js';
+import { escapeHtml, normalizeForMatch, normalizeWhitespace } from '../utils/normalize.js';
 
 export function renderDocumentList() {
   elements.documentSelect.innerHTML = [

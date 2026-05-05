@@ -1,29 +1,20 @@
 import { YANDEX_DB_CONFIG } from '../../config.js';
+import {
+  buildFunctionRouteUrl,
+  getConfiguredApiToken,
+  getConfiguredApiUrl,
+} from './http-utils.js';
 
 function getApiUrl() {
-  const apiUrl = String(YANDEX_DB_CONFIG?.apiUrl || '').trim().replace(/\/+$/, '');
-  if (!apiUrl) {
-    throw new Error('Yandex DB API URL не настроен в js/config.js.');
-  }
-  return apiUrl;
+  return getConfiguredApiUrl(YANDEX_DB_CONFIG, 'Yandex DB API URL не настроен в js/config.js.');
 }
 
 function getApiToken() {
-  return String(
-    YANDEX_DB_CONFIG?.apiToken
-    || globalThis.localStorage?.getItem('family-db-api-token')
-    || ''
-  ).trim();
+  return getConfiguredApiToken([YANDEX_DB_CONFIG]);
 }
 
 export async function fetchYandexDbApi(path, options = {}) {
-  const normalizedPath = String(path || '').startsWith('/') ? path : `/${path}`;
-  const url = new URL(getApiUrl());
-  const routeUrl = new URL(normalizedPath, 'https://family-db.local');
-  url.searchParams.set('route', routeUrl.pathname);
-  for (const [key, value] of routeUrl.searchParams.entries()) {
-    url.searchParams.set(key, value);
-  }
+  const url = buildFunctionRouteUrl(getApiUrl(), path, 'https://family-db.local');
   const headers = {
     Accept: 'application/json',
     ...(options.body ? { 'Content-Type': 'application/json' } : {}),
