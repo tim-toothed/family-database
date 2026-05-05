@@ -27,6 +27,10 @@ function getSpouseIds(person, people) {
   return getExistingRelationPersonIds(person, 'spouses', people);
 }
 
+function getSiblingIds(person, people) {
+  return getExistingRelationPersonIds(person, 'siblings', people);
+}
+
 function compareStringsAsc(left, right) {
   return String(left ?? '').localeCompare(String(right ?? ''), 'ru');
 }
@@ -240,7 +244,7 @@ function describeUngroupedChildRelation(personId, dataset, tableData) {
 }
 
 function describeUngroupedSiblingRelation(personId, dataset, tableData) {
-  const siblingIds = uniqueRelationIds(dataset.people.get(personId)?.siblings, dataset.people)
+  const siblingIds = getSiblingIds(dataset.people.get(personId), dataset.people)
     .sort((leftId, rightId) => comparePeopleNamesAsc(leftId, rightId, dataset, tableData));
 
   if (!siblingIds.length) return null;
